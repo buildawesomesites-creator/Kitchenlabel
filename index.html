@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Phiếu Chế Biến 80mm</title>
+<base href="https://buildawesomesites-creator.github.io/Kitchenlabel/">
 <style>
   body {
-    font-family: "DejaVu Sans", "Arial Unicode MS", "Noto Sans", sans-serif;
+    font-family: "Helvetica Neue", "Noto Sans", "Roboto", "Segoe UI", Arial, sans-serif;
     width: 80mm;
-    height: 120mm;
     margin: 0;
     padding: 5px;
     font-size: 12px;
-    line-height: 1.1;
     color: #000;
   }
   .copies { font-size: 10px; margin-bottom: 2px; text-align:left; }
@@ -24,28 +23,21 @@
   table { width: 100%; border-collapse: collapse; }
   td { padding: 2px 0; vertical-align: top; font-size: 12px; }
   .code { font-size: 10px; color: #666; }
-  .qty-input {
-    width: 35px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;
-    text-align: right; margin-left: 4px;
-  }
+  .qty-input { width: 35px; font-size: 11px; text-align: right; }
   .no-print { margin-top: 6px; text-align: center; }
   button { font-size: 12px; padding: 4px 6px; margin: 2px; }
   .small-btn { font-size: 10px; padding: 1px 4px; }
   input[type="text"] {
     font-size: 12px;
     padding: 4px;
-    width: 80%;
+    width: 70%;
     border: 1px solid #ccc;
     border-radius: 4px;
   }
-  @media print {
-    @page {
-      size: 80mm 120mm;
-      margin: 0;
-    }
-    .no-print { display: none !important; }
-  }
+  @media print { .no-print { display: none !important; } }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <div class="copies">Copies 1</div>
@@ -62,8 +54,8 @@
     <thead>
       <tr style="font-weight:600;">
         <td>Món</td>
-        <td style="text-align:right; width:25mm;">ĐVT</td>
-        <td style="text-align:right; width:15mm;">SL</td>
+        <td style="text-align:right; width:20mm;">ĐVT</td>
+        <td style="text-align:right; width:12mm;">SL</td>
         <td></td>
       </tr>
     </thead>
@@ -76,20 +68,23 @@
     <datalist id="productListData"></datalist>
     <button onclick="addSelectedProduct()">Add</button>
     <button onclick="clearProducts()">Clear All</button>
-    <button onclick="triggerRawBTPrint()">Print</button>
+    <button onclick="printReceipt()">Print</button>
+    <button onclick="downloadReceipt()">Download</button>
   </div>
 
 <script>
-  let products = [{ name: "Nước suối 500 ml", code: "SP000216" }];
-  let order = [{ name: "Nước suối 500 ml", code: "SP000216", qty: 1 }];
+  const { jsPDF } = window.jspdf;
+  let products = [];
+  let order = [];
 
   async function loadProducts() {
     try {
-      const res = await fetch('products.json');
+      const res = await fetch('./products.json');
       const data = await res.json();
       if (Array.isArray(data)) products = data;
-    } catch {
-      console.log('products.json not loaded — using sample product.');
+    } catch (e) {
+      console.error('❌ Could not load products.json', e);
+      products = [{ name: "Nước suối 500 ml", code: "SP000216" }];
     }
     renderAutocomplete();
   }
@@ -105,69 +100,90 @@
   }
 
   function addSelectedProduct() {
-    const searchInput = document.getElementById('searchProduct');
-    const name = searchInput.value.trim();
+    const input = document.getElementById('searchProduct');
+    const name = input.value.trim();
     if (!name) return;
     const found = products.find(p => p.name.toLowerCase() === name.toLowerCase());
     const code = found?.code || '';
     order.push({ name, code, qty: 1 });
-    searchInput.value = '';
+    input.value = '';
     renderProducts();
   }
 
   function renderProducts() {
     const tbody = document.getElementById('productList');
     tbody.innerHTML = '';
-    order.forEach((item, idx) => {
+    order.forEach((item, i) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>
-          ${item.name}
-          ${item.code ? `<br><span class="code">(${item.code})</span>` : ''}
-        </td>
+        <td>${item.name}${item.code ? `<br><span class="code">(${item.code})</span>` : ''}</td>
         <td style="text-align:right;">${item.unit || ''}</td>
-        <td style="text-align:right;">${item.qty || 1}</td>
+        <td style="text-align:right;">${item.qty}</td>
         <td style="text-align:right;">
-          <button class="small-btn no-print" onclick="deleteProduct(${idx})">Del</button>
-          <input type="number" class="qty-input no-print" min="1" value="${item.qty || 1}" onchange="updateQty(${idx}, this.value)">
-        </td>
-      `;
+          <button class="small-btn no-print" onclick="deleteProduct(${i})">Del</button>
+          <input type="number" min="1" class="qty-input no-print" value="${item.qty}" onchange="updateQty(${i}, this.value)">
+        </td>`;
       tbody.appendChild(tr);
     });
   }
 
-  function updateQty(index, newQty) {
-    order[index].qty = parseInt(newQty) || 1;
+  function updateQty(i, v) {
+    order[i].qty = parseInt(v) || 1;
     renderProducts();
   }
 
-  function deleteProduct(index) {
-    order.splice(index, 1);
+  function deleteProduct(i) {
+    order.splice(i, 1);
     renderProducts();
   }
 
   function clearProducts() {
-    if (confirm('Are you sure you want to clear all products?')) {
+    if (confirm('Clear all products?')) {
       order = [];
       renderProducts();
     }
   }
 
-  function triggerRawBTPrint() {
-    // Hide buttons before printing
-    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+  function printReceipt() {
     window.print();
-    // Restore buttons after short delay
-    setTimeout(() => document.querySelectorAll('.no-print').forEach(el => el.style.display = ''), 1000);
+  }
+
+  function downloadReceipt() {
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 210] });
+    doc.setFont("Helvetica", "normal");
+    let y = 10;
+    doc.setFontSize(9);
+    doc.text("Copies 1", 5, y);
+    y += 6;
+    doc.setFontSize(12);
+    doc.text("CHẾ BIẾN", 40, y, { align: "center" });
+    y += 8;
+    doc.setFontSize(9);
+    doc.text("Bàn: BÀN 3", 5, y); y += 4;
+    doc.text("Phục vụ: Quỳnh Anh", 5, y); y += 4;
+    doc.text(document.getElementById('datetime').textContent, 5, y);
+    y += 4; doc.line(5, y, 75, y);
+    y += 4; doc.text("Món", 5, y); doc.text("ĐVT", 55, y); doc.text("SL", 70, y);
+    y += 3; doc.line(5, y, 75, y); y += 4;
+    order.forEach(p => {
+      doc.text(p.name, 5, y);
+      if (p.code) { y += 3; doc.text("(" + p.code + ")", 5, y); }
+      doc.text(String(p.qty), 70, y);
+      y += 5;
+    });
+    doc.line(5, y, 75, y);
+    doc.save("phieu_che_bien.pdf");
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
   }
 
   function updateDateTime() {
     const now = new Date();
-    const formatted = now.toLocaleString('vi-VN', { 
+    const f = now.toLocaleString('vi-VN', { 
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: false 
     });
-    document.getElementById('datetime').textContent = `17-84 - ${formatted}`;
+    document.getElementById('datetime').textContent = `17-84 - ${f}`;
   }
 
   setInterval(updateDateTime, 1000);
