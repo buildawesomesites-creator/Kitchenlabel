@@ -1,549 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi" translate="no">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>58mm Dynamic Kitchen Order Ticket Printer</title>
-    <!-- Load Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 
-        *** IMPORTANT ***
-        Load the product data from the NEW separate file (products_new.js) 
-        This file must be in the same directory as this HTML file.
-    -->
-    <script src="./products_new.js"></script>
-    <style>
-        /* Apply Inter font globally and ensure a clean look */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f7f7;
-        }
-
-        /* * Custom Print Styles for 58mm Thermal Paper * */
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-
-            #label-container, #label-container * {
-                visibility: visible;
-                margin: 0;
-                padding: 0;
-                color: #000 !important;
-                background-color: white !important;
-            }
-
-            #label-container {
-                /* Set the print area width to 58mm */
-                width: 58mm; 
-                max-width: 58mm;
-                font-size: 10px; 
-                line-height: 1.3;
-                position: absolute;
-                left: 0;
-                top: 0;
-            }
-
-            .no-print {
-                display: none;
-            }
-        }
-
-        /* Style for the label content on screen preview */
-        .label-preview {
-            border: 1px dashed #ccc;
-            padding: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            background-color: white;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phiếu Chế Biến 80mm</title>
+<style>
+  body {
+    font-family: "DejaVu Sans", "Arial Unicode MS", "Noto Sans", sans-serif;
+    width: 80mm;
+    height: 120mm;
+    margin: 0;
+    padding: 5px;
+    font-size: 12px;
+    line-height: 1.1;
+    color: #000;
+  }
+  .copies { font-size: 10px; margin-bottom: 2px; text-align:left; }
+  .center { text-align: center; }
+  .title { font-weight: 600; font-size: 14px; margin: 2px 0 4px 0; }
+  .info { margin: 0 0 6px 0; font-size: 11px; }
+  .info em { color: #444; font-style: normal; display:block; margin-top:4px; }
+  hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 2px 0; vertical-align: top; font-size: 12px; }
+  .code { font-size: 10px; color: #666; }
+  .qty-input {
+    width: 35px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;
+    text-align: right; margin-left: 4px;
+  }
+  .no-print { margin-top: 6px; text-align: center; }
+  button { font-size: 12px; padding: 4px 6px; margin: 2px; }
+  .small-btn { font-size: 10px; padding: 1px 4px; }
+  input[type="text"] {
+    font-size: 12px;
+    padding: 4px;
+    width: 80%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  @media print {
+    @page {
+      size: 80mm 120mm;
+      margin: 0;
+    }
+    .no-print { display: none !important; }
+  }
+</style>
 </head>
-<body class="p-4 md:p-8">
-    <div id="app" class="max-w-xl mx-auto">
-        <header class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Dynamic KOT Slip Generator (58mm)</h1>
-            <p class="text-sm text-gray-500">
-                Data loaded from your file. Search by product name or code.
-            </p>
-        </header>
+<body>
+  <div class="copies">Copies 1</div>
+  <div class="center title">CHẾ BIẾN</div>
 
-        <!-- Toast
+  <p class="info">
+    <strong>Bàn:</strong> BÀN 3<br>
+    <strong>Phục vụ:</strong> Quỳnh Anh
+    <em id="datetime"></em>
+  </p>
 
-Notification Area -->
-        <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+  <hr>
+  <table>
+    <thead>
+      <tr style="font-weight:600;">
+        <td>Món</td>
+        <td style="text-align:right; width:25mm;">ĐVT</td>
+        <td style="text-align:right; width:15mm;">SL</td>
+        <td></td>
+      </tr>
+    </thead>
+    <tbody id="productList"></tbody>
+  </table>
+  <hr>
 
-        <!-- Input Form (No Print) -->
-        <div id="input-form" class="space-y-6 p-5 bg-white rounded-xl shadow-lg no-print">
-            
-            <!-- General Order Info -->
-            <h2 class="text-xl font-semibold text-gray-800">Order Details</h2>
-            <div class="flex space-x-4">
-                <label class="block flex-1">
-                    <span class="text-sm font-medium text-gray-700">Table No. (Bàn)</span>
-                    <input type="text" id="table-number" placeholder="e.g., BÀN 3" 
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3"
-                           oninput="updateLabel()" value="BÀN 3" required>
-                </label>
-                <label class="block flex-1">
-                    <span class="text-sm font-medium text-gray-700">Server Name (Phục vụ)</span>
-                    <input type="text" id="server-name" placeholder="e.g., Quỳnh Anh" 
-                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3"
-                           oninput="updateLabel()" value="Quỳnh Anh">
-                </label>
-            </div>
-            
-            <label class="block">
-                <span class="text-sm font-medium text-gray-700">Order/Ticket ID & Time</span>
-                <input type="text" id="order-info" placeholder="e.g., 17-84 - 03/10/2025 19:44" 
-                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3"
-                       oninput="updateLabel()" value="17-84 - 03/10/2025 19:44">
-            </label>
+  <div class="no-print">
+    <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
+    <datalist id="productListData"></datalist>
+    <button onclick="addSelectedProduct()">Add</button>
+    <button onclick="clearProducts()">Clear All</button>
+    <button onclick="triggerRawBTPrint()">Print</button>
+  </div>
 
-            <!-- Item Management Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-xl font-semibold mb-3">Items in Order (Món)</h3>
-                
-                <!-- Display List of Added Items -->
-                <div id="item-list-display" class="space-y-2 mb-4">
-                    <!-- Items will be rendered here -->
-                </div>
-
-                <!-- Input Card for a New Item (now integrated with search) -->
-                <div class="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3" id="new-item-input">
-                    <h4 class="font-bold text-gray-700">Add New Item</h4>
-                    
-                    <!-- Search Input and Autocomplete Results -->
-                    <label class="block">
-                        <span class="text-xs font-medium text-gray-600">Search Item Name</span>
-                        <div class="relative">
-                            <input type="text" id="search-input" placeholder="Type to search for item (e.g., Butter Chicken)..." 
-
-class="mt-1 block w-full rounded-lg text-sm border-gray-300 p-2" 
-                                   oninput="handleSearchInput()" onblur="hideAutocomplete()" autocomplete="off">
-                            <div id="autocomplete-results" 
-                                 class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto hidden">
-                                <!-- Suggestions go here -->
-                            </div>
-                        </div>
-                        <input type="hidden" id="selected-item-data">
-                    </label>
-                    
-                    <div class="flex space-x-3">
-                        <label class="block w-1/4">
-                            <span class="text-xs font-medium text-gray-600">Qty (SL)</span>
-                            <input type="number" id="new-item-quantity" value="1" min="1" 
-                                   class="mt-1 block w-full rounded-lg text-sm border-gray-300 p-2" required>
-                        </label>
-                        <label class="block flex-1">
-                            <span class="text-xs font-medium text-gray-600">Product Code / Notes (Mã/Chú thích)</span>
-                            <input type="text" id="new-item-code" placeholder="Generated code or custom note" 
-                                   class="mt-1 block w-full rounded-lg text-sm border-gray-300 p-2">
-                        </label>
-                    </div>
-
-                    <button onclick="addItem()" id="add-item-button"
-                            class="w-full py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out text-sm">
-                        Add Item to Order
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Print Button -->
-            <button onclick="printLabel()"
-                    class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150 ease-in-out mt-6 text-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 0v-4a1 1 0 011-1h2a1 1 0 011 1v4m-6 0h6"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 12h-2V5a2 2 0 012-2h10a2 2 0 012 2v7h-2"/>
-                </svg>
-                Generate & Print KOT Slip
-            </button>
-        </div>
-
-        <!-- Label Preview Area -->
-        <div class="mt-8">
-            <h2 class="text-xl font-semibold mb-3 text-gray-800 no-print">Print Preview (58mm Mockup)</h2>
-            <div id="label-container" class="label-preview mx-auto" style="width: 58mm; max-width: 58mm;">
-                <!-- Label content will be dynamically injected here -->
-            </div>
-        </div>
-
-        <!-- Warning Message -->
-        <div id="warning-message" class="mt-6 p-4 text-sm bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded-lg no-print">
-            **Printing Tip:** In the print dialog, ensure you select **"No Margins"** or **"Minimal Margins"** and uncheck "Headers and Footers" for a clean $58\text{mm}$ output.
-        </div>
-
-    </div>
 <script>
-        // Check if PRODUCT_DATA variable exists (loaded from products_new.js)
-        if (typeof PRODUCT_DATA === 'undefined') {
-            const productData = [];
-            console.error("Error: PRODUCT_DATA not loaded. Ensure products_new.js is in the same folder.");
-        }
-        
-        // Array to hold all order items
-        let items = [];
+  let products = [{ name: "Nước suối 500 ml", code: "SP000216" }];
+  let order = [{ name: "Nước suối 500 ml", code: "SP000216", qty: 1 }];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Show toast notification for product load count
-            showToast(`${PRODUCT_DATA.length} products loaded.`);
+  async function loadProducts() {
+    try {
+      const res = await fetch('products.json');
+      const data = await res.json();
+      if (Array.isArray(data)) products = data;
+    } catch {
+      console.log('products.json not loaded — using sample product.');
+    }
+    renderAutocomplete();
+  }
 
-            // Ensure the date is up-to-date if the default value is used
-            const orderInfoInput = document.getElementById('order-info');
-            if (orderInfoInput.value === '17-84 - 03/10/2025 19:44') {
-                orderInfoInput.value = generateDefaultOrderInfo();
-            }
+  function renderAutocomplete() {
+    const datalist = document.getElementById('productListData');
+    datalist.innerHTML = '';
+    products.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      datalist.appendChild(opt);
+    });
+  }
 
-            // Add a default item based on the user's data for immediate preview
-            const defaultProduct = PRODUCT_DATA.find(p => p.name === "Water 500 ml") || PRODUCT_DATA[0];
-            items.push({ 
-                name: defaultProduct.name, 
-                code: defaultProduct.code, 
-                quantity: 1,
-                price: defaultProduct.price,
-                id: Date.now() 
-            });
+  function addSelectedProduct() {
+    const searchInput = document.getElementById('searchProduct');
+    const name = searchInput.value.trim();
+    if (!name) return;
+    const found = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    const code = found?.code || '';
+    order.push({ name, code, qty: 1 });
+    searchInput.value = '';
+    renderProducts();
+  }
 
-            renderItemList();
-            updateLabel();
-        });
-        
-        // --- Utility Functions ---
+  function renderProducts() {
+    const tbody = document.getElementById('productList');
+    tbody.innerHTML = '';
+    order.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          ${item.name}
+          ${item.code ? `<br><span class="code">(${item.code})</span>` : ''}
+        </td>
+        <td style="text-align:right;">${item.unit || ''}</td>
+        <td style="text-align:right;">${item.qty || 1}</td>
+        <td style="text-align:right;">
+          <button class="small-btn no-print" onclick="deleteProduct(${idx})">Del</button>
+          <input type="number" class="qty-input no-print" min="1" value="${item.qty || 1}" onchange="updateQty(${idx}, this.value)">
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-        /**
-         * Formats a number to Vietnamese Dong (VND) style.
-         * @param {number} number 
-         * @returns {string}
-         */
-        function formatVND(number) {
-            return number.toLocaleString('vi-VN') + ' ₫';
-        }
+  function updateQty(index, newQty) {
+    order[index].qty = parseInt(newQty) || 1;
+    renderProducts();
+  }
 
-        /**
-         * Shows a temporary toast notification on the screen.
-         * @param {string} message 
-         */
-        function showToast(message) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            toast.className = 'p-3 mb-2 bg-blue-500 text-white rounded-lg shadow-xl opacity-0 transition-opacity duration-300';
-            toast.textContent = message;
+  function deleteProduct(index) {
+    order.splice(index, 1);
+    renderProducts();
+  }
 
-            container.appendChild(toast);
+  function clearProducts() {
+    if (confirm('Are you sure you want to clear all products?')) {
+      order = [];
+      renderProducts();
+    }
+  }
 
-            // Fade in
-            setTimeout(() => toast.classList.remove('opacity-0'), 100);
+  function triggerRawBTPrint() {
+    // Hide buttons before printing
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+    window.print();
+    // Restore buttons after short delay
+    setTimeout(() => document.querySelectorAll('.no-print').forEach(el => el.style.display = ''), 1000);
+  }
 
-            // Fade out and remove after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                setTimeout(() => container.removeChild(toast), 300);
-            }, 3000);
-        }
+  function updateDateTime() {
+    const now = new Date();
+    const formatted = now.toLocaleString('vi-VN', { 
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false 
+    });
+    document.getElementById('datetime').textContent = `17-84 - ${formatted}`;
+  }
 
-        /**
-         * Generates a default timestamp/order ID string.
-         */
-        function generateDefaultOrderInfo() {
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-            const ticketId = Math.floor(Math.random() * 90) + 10; 
-            const orderId = Math.floor(Math.random() * 900) + 100;
-            return `${ticketId}-${orderId} - ${day}/${month}/${year} ${time}`;
-        }
-
-        /**
-         * Utility to flash a button with an error message.
-         */
-        function flashButton(button, message, errorClass, successClass) {
-            const originalText = button.innerHTML;
-            button.innerHTML = message;
-            button.classList.remove(successClass, `hover:${successClass.replace('bg-', 'hover:bg-')}`);
-            button.classList.add(errorClass, `hover:${errorClass.replace('bg-', 'hover:bg-')}`);
-            
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.classList.remove(errorClass, `hover:${errorClass.replace('bg-', 'hover:bg-')}`);
-                button.classList.add(successClass, `hover:${successClass.replace('bg-', 'hover:bg-')}`);
-            }, 2000);
-        }
-
-        // --- Autocomplete Logic ---
-
-        /**
-         * Handles input in the search bar, filtering products and showing suggestions.
-         */
-        function handleSearchInput() {
-            const input = document.getElementById('search-input');
-            const resultsContainer = document.getElementById('autocomplete-results');
-            const query = input.value.trim().toLowerCase();
-            resultsContainer.innerHTML = '';
-
-            // Clear previous selection if the text changes
-            document.getElementById('selected-item-data').value = ''; 
-            
-            if (query.length < 2) {
-                resultsContainer.classList.add('hidden');
-                return;
-            }
-
-            // Filter products: show only the first 10 matches
-            const filteredProducts = PRODUCT_DATA.filter(product => 
-                product.name.toLowerCase().includes(query) || product.code.toLowerCase().includes(query)
-            ).slice(0, 10);
-
-            if (filteredProducts.length === 0) {
-                resultsContainer.innerHTML = '<div class="p-2 text-gray-500 text-sm italic">No items found.</div>';
-                resultsContainer.classList.remove('hidden');
-                return;
-            }
-
-            // Create list items for suggestions
-            filteredProducts.forEach(product => {
-                const item = document.createElement('div');
-                item.className = 'p-2 cursor-pointer hover:bg-blue-100 text-gray-800 text-sm border-b border-gray-100';
-                item.innerHTML = `<span class="font-semibold">${product.name}</span> 
-                                  <span class="text-xs text-gray-500">${product.code}</span>
-
-<span class="text-xs text-green-600 float-right">${formatVND(product.price)}</span>`;
-                
-                item.addEventListener('mousedown', (e) => { 
-                    e.preventDefault();
-                    selectProduct(product); 
-                });
-                
-                resultsContainer.appendChild(item);
-            });
-
-            resultsContainer.classList.remove('hidden');
-        }
-
-        /**
-         * Hides the autocomplete results (called on input blur).
-         */
-        function hideAutocomplete() {
-            // Delay hiding slightly to allow mousedown event on result to register
-            setTimeout(() => {
-                document.getElementById('autocomplete-results').classList.add('hidden');
-            }, 200);
-        }
-
-        /**
-         * Selects a product, populating the 'Add New Item' inputs.
-         * @param {object} product 
-         */
-        function selectProduct(product) {
-            document.getElementById('search-input').value = product.name;
-            // Store the full product object as a JSON string
-            document.getElementById('selected-item-data').value = JSON.stringify(product); 
-            document.getElementById('new-item-code').value = product.code;
-            document.getElementById('autocomplete-results').classList.add('hidden');
-            document.getElementById('new-item-quantity').focus(); // Ready for quantity input
-        }
-
-        // --- Item Management Logic ---
-
-        /**
-         * Adds the currently configured item to the order array.
-         */
-        function addItem() {
-            const nameInput = document.getElementById('search-input');
-            const selectedDataInput = document.getElementById('selected-item-data');
-            const qtyInput = document.getElementById('new-item-quantity');
-            const codeInput = document.getElementById('new-item-code');
-
-            const name = nameInput.value.trim();
-            const quantity = parseInt(qtyInput.value, 10);
-            const customCode = codeInput.value.trim();
-
-            if (!name || isNaN(quantity) || quantity <= 0) {
-                flashButton(document.getElementById('add-item-button'), 'Item Name and Quantity are required!', 'bg-red-500', 'bg-blue-500');
-                return;
-            }
-            
-            let itemData = { 
-                name: name,
-                code: customCode,
-                quantity: quantity,
-                price: 0, // Default price for custom items
-                id: Date.now() 
-            };
-
-            // Check if a product was selected from the list (predefined item)
-            if (selectedDataInput.value) {
-                const selectedProduct = JSON.parse(selectedDataInput.value);
-                itemData.name = selectedProduct.name;
-                itemData.code = selectedProduct.code;
-                itemData.price = selectedProduct.price;
-            } else {
-                 // For custom item, generate a placeholder code if none provided
-                 if (!customCode) {
-                    itemData.code = `(CUSTOM-${Math.floor(Math.random() * 9999) + 1000})`;
-                 }
-            }
-
-items.push(itemData);
-
-            // Clear input fields for the next item
-            nameInput.value = '';
-            selectedDataInput.value = '';
-            qtyInput.value = '1';
-            codeInput.value = '';
-
-            // Update UI
-            renderItemList();
-            updateLabel();
-            
-            // Focus on search for quick entry
-            nameInput.focus();
-        }
-
-        /**
-         * Removes an item from the list by its ID.
-         * @param {number} itemId - The unique ID of the item to remove.
-         */
-        function removeItem(itemId) {
-            items = items.filter(item => item.id !== itemId);
-            renderItemList();
-            updateLabel();
-        }
-
-        /**
-         * Renders the list of current items in the input form section.
-         */
-        function renderItemList() {
-            const listContainer = document.getElementById('item-list-display');
-            listContainer.innerHTML = '';
-
-            if (items.length === 0) {
-                listContainer.innerHTML = '<p class="text-gray-500 italic text-sm">No items added yet. Search and add an item below.</p>';
-                return;
-            }
-
-            items.forEach(item => {
-                const itemElement = document.createElement('div');
-                itemElement.className = 'flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm';
-                
-                const itemCodeHtml = item.code ? `<span class="text-xs text-gray-500">${item.code}</span>` : '';
-                const priceHtml = item.price > 0 ? `<span class="text-xs font-semibold text-green-600">${formatVND(item.price)}</span>` : '';
-
-                
-                itemElement.innerHTML = `
-                    <div class="flex-1 min-w-0">
-                        <div class="font-semibold text-gray-800 truncate">${item.quantity} x ${item.name}</div>
-                        <div class="flex items-center space-x-2">
-                           ${itemCodeHtml}
-                           ${priceHtml}
-                        </div>
-                    </div>
-                    <button onclick="removeItem(${item.id})"
-                            class="ml-3 p-1 text-red-500 hover:text-red-700 transition duration-150" title="Remove Item">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3m-3 0h10" />
-                        </svg>
-                    </button>
-                `;
-                listContainer.appendChild(itemElement);
-            });
-        }
-        
-        /**
-         * Generates the HTML for all items in the KOT slip.
-         */
-        function renderKOTItems() {
-            if (items.length === 0) {
-                return `<div class="text-center italic text-xs pt-2">-- No items --</div>`;
-            }
-
-            // KOT Header - Món (Item) - DVT (Unit) - SL (Quantity)
-            let itemHtml = `
-                <div class="flex justify-between text-xs font-bold mb-1">
-                    <span class="w-2/3 text-left">Món</span>
-                    <span class="w-1/3 text-right">SL</span>
-                </div>
-                <hr style="border-top: 1px dashed black; margin: 2px 0;">
-            `;
-
-            // Add each item
-            items.forEach(item => {
-                const itemCode = item.code ? `<div class="text-[9px] font-mono opacity-80">${item.code}</div>` : '';
-                itemHtml += `
-                    <div class="flex justify-between items-start pt-1 pb-1">
-                        <div class="w-2/3 text-left leading-tight">
-                            <span class="font-semibold text-sm">${item.name}</span>
-                            ${itemCode}
-                        </div>
-                        <div class="w-1/3 text-right font-bold text-sm">
-                            ${item.quantity}
-                        </div>
-                    </div>
-                `;
-            });
-
-            // End with a divider
-            itemHtml += `<hr style="border-top: 1px solid black; margin: 4px 0;">`;
-            
-            return itemHtml;
-        }
-
-
-        /**
-         * Updates the content of the print preview label based on form inputs and the items array.
-         */
-        function updateLabel() {
-            const serverName = document.getElementById('server-name').value.trim() || 'Staff';
-            const tableNumber = document.getElementById('table-number').value.trim() || 'TABLE N/A';
-            const orderInfo = document.getElementById('order-info').value.trim() || generateDefaultOrderInfo();
-
-            // Construct the KOT Header
-            const headerContent = `
-                <div class="text-xs text-left mb-1">Copies 1</div>
-
-                <div class="text-center font-extrabold text-lg leading-none pt-1 mb-2">
-                    CHẾ BIẾN
-                </div>
-                
-                <div class="text-xs text-left mb-1">
-                    <span class="font-bold">Bàn:</span> ${tableNumber}
-                </div>
-                <div class="text-xs text-left mb-1">
-                    <span class="font-bold">Phục vụ:</span> ${serverName}
-                </div>
-                <div class="text-xs text-left mb-2">
-                    ${orderInfo}
-                </div>
-            `;
-            
-            // Get all items content
-            const itemsContent = renderKOTItems();
-
-            // Final Assembly
-            const labelContent = `
-                ${headerContent}
-                ${itemsContent}
-                <div class="text-center pt-2 pb-1 text-xs opacity-70">
-                    -- End of Order --
-                </div>
-            `;
-
-            document.getElementById('label-container').innerHTML = labelContent;
-        }
-
-        /**
-         * Triggers the browser print dialog.
-         */
-        function printLabel() {
-            if (items.length === 0) {
-                flashButton(document.querySelector('button.bg-green-600'), 'Please add at least one item!', 'bg-red-500', 'bg-green-600');
-                return;
-            }
-
-            updateLabel();
-            window.print();
-        }
-    </script>
+  setInterval(updateDateTime, 1000);
+  loadProducts().then(() => { renderProducts(); updateDateTime(); });
+</script>
 </body>
 </html>
