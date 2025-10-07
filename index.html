@@ -1,39 +1,98 @@
 <!DOCTYPE html>
 <html lang="vi" translate="no">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff7a00">
 <meta name="google" content="notranslate">
 <title>Kitchenlabel</title>
-<meta name="theme-color" content="#ff6600">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- ✅ Manifest (embedded inline for full offline) -->
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href=data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><rect rx='64' width='512' height='512' fill='#ff6600'/><text x='50%' y='50%' font-family='Arial,Helvetica,sans-serif' font-size='44' fill='#ffffff' font-weight='700' text-anchor='middle' dominant-baseline='middle'>Kitchenlabel</text></svg>>
-<link rel="apple-touch-icon" href=data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><rect rx='64' width='512' height='512' fill='#ff6600'/><text x='50%' y='50%' font-family='Arial,Helvetica,sans-serif' font-size='44' fill='#ffffff' font-weight='700' text-anchor='middle' dominant-baseline='middle'>Kitchenlabel</text></svg>>
+
 <style>
-  html,body{margin:0;padding:0;height:100%;width:80mm;background:#fff;color:#000;font-family:"Helvetica Neue","Noto Sans","Roboto",sans-serif;overflow:hidden;}
-  body{display:flex;flex-direction:column;min-height:100%;box-sizing:border-box;}
-  .content{flex:1;padding:5px;display:flex;flex-direction:column;}
-  .copies{font-size:10px;margin-bottom:2px;text-align:left;}
-  .center{text-align:center;}
-  .title{font-weight:600;font-size:14px;margin:2px 0 4px 0;letter-spacing:0.4px;}
-  .info{margin:0 0 6px 0;font-size:11px;}
-  hr{border:none;border-top:1px solid #000;margin:4px 0;}
-  table{width:100%;border-collapse:collapse;flex-grow:1;}
-  td{padding:2px 0;vertical-align:top;font-size:12px;}
-  .no-print{margin-top:6px;text-align:center;}
-  input[type="text"]{font-size:12px;padding:4px;width:80%;border:1px solid #ccc;border-radius:4px;}
-  button{font-size:12px;padding:4px 6px;margin:2px;border:1px solid #aaa;background:#f5f5f5;border-radius:3px;}
-  #installAppBtn{background:#007bff;color:#fff;border:none;border-radius:4px;padding:6px 10px;}
-  @media print{.no-print{display:none!important} body{margin:0;padding:0;width:80mm;}}
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 80mm;
+    background: #fff;
+    color: #000;
+    font-family: "Noto Sans", "Helvetica Neue", sans-serif;
+    font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-x: hidden;
+  }
+
+  .content {
+    flex: 1;
+    padding: 6px;
+  }
+
+  .copies { font-size: 10px; margin-bottom: 2px; }
+  .center { text-align: center; }
+  .title {
+    font-weight: 600;
+    font-size: 14px;
+    margin: 2px 0 4px 0;
+    letter-spacing: 0.3px;
+    color: #ff7a00;
+  }
+
+  .info { margin: 0 0 6px 0; font-size: 11px; }
+  .info em { color: #555; font-style: normal; display: block; margin-top: 4px; }
+
+  hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
+
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 2px 0; vertical-align: top; font-size: 12px; }
+  .code { font-size: 10px; color: #666; }
+
+  .qty-input {
+    width: 32px;
+    font-size: 11px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    text-align: right;
+    margin-left: 4px;
+  }
+
+  .no-print { margin-top: 6px; text-align: center; }
+  button {
+    font-size: 12px;
+    padding: 4px 6px;
+    margin: 2px;
+    border: 1px solid #ccc;
+    background: #ff7a00;
+    color: #fff;
+    border-radius: 4px;
+  }
+  button:active { background: #e56c00; }
+
+  input[type="text"] {
+    font-size: 12px;
+    padding: 4px;
+    width: 80%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { width: 80mm; margin: 0; padding: 0; }
+  }
 </style>
+
+<!-- ✅ jsPDF for PDF downloads -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="content">
   <div class="copies">Copies 1</div>
-  <div class="center title">CHẾ BIẾN</div>
+  <div class="center title">KITCHENLABEL</div>
 
   <p class="info">
     <strong>Bàn:</strong> BÀN 3<br>
@@ -56,49 +115,119 @@
   <hr>
 
   <div class="no-print">
-    <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
+    <input type="text" id="searchProduct" placeholder="Tìm sản phẩm..." list="productListData">
     <datalist id="productListData"></datalist><br>
     <button onclick="addSelectedProduct()">Add</button>
     <button onclick="clearProducts()">Clear All</button>
     <button onclick="printReceipt()">Print</button>
     <button onclick="downloadReceipt()">Download</button>
-    <button id="installAppBtn" style="display:none;">📲 Install App</button>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const {{ jsPDF }} = window.jspdf;
-let products = [], order = [], deferredPrompt = null;
+  const { jsPDF } = window.jspdf;
+  let products = [];
+  let order = [];
 
-window.addEventListener('beforeinstallprompt', (e) => {{ e.preventDefault(); deferredPrompt = e; document.getElementById('installAppBtn').style.display='inline-block'; }});
+  async function loadProducts() {
+    try {
+      const res = await fetch('products.json');
+      const data = await res.json();
+      if (Array.isArray(data)) products = data;
+    } catch {
+      console.log('⚠️ products.json not loaded');
+    }
+    renderAutocomplete();
+  }
 
-document.getElementById('installAppBtn').addEventListener('click', async () => {{ if (!deferredPrompt) return; deferredPrompt.prompt(); const choice = await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById('installAppBtn').style.display='none'; }});
+  function renderAutocomplete() {
+    const datalist = document.getElementById('productListData');
+    datalist.innerHTML = '';
+    products.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      datalist.appendChild(opt);
+    });
+  }
 
-async function loadProducts(){{ try{{ const res = await fetch('products.json?v='+Date.now(),{{cache:'no-store'}}); const data = await res.json(); if(Array.isArray(data)) products = data; }}catch(e){{ console.log('products.json not loaded', e); products = [{{name:'Nước suối 500 ml', code:'SP000216'}}]; }} renderAutocomplete(); }}
+  function addSelectedProduct() {
+    const input = document.getElementById('searchProduct');
+    const name = input.value.trim();
+    if (!name) return;
+    const found = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    const code = found?.code || '';
+    order.push({ name, code, qty: 1 });
+    input.value = '';
+    renderProducts();
+  }
 
-function renderAutocomplete(){{ const dl = document.getElementById('productListData'); dl.innerHTML = ''; products.forEach(p => {{ const opt = document.createElement('option'); opt.value = p.name; dl.appendChild(opt); }}); }}
+  function renderProducts() {
+    const tbody = document.getElementById('productList');
+    tbody.innerHTML = '';
+    order.forEach((item, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.name}${item.code ? `<br><span class='code'>(${item.code})</span>` : ''}</td>
+        <td style="text-align:right;">${item.unit || ''}</td>
+        <td style="text-align:right;">${item.qty}</td>
+        <td style="text-align:right;">
+          <button class="small-btn no-print" onclick="deleteProduct(${i})">Del</button>
+          <input type="number" class="qty-input no-print" min="1" value="${item.qty}" onchange="updateQty(${i}, this.value)">
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
-function addSelectedProduct(){{ const v = document.getElementById('searchProduct').value.trim(); if(!v) return; const f = products.find(p => p.name.toLowerCase() === v.toLowerCase()); const code = f?.code || ''; order.push({name:v, code, qty:1}); document.getElementById('searchProduct').value = ''; renderProducts(); }}
+  function updateQty(i, val) { order[i].qty = parseInt(val) || 1; renderProducts(); }
+  function deleteProduct(i) { order.splice(i, 1); renderProducts(); }
+  function clearProducts() { if (confirm('Xóa tất cả món?')) { order = []; renderProducts(); } }
 
-function renderProducts(){{ const tbody = document.getElementById('productList'); tbody.innerHTML = ''; order.forEach((it, idx) => {{ const tr = document.createElement('tr'); tr.innerHTML = `<td>${{escapeHtml(it.name)}} ${{it.code?`<br><span class="code">(${escapeHtml(it.code)})</span>`:''}</td><td style="text-align:right;">${{it.unit||''}}</td><td style="text-align:right;">${{it.qty}}</td><td style="text-align:right;"><button class="small-btn no-print" onclick="deleteProduct(${idx})">Del</button><input type="number" class="qty-input no-print" min="1" value="${{it.qty}}" onchange="updateQty(${idx}, this.value)"></td>`; tbody.appendChild(tr); }}); }}
+  function printReceipt() {
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+    window.print();
+    setTimeout(() => document.querySelectorAll('.no-print').forEach(el => el.style.display = ''), 500);
+  }
 
-function updateQty(i, v){{ order[i].qty = parseInt(v) || 1; renderProducts(); }}
-function deleteProduct(i){{ order.splice(i, 1); renderProducts(); }}
-function clearProducts(){{ if(confirm('Clear all products?')){{ order = []; renderProducts(); }} }}
+  function downloadReceipt() {
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 210] });
+    doc.setFont("Helvetica", "normal");
+    let y = 8;
+    doc.setFontSize(9);
+    doc.text("Copies 1", 5, y); y += 5;
+    doc.setFontSize(12);
+    doc.text("KITCHENLABEL", 40, y, { align: "center" });
+    y += 7;
+    doc.setFontSize(9);
+    doc.text("Bàn: BÀN 3", 5, y); y += 4;
+    doc.text("Phục vụ: Quỳnh Anh", 5, y); y += 4;
+    doc.text(document.getElementById('datetime').textContent, 5, y); y += 4;
+    doc.line(5, y, 75, y); y += 4;
+    doc.text("Món", 5, y); doc.text("ĐVT", 60, y); doc.text("SL", 70, y);
+    y += 3; doc.line(5, y, 75, y); y += 3;
+    order.forEach(p => {
+      doc.text(p.name, 5, y);
+      if (p.code) { y += 3; doc.text("(" + p.code + ")", 5, y); }
+      doc.text(String(p.qty), 70, y); y += 5;
+    });
+    doc.line(5, y, 75, y);
+    doc.save("kitchenlabel.pdf");
+    document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
+  }
 
-function printReceipt(){{ document.querySelectorAll('.no-print').forEach(e => e.style.display = 'none'); window.print(); setTimeout(() => document.querySelectorAll('.no-print').forEach(e => e.style.display = ''), 700); }}
+  function updateDateTime() {
+    const now = new Date();
+    const formatted = now.toLocaleString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    document.getElementById('datetime').textContent = formatted;
+  }
 
-function downloadReceipt(){{ document.querySelectorAll('.no-print').forEach(e => e.style.display = 'none'); const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[80,210]}); doc.setFont('Helvetica','normal'); let y = 8; doc.setFontSize(9); doc.text('Copies 1', 5, y); y += 5; doc.setFontSize(12); doc.text('CHẾ BIẾN', 40, y, {{align:'center'}}); y += 7; doc.setFontSize(9); doc.text('Bàn: BÀN 3', 5, y); y += 4; doc.text('Phục vụ: Quỳnh Anh', 5, y); y += 4; doc.text(document.getElementById('datetime').textContent, 5, y); y += 4; doc.line(5, y, 75, y); y += 4; order.forEach(p => {{ doc.text(p.name, 5, y); if(p.code){{ y += 3; doc.text('(' + p.code + ')', 5, y); }} doc.text(String(p.qty), 70, y); y += 5; }}); doc.line(5, y, 75, y); doc.save('kitchenlabel.pdf'); document.querySelectorAll('.no-print').forEach(e => e.style.display = ''); }}
-
-function escapeHtml(s){{ return String(s).replace(/[&<>"]/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[c])); }}
-function updateDateTime(){{ const n = new Date(); const f = n.toLocaleString('vi-VN', {{day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false}}); document.getElementById('datetime').textContent = `17-84 - ${f}`; }}
-
-setInterval(updateDateTime, 1000);
-loadProducts().then(() => {{ renderProducts(); updateDateTime(); }});
-
-// register service worker file with cache-busting
-if('serviceWorker' in navigator){{ navigator.serviceWorker.register('service-worker.js?v=' + Date.now()).then(()=>console.log('SW registered')).catch(e=>console.warn('SW fail', e)); }}
+  // Register SW
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js');
+  setInterval(updateDateTime, 1000);
+  loadProducts().then(() => { renderProducts(); updateDateTime(); });
 </script>
 </body>
 </html>
