@@ -20,9 +20,7 @@
       font-size: 22px;
       font-weight: 600;
     }
-    .container {
-      padding: 10px;
-    }
+    .container { padding: 10px; }
     .card {
       background: #fff;
       border-radius: 12px;
@@ -30,60 +28,30 @@
       padding: 15px;
       margin-bottom: 15px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    table th, table td {
-      padding: 6px;
-      text-align: left;
-    }
-    table th {
-      border-bottom: 1px solid #ddd;
-    }
-    .controls {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
+    table { width: 100%; border-collapse: collapse; }
+    table th, table td { padding: 6px; text-align: left; }
+    table th { border-bottom: 1px solid #ddd; }
+    .controls { display: flex; gap: 8px; margin-top: 10px; }
     .controls button {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
+      flex: 1; padding: 10px; border: none; border-radius: 8px;
+      color: white; font-size: 16px; font-weight: bold;
     }
     .controls .print { background: #ff7a00; }
     .controls .download { background: #555; }
     .controls .clear { background: #e74c3c; }
     input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      font-size: 15px;
+      width: 100%; padding: 8px; border: 1px solid #ddd;
+      border-radius: 8px; margin-bottom: 8px; font-size: 15px;
     }
     .item-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px solid #eee;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid #eee;
     }
     .item-row button {
-      background: #ff7a00;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 16px;
+      background: #ff7a00; color: white; border: none;
+      border-radius: 6px; padding: 4px 10px; font-size: 16px;
     }
-    .item-row .del {
-      background: #e74c3c;
-    }
+    .item-row .del { background: #e74c3c; }
   </style>
 </head>
 <body>
@@ -124,118 +92,131 @@
     </div>
   </div>
 
-  <script>
-    let products = [];
-    let order = [];
+<script>
+let products = [];
+let order = [
+  { name: "Water 500ml", dvt: "Chai", qty: 1 }
+];
 
-    async function loadProducts() {
-      try {
-        const res = await fetch("./products.json?v=" + Date.now());
-        products = await res.json();
-      } catch (err) {
-        console.warn("Không thể tải products.json, dùng danh sách tạm.");
-        products = [
-          { name: "Water 500ml", dvt: "Chai" }
-        ];
-      }
-      const datalist = document.getElementById("productList");
-      datalist.innerHTML = "";
-      products.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p.name;
-        datalist.appendChild(opt);
-      });
-    }
+// ✅ Load products.json
+async function loadProducts() {
+  try {
+    const res = await fetch("./products.json?v=" + Date.now());
+    products = await res.json();
+  } catch (err) {
+    console.warn("Không thể tải products.json, dùng danh sách tạm.");
+    products = [
+      { name: "Water 500ml", dvt: "Chai" },
+      { name: "Coca Cola", dvt: "Lon" },
+      { name: "Bánh Mì", dvt: "Cái" }
+    ];
+  }
+  const datalist = document.getElementById("productList");
+  datalist.innerHTML = "";
+  products.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.name;
+    datalist.appendChild(opt);
+  });
+}
 
-    function randomCode() {
-      return "HL" + Math.random().toString(36).substr(2,8).toUpperCase();
-    }
+function randomCode() {
+  return "HL" + Math.random().toString(36).substr(2,8).toUpperCase();
+}
 
-    function renderPreview() {
-      const tableVal = document.getElementById("tableInput").value || "";
-      const serverVal = document.getElementById("serverInput").value || "";
-      document.getElementById("previewTable").textContent = tableVal;
-      document.getElementById("previewServer").textContent = serverVal;
-      document.getElementById("previewCode").textContent =
-        randomCode() + " - " + new Date().toLocaleString("vi-VN");
+function renderPreview() {
+  const tableVal = document.getElementById("tableInput").value || "";
+  const serverVal = document.getElementById("serverInput").value || "";
+  document.getElementById("previewTable").textContent = tableVal;
+  document.getElementById("previewServer").textContent = serverVal;
 
-      const tbody = document.getElementById("previewItems");
-      tbody.innerHTML = order.map((item) =>
-        `<tr><td>${item.name}</td><td>${item.dvt || ""}</td><td>${item.qty}</td></tr>`
-      ).join("");
+  const code = randomCode();
+  document.getElementById("previewCode").textContent =
+    code + " - " + new Date().toLocaleString("vi-VN");
 
-      const list = document.getElementById("itemList");
-      list.innerHTML = order.map((item, i) => `
-        <div class="item-row">
-          <span>${item.name}</span>
-          <div>
-            <button onclick="dec(${i})">-</button>
-            <span>${item.qty}</span>
-            <button onclick="inc(${i})">+</button>
-            <button class="del" onclick="del(${i})">Del</button>
-          </div>
-        </div>
-      `).join("");
-    }
+  const tbody = document.getElementById("previewItems");
+  tbody.innerHTML = order.map((item, i) =>
+    `<tr><td>${item.name}</td><td>${item.dvt || ""}</td><td>${item.qty}</td></tr>`
+  ).join("");
 
-    function addItem() {
-      const name = document.getElementById("searchInput").value.trim();
-      if (!name) return;
-      const existing = order.find(i => i.name === name);
-      if (existing) {
-        existing.qty++;
-      } else {
-        const match = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-        order.push({
-          name,
-          dvt: match?.dvt || "",
-          qty: 1
-        });
-      }
-      document.getElementById("searchInput").value = "";
-      renderPreview();
-    }
+  const list = document.getElementById("itemList");
+  list.innerHTML = order.map((item, i) => `
+    <div class="item-row">
+      <span>${item.name}</span>
+      <div>
+        <button onclick="dec(${i})">-</button>
+        <span>${item.qty}</span>
+        <button onclick="inc(${i})">+</button>
+        <button class="del" onclick="del(${i})">Del</button>
+      </div>
+    </div>
+  `).join("");
+}
 
-    function inc(i) { order[i].qty++; renderPreview(); }
-    function dec(i) { if (order[i].qty > 1) order[i].qty--; else order.splice(i, 1); renderPreview(); }
-    function del(i) { order.splice(i, 1); renderPreview(); }
-    function clearAll() { order = []; renderPreview(); }
+function addItem() {
+  const name = document.getElementById("searchInput").value.trim();
+  if (!name) return;
+  const existing = order.find(i => i.name === name);
+  if (existing) {
+    existing.qty++;
+  } else {
+    const match = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    order.push({
+      name,
+      dvt: match?.dvt || "",
+      qty: 1
+    });
+  }
+  document.getElementById("searchInput").value = "";
+  renderPreview();
+}
 
-    function downloadData() {
-      const blob = new Blob([JSON.stringify(order, null, 2)], {type:'application/json'});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "order.json";
-      a.click();
-    }
+function inc(i) { order[i].qty++; renderPreview(); }
+function dec(i) { if (order[i].qty > 1) order[i].qty--; else order.splice(i, 1); renderPreview(); }
+function del(i) { order.splice(i, 1); renderPreview(); }
+function clearAll() { order = []; renderPreview(); }
 
-    async function onPrint() {
-      if (order.length === 0) { alert("Không có món nào để in!"); return; }
-      const data = {
-        table: document.getElementById("tableInput").value || "",
-        server: document.getElementById("serverInput").value || "Quynh Anh",
-        code: randomCode(),
-        timestamp: new Date().toISOString(),
-        items: order.map((item, index) => ({
-          sl: index + 1,
-          name: item.name,
-          dvt: item.dvt || "",
-          qty: item.qty
-        }))
-      };
-      localStorage.setItem("printData", JSON.stringify(data));
-      const w = window.open("print.html", "_blank");
-      if (!w) alert("⚠️ Cho phép cửa sổ bật lên để in!");
-    }
+function downloadData() {
+  const blob = new Blob([JSON.stringify(order, null, 2)], {type:'application/json'});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "order.json";
+  a.click();
+}
 
-    loadProducts();
-    // demo item
-    order = [{ name: "Water 500ml", dvt: "Chai", qty: 1 }];
-    renderPreview();
+function onPrint() {
+  if (order.length === 0) { alert("No items to print!"); return; }
+  const data = {
+    table: document.getElementById("tableInput").value || "",
+    server: document.getElementById("serverInput").value || "",
+    code: randomCode(),
+    timestamp: new Date().toISOString(),
+    items: order.map((item, index) => ({
+      sl: index + 1,
+      name: item.name,
+      dvt: item.dvt || "",
+      qty: item.qty
+    }))
+  };
+  localStorage.setItem("printData", JSON.stringify(data));
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
-  </script>
+  // ✅ Smart redirect
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    // Inside installed PWA → direct to Zywell print
+    window.location.href = "print.html";
+  } else {
+    // Browser → open print dialog page
+    window.open("print_browser.html", "_blank");
+  }
+}
+
+loadProducts();
+renderPreview();
+
+// PWA worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
 </body>
 </html>
