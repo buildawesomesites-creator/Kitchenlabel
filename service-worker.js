@@ -1,3 +1,4 @@
+
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open("kitchen-label-cache").then((cache) => {
