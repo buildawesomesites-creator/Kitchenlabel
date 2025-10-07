@@ -1,22 +1,18 @@
-const CACHE_NAME = 'kitchen-cache-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './products.json'
-];
-
-// Cache files for offline use
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open('kitchen-cache').then(cache => {
+      return cache.addAll([
+        './index.html',
+        './manifest.json',
+        './products.json',
+        './icon-192.png',
+        './icon-512.png'
+      ]);
+    })
   );
 });
-
-// Serve from cache when offline
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(response => response || fetch(e.request))
   );
 });
