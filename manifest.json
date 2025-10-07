@@ -2,7 +2,7 @@
   "name": "Phiếu Chế Biến",
   "short_name": "Chế Biến",
   "lang": "vi",
-  "start_url": "./index.html",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
