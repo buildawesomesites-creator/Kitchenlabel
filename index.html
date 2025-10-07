@@ -1,91 +1,45 @@
 <!DOCTYPE html>
 <html lang="vi" translate="no">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#ff7a00">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="google" content="notranslate">
 <title>Kitchenlabel</title>
-
-<!-- PWA manifest -->
-<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
 
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 80mm;
-    font-family: "Helvetica Neue", "Noto Sans", "Roboto", sans-serif;
-    background: #fff;
-    color: #000;
-    font-size: 12px;
+  html,body{
+    margin:0;padding:0;
+    width:80mm;
+    height:100%;
+    font-family:"Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;
+    background:#fff;color:#000;font-size:12px;
+    overflow-x:hidden;
   }
-
-  .content { padding: 5px; }
-  .copies { font-size: 10px; margin-bottom: 2px; text-align:left; }
-  .center { text-align: center; }
-  .title { font-weight: bold; font-size: 14px; color: #ff7a00; margin: 4px 0; letter-spacing: 0.3px; }
-  .info { margin: 0 0 6px 0; font-size: 11px; }
-  .info em { color: #444; font-style: normal; display:block; margin-top:4px; }
-  hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 2px 0; vertical-align: top; font-size: 12px; }
-
-  .qty-input {
-    width: 30px;
-    font-size: 11px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    text-align: right;
-    margin-left: 4px;
-  }
-
-  .no-print { margin-top: 6px; text-align: center; }
-  button {
-    font-size: 12px;
-    padding: 5px 8px;
-    margin: 3px;
-    border: 1px solid #aaa;
-    border-radius: 3px;
-    background-color: #ff7a00;
-    color: #fff;
-  }
-
-  input[type="text"] {
-    font-size: 12px;
-    padding: 4px;
-    width: 80%;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  @media print {
-    .no-print { display: none !important; }
-    body { width: 80mm; margin: 0; padding: 0; }
-  }
-
-  /* Floating Install Button */
-  #installButton {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #ff7a00;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 14px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    display: none;
-    z-index: 100;
-  }
+  body{display:flex;flex-direction:column;justify-content:flex-start;min-height:100%;}
+  .content{flex:1;padding:5px;}
+  .copies{font-size:10px;margin-bottom:2px;text-align:left;}
+  .center{text-align:center;}
+  .title{font-weight:600;font-size:14px;margin:2px 0 4px 0;}
+  .info{margin:0 0 6px 0;font-size:11px;}
+  .info em{color:#444;font-style:normal;display:block;margin-top:4px;}
+  hr{border:none;border-top:1px solid #000;margin:4px 0;}
+  table{width:100%;border-collapse:collapse;}
+  td{padding:2px 0;vertical-align:top;font-size:12px;}
+  .code{font-size:10px;color:#666;}
+  .qty-input{width:30px;font-size:11px;border:1px solid #ccc;border-radius:3px;text-align:right;margin-left:4px;}
+  .no-print{margin-top:6px;text-align:center;}
+  button{font-size:12px;padding:4px 6px;margin:2px;border:1px solid #aaa;background:#f5f5f5;border-radius:3px;}
+  .small-btn{font-size:10px;padding:1px 4px;}
+  input[type="text"]{font-size:12px;padding:4px;width:80%;border:1px solid #ccc;border-radius:4px;}
+  #installAppBtn{display:none;background:#ff7a00;color:#fff;border:none;border-radius:4px;padding:6px 10px;margin-top:5px;}
+  @media print{.no-print{display:none!important;} body{margin:0;padding:0;width:80mm;}}
 </style>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="content">
   <div class="copies">Copies 1</div>
-  <div class="center title">Kitchenlabel</div>
+  <div class="center title">CHẾ BIẾN</div>
 
   <p class="info">
     <strong>Bàn:</strong> BÀN 3<br>
@@ -94,6 +48,7 @@
   </p>
 
   <hr>
+
   <table>
     <thead>
       <tr style="font-weight:600;">
@@ -105,160 +60,73 @@
     </thead>
     <tbody id="productList"></tbody>
   </table>
+
   <hr>
 
   <div class="no-print">
     <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
     <datalist id="productListData"></datalist><br>
     <button onclick="addSelectedProduct()">Add</button>
-    <button onclick="clearProducts()">Clear</button>
+    <button onclick="clearProducts()">Clear All</button>
     <button onclick="printReceipt()">Print</button>
     <button onclick="downloadReceipt()">Download</button>
+    <br>
+    <!-- ✅ Install button (now visible when allowed) -->
+    <button id="installAppBtn">📲 Cài đặt ứng dụng</button>
   </div>
 </div>
 
-<!-- Floating Install Button -->
-<button id="installButton">📲 Install App</button>
-
 <script>
-const { jsPDF } = window.jspdf;
-let products = [];
-let order = [];
+// ✅ Basic PWA manifest (injected dynamically)
+const manifest = {
+  name: "Kitchenlabel",
+  short_name: "Kitchenlabel",
+  start_url: "./index.html",
+  scope: "./",
+  display: "standalone",
+  orientation: "portrait",
+  background_color: "#ffffff",
+  theme_color: "#ffffff",
+  icons: [
+    { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+    { src: "icon-512.png", sizes: "512x512", type: "image/png" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = URL.createObjectURL(blob);
+document.head.appendChild(link);
 
-// Load products.json
-async function loadProducts() {
-  try {
-    const res = await fetch('products.json');
-    const data = await res.json();
-    if (Array.isArray(data)) products = data;
-  } catch (e) {
-    console.log('⚠️ products.json not found, using sample');
-    products = [{ name: "Water 500ml" }];
-  }
-  renderAutocomplete();
-}
-
-function renderAutocomplete() {
-  const datalist = document.getElementById('productListData');
-  datalist.innerHTML = '';
-  products.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    datalist.appendChild(opt);
-  });
-}
-
-function addSelectedProduct() {
-  const input = document.getElementById('searchProduct');
-  const name = input.value.trim();
-  if (!name) return;
-  order.push({ name, qty: 1 });
-  input.value = '';
-  renderProducts();
-}
-
-function renderProducts() {
-  const tbody = document.getElementById('productList');
-  tbody.innerHTML = '';
-  order.forEach((item, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${item.name}</td>
-      <td style="text-align:right;"></td>
-      <td style="text-align:right;">${item.qty}</td>
-      <td style="text-align:right;">
-        <button class="no-print" onclick="deleteProduct(${idx})">Del</button>
-        <input type="number" class="qty-input no-print" min="1" value="${item.qty}" onchange="updateQty(${idx}, this.value)">
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-function updateQty(i, val) {
-  order[i].qty = parseInt(val) || 1;
-  renderProducts();
-}
-
-function deleteProduct(i) {
-  order.splice(i, 1);
-  renderProducts();
-}
-
-function clearProducts() {
-  if (confirm('Clear all products?')) {
-    order = [];
-    renderProducts();
-  }
-}
-
-function printReceipt() {
-  document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
-  window.print();
-  setTimeout(() => document.querySelectorAll('.no-print').forEach(el => el.style.display = ''), 300);
-}
-
-function downloadReceipt() {
-  document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 210] });
-  doc.setFont("Helvetica", "normal");
-  let y = 10;
-  doc.setFontSize(12);
-  doc.text("Kitchenlabel", 40, y, { align: "center" });
-  y += 10;
-  doc.setFontSize(9);
-  doc.text("Bàn: BÀN 3", 5, y);
-  y += 4;
-  doc.text("Phục vụ: Quỳnh Anh", 5, y);
-  y += 4;
-  doc.text(document.getElementById('datetime').textContent, 5, y);
-  y += 4;
-  doc.line(5, y, 75, y);
-  y += 4;
-  order.forEach((p) => {
-    doc.text(p.name, 5, y);
-    doc.text(String(p.qty), 70, y);
-    y += 5;
-  });
-  doc.save("kitchenlabel.pdf");
-  document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
-}
-
-function updateDateTime() {
-  const now = new Date();
-  const f = now.toLocaleString('vi-VN', {
-    day:'2-digit', month:'2-digit', year:'numeric',
-    hour:'2-digit', minute:'2-digit', hour12:false
-  });
-  document.getElementById('datetime').textContent = `17-84 - ${f}`;
-}
-
-// ✅ Install App Button Logic
+// ✅ Handle install prompt
 let deferredPrompt;
-const installBtn = document.getElementById('installButton');
+const installBtn = document.getElementById('installAppBtn');
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  installBtn.style.display = 'block';
+  installBtn.style.display = 'inline-block';
+  console.log('✅ beforeinstallprompt triggered');
 });
 
 installBtn.addEventListener('click', async () => {
-  installBtn.style.display = 'none';
+  if (!deferredPrompt) return;
   deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  console.log('Install outcome:', outcome);
+  const choice = await deferredPrompt.userChoice;
+  console.log('User choice:', choice.outcome);
   deferredPrompt = null;
+  installBtn.style.display = 'none';
 });
 
-// ✅ Register Service Worker
+// ✅ Register Service Worker correctly for GitHub Pages
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js')
-    .then(() => console.log('Service Worker Registered'));
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('✅ Service Worker registered'))
+    .catch(err => console.error('❌ SW registration failed:', err));
 }
-
-setInterval(updateDateTime, 1000);
-loadProducts();
-updateDateTime();
 </script>
+
+<!-- Include jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
