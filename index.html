@@ -2,167 +2,198 @@
 <html lang="vi" translate="no">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="google" content="notranslate">
+<title>Kitchenlabel</title>
 <meta name="theme-color" content="#ff7a00">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+
 <link rel="manifest" href="./manifest.json">
-<title>Kitchenlabel</title>
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100dvh;
-  background: #ffffff;
-  color: #000;
-  font-family: "Roboto","Noto Sans",sans-serif;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  overscroll-behavior: none;
-  touch-action: manipulation;
-  overflow: hidden;
-}
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", "Noto Sans", "Roboto", Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    font-size: 13px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
 
-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  box-sizing: border-box;
-  overflow: hidden;
-}
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-height: 100vh;
+    height: 100vh;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
 
-.app-container {
-  width: 100%;
-  max-width: 480px;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  padding: 10px;
-  overflow: hidden;
-}
+  /* ✅ Fullscreen layout */
+  .content {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 0 8px 80px 8px;
+    box-sizing: border-box;
+  }
 
-header {
-  text-align: center;
-  font-weight: 700;
-  font-size: 20px;
-  margin-bottom: 8px;
-}
+  .copies { font-size: 10px; margin-bottom: 2px; text-align: left; }
+  .center { text-align: center; }
+  .title { font-weight: 600; font-size: 16px; margin: 4px 0 8px 0; }
+  .info { margin: 0 0 6px 0; font-size: 12px; }
+  .info em { color: #444; font-style: normal; display: block; margin-top: 4px; }
+  hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 3px 0; vertical-align: top; font-size: 13px; }
+  .code { font-size: 10px; color: #666; }
+  .qty-input { width: 36px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; text-align: right; margin-left: 4px; }
 
-.info {
-  font-size: 14px;
-  margin-bottom: 4px;
-  text-align: left;
-}
+  /* ✅ Fixed button bar */
+  .no-print {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+  }
 
-hr {
-  border: none;
-  border-top: 1px solid #000;
-  margin: 6px 0;
-}
+  button {
+    font-size: 13px;
+    padding: 6px 10px;
+    margin: 3px;
+    border: 1px solid #aaa;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
+  #installAppBtn {
+    display: none;
+    background: #ff7a00;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 12px;
+    margin-top: 6px;
+  }
 
-td {
-  padding: 3px 0;
-  vertical-align: top;
-}
-
-.content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 10px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.content::-webkit-scrollbar {
-  display: none;
-}
-
-.controls {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-button {
-  font-size: 15px;
-  padding: 6px 12px;
-  border: none;
-  background: #ff7a00;
-  color: #fff;
-  border-radius: 6px;
-  font-weight: 600;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-button:active {
-  opacity: 0.8;
-}
+  @media print {
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 80mm;
+      height: auto;
+      overflow: visible;
+      background: #fff;
+    }
+    .content {
+      width: 80mm;
+      padding: 5px;
+      overflow: visible;
+    }
+    .no-print { display: none !important; }
+  }
 </style>
 </head>
 
 <body>
-  <div class="app-container">
+  <div class="content" id="content">
     <div class="copies">Copies 1</div>
-    <header>CHẾ BIẾN</header>
-    <div class="info"><b>Bàn:</b> BÀN 3<br><b>Phục vụ:</b> Quỳnh Anh</div>
-    <div class="info">17:84 - 15:28 07/10/2025</div>
-    <hr>
-    <table>
-      <tr><td><b>Món</b></td><td><b>ĐVT</b></td><td><b>SL</b></td></tr>
-    </table>
+    <div class="center title">CHẾ BIẾN</div>
 
-    <div class="content">
-      <input type="text" placeholder="Search product..." style="width:100%;padding:8px;font-size:15px;margin-bottom:8px;">
-      <div class="controls">
-        <button>Add</button>
-        <button>Clear All</button>
-        <button>Print</button>
-        <button>Download</button>
-      </div>
+    <div class="info">
+      <strong>Bàn:</strong> BÀN 3<br>
+      <strong>Phục vụ:</strong> Quỳnh Anh<br>
+      17-84 - 15:28 07/10/2025
     </div>
+    <hr>
+    <table id="productTable">
+      <thead>
+        <tr><td><strong>Món</strong></td><td><strong>ĐVT</strong></td><td><strong>SL</strong></td></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="no-print">
+    <input type="text" id="searchInput" placeholder="Search product..." />
+    <div>
+      <button id="addBtn">Add</button>
+      <button id="clearBtn">Clear All</button>
+      <button id="printBtn">Print</button>
+      <button id="downloadBtn">Download</button>
+    </div>
+    <button id="installAppBtn">Install App</button>
   </div>
 
   <script>
-  let deferredPrompt;
-  const installBtn = document.createElement('button');
-  installBtn.textContent = 'Install App';
-  installBtn.style.cssText = `
-    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-    background:#ff7a00;color:#fff;font-size:16px;padding:10px 20px;
-    border:none;border-radius:8px;z-index:9999;display:none;box-shadow:0 2px 5px rgba(0,0,0,0.3);
-  `;
-  document.body.appendChild(installBtn);
+    // ✅ Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log('Service Worker Registered'));
+    }
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block';
-  });
+    // ✅ Install prompt
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
 
-  installBtn.addEventListener('click', async () => {
-    installBtn.style.display = 'none';
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') console.log('User accepted install');
-    deferredPrompt = null;
-  });
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-block';
+    });
 
-  // ✅ Register Service Worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(() => console.log('Service Worker Registered'));
-  }
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          console.log('App installed');
+        }
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+
+    // ✅ Basic product logic (placeholder)
+    const tableBody = document.querySelector('#productTable tbody');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const printBtn = document.getElementById('printBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    addBtn.addEventListener('click', () => {
+      const name = searchInput.value.trim() || "New Item";
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${name}</td><td>1</td><td>1</td>`;
+      tableBody.appendChild(row);
+      searchInput.value = "";
+    });
+
+    clearBtn.addEventListener('click', () => { tableBody.innerHTML = ''; });
+    printBtn.addEventListener('click', () => window.print());
+
+    downloadBtn.addEventListener('click', () => {
+      const text = document.getElementById('content').innerText;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'receipt.txt';
+      a.click();
+    });
   </script>
 </body>
 </html>
