@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kitchen Print</title>
+<style>
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+  width: 80mm;
+}
+#receipt {
+  width: 80mm;
+  padding: 5px;
+  box-sizing: border-box;
+}
+.copies {
+  font-size: 10px;
+  text-align: left;
+}
+.header {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin: 4px 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+td, th {
+  padding: 2px 0;
+  text-align: left;
+  vertical-align: top;
+}
+thead tr {
+  border-bottom: 1px solid #000;
+}
+tbody tr {
+  border-bottom: 1px solid #000;
+}
+hr {
+  border: none;
+  border-top: 1px solid #000;
+  margin: 4px 0;
+}
+@page { size: 80mm auto; margin: 0; }
+</style>
+</head>
+<body>
+<div id="receipt"></div>
+
+<script>
+const data = JSON.parse(localStorage.getItem('printData') || '{}');
+const serviceCode = 'MPK' + Math.random().toString(36).substr(2,5).toUpperCase();
+const now = new Date();
+const formattedDate = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+
+let html = `
+  <div class="copies">Copies 1</div>
+  <div class="header">CHẾ BIẾN</div>
+  <div><b>Bàn:</b> ${data.tableNumber || ''}</div>
+  <div><b>Phục vụ:</b> ${data.serverName || ''}</div>
+  <div>${serviceCode} - ${formattedDate}</div>
+  <table>
+    <thead><tr><th>Món</th><th>ĐVT</th><th>SL</th></tr></thead>
+    <tbody>`;
+
+(data.items || []).forEach(item => {
+  html += `<tr><td>${item.name}</td><td></td><td>${item.sl}</td></tr>`;
+});
+
+html += `</tbody></table>`;
+document.getElementById('receipt').innerHTML = html;
+
+// Auto print
+window.onload = () => window.print();
+</script>
+</body>
+</html>
