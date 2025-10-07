@@ -1,7 +1,17 @@
-<!-- PWA manifest -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff6600">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kitchenlabel">
+{
+  "name": "Kitchenlabel",
+  "short_name": "Kitchenlabel",
+  "lang": "vi",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ff7a00",
+  "description": "Ứng dụng in phiếu chế biến Kitchenlabel – hoạt động offline, thân thiện, và in ấn trực tiếp.",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAYAAAA+7bOlAAAAAXNSR0IArs4c6QAA..." 
+    }
+  ]
+}
