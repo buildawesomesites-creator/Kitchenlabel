@@ -36,7 +36,10 @@
   .meta { margin: 5px 0; }
   .meta b { display: inline-block; width: 70px; }
   .copy { text-align: left; font-weight: bold; }
-  .no-print { text-align: center; margin-top: 12px; }
+  .no-print {
+    text-align: center;
+    margin-top: 12px;
+  }
   .print-btn {
     padding: 8px 16px;
     background: #ff7a00;
@@ -45,7 +48,9 @@
     border-radius: 6px;
     font-size: 16px;
   }
-  @media print { .no-print { display: none !important; } }
+  @media print {
+    .no-print { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -69,30 +74,44 @@
 
 <script>
 function fillData() {
-  const data = JSON.parse(localStorage.getItem("printData") || "{}");
-  if (!data.items) {
+  const text = localStorage.getItem("printData");
+  if (!text) {
     document.body.innerHTML = "<h3 style='text-align:center;'>No print data found.</h3>";
     return false;
   }
-
+  const data = JSON.parse(text);
   document.getElementById("tableNum").textContent = data.table || "-";
   document.getElementById("serverName").textContent = data.server || "Quynh Anh";
   document.getElementById("codeLine").textContent =
     (data.code || "HL" + Math.random().toString(36).substr(2,8).toUpperCase()) +
     " - " + new Date().toLocaleString("en-GB");
 
-  document.getElementById("itemList").innerHTML = data.items.map(i => `
+  document.getElementById("itemList").innerHTML = (data.items || []).map(i => `
     <tr>
       <td>${i.name}</td>
       <td>${i.dvt || ""}</td>
       <td>${i.qty}</td>
-    </tr>`).join("");
+    </tr>
+  `).join("");
   return true;
 }
 
 window.addEventListener("load", () => {
-  fillData();
-  document.getElementById("printBtn").addEventListener("click", () => window.print());
+  const ready = fillData();
+  if (!ready) return;
+
+  // Manual print button
+  const btn = document.getElementById("printBtn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      try { window.print(); } catch(e) { console.error(e); }
+    });
+  }
+
+  // Auto open print dialog in Chrome after short delay
+  setTimeout(() => {
+    try { window.print(); } catch(e) { console.error(e); }
+  }, 1000);
 });
 </script>
 </body>
