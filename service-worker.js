@@ -1,5 +1,5 @@
 // Kitchenlabel Service Worker
-const CACHE_NAME = 'kitchenlabel-v2.';
+const CACHE_NAME = 'kitchenlabel-v3.';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
