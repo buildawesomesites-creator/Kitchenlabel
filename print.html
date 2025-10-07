@@ -1,54 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kitchen Print</title>
+<title>Papsdumskitchenprint7</title>
 <style>
-body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 12px;
-  margin: 0;
-  padding: 0;
-  width: 80mm;
+body{font-family:"Helvetica Neue",Arial,sans-serif;margin:0;padding:6px;width:80mm;}
+.header{text-align:center;font-weight:700;font-size:18px;margin-bottom:6px;}
+.line{border-bottom:1px solid #000;margin:4px 0;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+td,th{padding:4px 0;vertical-align:top;}
+th{text-align:left;}
+th:nth-child(2),th:nth-child(3),td:nth-child(2),td:nth-child(3){text-align:right;}
+@page{size:80mm auto;margin:0;}
+@media print{
+  html,body{width:80mm;margin:0;}
 }
-#receipt {
-  width: 80mm;
-  padding: 5px;
-  box-sizing: border-box;
-}
-.copies {
-  font-size: 10px;
-  text-align: left;
-}
-.header {
-  text-align: center;
-  font-weight: bold;
-  font-size: 14px;
-  margin: 4px 0;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 4px;
-}
-td, th {
-  padding: 2px 0;
-  text-align: left;
-  vertical-align: top;
-}
-thead tr {
-  border-bottom: 1px solid #000;
-}
-tbody tr {
-  border-bottom: 1px solid #000;
-}
-hr {
-  border: none;
-  border-top: 1px solid #000;
-  margin: 4px 0;
-}
-@page { size: 80mm auto; margin: 0; }
 </style>
 </head>
 <body>
@@ -56,28 +23,37 @@ hr {
 
 <script>
 const data = JSON.parse(localStorage.getItem('printData') || '{}');
-const serviceCode = 'MPK' + Math.random().toString(36).substr(2,5).toUpperCase();
 const now = new Date();
-const formattedDate = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+const hh = String(now.getHours()).padStart(2,'0');
+const mm = String(now.getMinutes()).padStart(2,'0');
+const dd = String(now.getDate()).padStart(2,'0');
+const MM = String(now.getMonth()+1).padStart(2,'0');
+const yyyy = now.getFullYear();
+const serviceCode = `${hh}-${mm}- ${dd}/${MM}/${yyyy}`;
 
 let html = `
-  <div class="copies">Copies 1</div>
-  <div class="header">CHẾ BIẾN</div>
-  <div><b>Bàn:</b> ${data.tableNumber || ''}</div>
-  <div><b>Phục vụ:</b> ${data.serverName || ''}</div>
-  <div>${serviceCode} - ${formattedDate}</div>
-  <table>
-    <thead><tr><th>Món</th><th>ĐVT</th><th>SL</th></tr></thead>
-    <tbody>`;
+<div>Copies 1</div>
+<div class="header">CHẾ BIẾN</div>
+<div><b>Bàn:</b> ${data.tableNumber || ''}</div>
+<div><b>Phục vụ:</b> ${data.serverName || ''}</div>
+<div>${serviceCode}</div>
+<br>
+<table>
+<thead>
+<tr><th>Món</th><th>ĐVT</th><th>SL</th></tr>
+</thead>
+<tbody>
+<tr><td colspan="3" class="line"></td></tr>`;
 
-(data.items || []).forEach(item => {
-  html += `<tr><td>${item.name}</td><td></td><td>${item.sl}</td></tr>`;
+(data.items || []).forEach(it => {
+  const qty = it.sl || it.qty || it.quantity || ''; // ✅ Fallback fix
+  html += `<tr><td>${it.name || ''}</td><td>${it.dvt || ''}</td><td>${qty}</td></tr>
+  <tr><td colspan="3" class="line"></td></tr>`;
 });
 
 html += `</tbody></table>`;
-document.getElementById('receipt').innerHTML = html;
+document.getElementById("receipt").innerHTML = html;
 
-// Auto print
 window.onload = () => window.print();
 </script>
 </body>
