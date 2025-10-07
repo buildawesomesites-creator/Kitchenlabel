@@ -93,7 +93,7 @@
       <div>Copies 1</div>
       <h2 style="text-align:center;margin:6px 0;">CHẾ BIẾN</h2>
       <div><b>Bàn:</b> <span id="previewTable">1</span></div>
-      <div><b>Phuc vu:</b> <span id="previewServer">Quynh Anh</span></div>
+      <div><b>Phục vụ:</b> <span id="previewServer">Quynh Anh</span></div>
       <div><span id="previewCode"></span></div>
       <table>
         <thead>
@@ -106,7 +106,7 @@
     <label>Bàn</label>
     <input id="tableInput" value="1" placeholder="Số bàn..."/>
 
-    <label>Phuc vu</label>
+    <label>Phục vụ</label>
     <input id="serverInput" value="Quynh Anh" placeholder="Tên phục vụ..."/>
 
     <label>Tìm món</label>
@@ -128,13 +128,11 @@
     let products = [];
     let order = [];
 
-    // ✅ Load products.json
     async function loadProducts() {
       try {
         const res = await fetch("./products.json?v=" + Date.now());
         products = await res.json();
-      } catch (err) {
-        console.warn("Không thể tải products.json, dùng danh sách tạm.");
+      } catch {
         products = [
           { name: "Water 500ml", dvt: "Chai" },
           { name: "Coca Cola", dvt: "Lon" },
@@ -187,15 +185,10 @@
       const name = document.getElementById("searchInput").value.trim();
       if (!name) return;
       const existing = order.find(i => i.name === name);
-      if (existing) {
-        existing.qty++;
-      } else {
+      if (existing) existing.qty++;
+      else {
         const match = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-        order.push({
-          name,
-          dvt: match?.dvt || "",
-          qty: 1
-        });
+        order.push({ name, dvt: match?.dvt || "", qty: 1 });
       }
       document.getElementById("searchInput").value = "";
       renderPreview();
@@ -214,32 +207,24 @@
       a.click();
     }
 
+    // ✅ FIXED: ensures Bàn + Phục vụ visible in print
     function onPrint() {
       if (order.length === 0) { alert("Không có món nào để in!"); return; }
       const data = {
-        table: document.getElementById("tableInput").value || "",
-        server: document.getElementById("serverInput").value || "",
-        code: randomCode(),
-        timestamp: new Date().toISOString(),
-        items: order.map((item, index) => ({
-          sl: index + 1,
-          name: item.name,
-          dvt: item.dvt || "",
-          qty: item.qty
-        }))
+        table: document.getElementById("tableInput").value || "-",
+        server: document.getElementById("serverInput").value || "Quynh Anh",
+        items: order
       };
       localStorage.setItem("printData", JSON.stringify(data));
-      window.location.assign("./print.html");
+      window.location.href = "Papsdumskitchenprint7.html";
     }
 
     loadProducts();
     renderPreview();
-  </script>
 
-  <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }
   </script>
 </body>
-  </html>
+</html>
