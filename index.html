@@ -239,5 +239,48 @@ setInterval(updateDateTime, 1000);
 loadProducts();
 updateDateTime();
 </script>
+
+<!-- Install Button -->
+<button id="installButton" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #ff7a00;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  display: none;
+">
+  📲 Install App
+</button>
+
+<script>
+let deferredPrompt;
+const installBtn = document.getElementById('installButton');
+
+// Listen for install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
+});
+
+// When user clicks the install button
+installBtn.addEventListener('click', async () => {
+  installBtn.style.display = 'none';
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    console.log('User accepted the install');
+  } else {
+    console.log('User dismissed the install');
+  }
+  deferredPrompt = null;
+});
+</script>
+  
 </body>
 </html>
