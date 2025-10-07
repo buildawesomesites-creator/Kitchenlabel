@@ -1,199 +1,238 @@
 <!DOCTYPE html>
-<html lang="vi" translate="no">
+<html lang="vi" translate="no" class="notranslate">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <meta name="google" content="notranslate">
 <title>Kitchenlabel</title>
-<meta name="theme-color" content="#ff7a00">
+<meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
+<!-- ✅ Static manifest -->
 <link rel="manifest" href="./manifest.json">
 
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    font-family: "Helvetica Neue", "Noto Sans", "Roboto", Arial, sans-serif;
-    background: #fff;
-    color: #000;
-    font-size: 13px;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+  html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    font-family:"Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;
+    background:#fff;
+    color:#000;
+    font-size:12px;
+    overflow:hidden; /* prevent unwanted white space */
+    -webkit-user-select:none;
+    user-select:none;
   }
-
-  body {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    min-height: 100vh;
-    height: 100vh;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    touch-action: manipulation;
+  body{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:stretch;
+    min-height:100vh;
   }
-
-  /* ✅ Fullscreen layout */
-  .content {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    padding: 0 8px 80px 8px;
-    box-sizing: border-box;
+  .content{
+    flex:1;
+    padding:8px;
+    overflow-y:auto; /* scroll only inside content */
   }
-
-  .copies { font-size: 10px; margin-bottom: 2px; text-align: left; }
-  .center { text-align: center; }
-  .title { font-weight: 600; font-size: 16px; margin: 4px 0 8px 0; }
-  .info { margin: 0 0 6px 0; font-size: 12px; }
-  .info em { color: #444; font-style: normal; display: block; margin-top: 4px; }
-  hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 3px 0; vertical-align: top; font-size: 13px; }
-  .code { font-size: 10px; color: #666; }
-  .qty-input { width: 36px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; text-align: right; margin-left: 4px; }
-
-  /* ✅ Fixed button bar */
-  .no-print {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #fff;
-    border-top: 1px solid #ddd;
-    padding: 10px;
-    text-align: center;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
-  }
-
-  button {
-    font-size: 13px;
-    padding: 6px 10px;
-    margin: 3px;
-    border: 1px solid #aaa;
-    background: #f5f5f5;
-    border-radius: 6px;
-  }
-
-  #installAppBtn {
-    display: none;
-    background: #ff7a00;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 7px 12px;
-    margin-top: 6px;
-  }
-
-  @media print {
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 80mm;
-      height: auto;
-      overflow: visible;
-      background: #fff;
-    }
-    .content {
-      width: 80mm;
-      padding: 5px;
-      overflow: visible;
-    }
-    .no-print { display: none !important; }
+  .copies{font-size:10px;margin-bottom:2px;text-align:left;}
+  .center{text-align:center;}
+  .title{font-weight:600;font-size:14px;margin:2px 0 4px 0;}
+  .info{margin:0 0 6px 0;font-size:11px;}
+  .info em{color:#444;font-style:normal;display:block;margin-top:4px;}
+  hr{border:none;border-top:1px solid #000;margin:4px 0;}
+  table{width:100%;border-collapse:collapse;}
+  td{padding:2px 0;vertical-align:top;font-size:12px;}
+  .code{font-size:10px;color:#666;}
+  .qty-input{width:30px;font-size:11px;border:1px solid #ccc;border-radius:3px;text-align:right;margin-left:4px;}
+  .no-print{text-align:center;position:sticky;bottom:0;background:#fff;padding:6px 0;}
+  button{font-size:12px;padding:4px 6px;margin:2px;border:1px solid #aaa;background:#f5f5f5;border-radius:3px;}
+  .small-btn{font-size:10px;padding:1px 4px;}
+  input[type="text"]{font-size:12px;padding:4px;width:80%;border:1px solid #ccc;border-radius:4px;}
+  #installAppBtn{display:none;background:#ff7a00;color:#fff;border:none;border-radius:4px;padding:6px 10px;margin-top:5px;}
+  @media print{
+    .no-print{display:none!important;}
+    body{margin:0;padding:0;width:80mm;}
   }
 </style>
 </head>
-
 <body>
-  <div class="content" id="content">
-    <div class="copies">Copies 1</div>
-    <div class="center title">CHẾ BIẾN</div>
+<div class="content" id="content">
+  <div class="copies">Copies 1</div>
+  <div class="center title">CHẾ BIẾN</div>
 
-    <div class="info">
-      <strong>Bàn:</strong> BÀN 3<br>
-      <strong>Phục vụ:</strong> Quỳnh Anh<br>
-      17-84 - 15:28 07/10/2025
-    </div>
-    <hr>
-    <table id="productTable">
-      <thead>
-        <tr><td><strong>Món</strong></td><td><strong>ĐVT</strong></td><td><strong>SL</strong></td></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <p class="info">
+    <strong>Bàn:</strong> BÀN 3<br>
+    <strong>Phục vụ:</strong> Quỳnh Anh
+    <em id="datetime"></em>
+  </p>
 
-  <div class="no-print">
-    <input type="text" id="searchInput" placeholder="Search product..." />
-    <div>
-      <button id="addBtn">Add</button>
-      <button id="clearBtn">Clear All</button>
-      <button id="printBtn">Print</button>
-      <button id="downloadBtn">Download</button>
-    </div>
-    <button id="installAppBtn">Install App</button>
-  </div>
+  <hr>
 
-  <script>
-    // ✅ Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(() => console.log('Service Worker Registered'));
-    }
+  <table>
+    <thead>
+      <tr style="font-weight:600;">
+        <td>Món</td>
+        <td style="text-align:right; width:18mm;">ĐVT</td>
+        <td style="text-align:right; width:12mm;">SL</td>
+        <td></td>
+      </tr>
+    </thead>
+    <tbody id="productList"></tbody>
+  </table>
 
-    // ✅ Install prompt
-    let deferredPrompt;
-    const installBtn = document.getElementById('installAppBtn');
+  <hr>
+</div>
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.style.display = 'inline-block';
-    });
+<div class="no-print">
+  <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
+  <datalist id="productListData"></datalist><br>
+  <button onclick="addSelectedProduct()">Add</button>
+  <button onclick="clearProducts()">Clear All</button>
+  <button onclick="printReceipt()">Print</button>
+  <button onclick="downloadReceipt()">Download</button>
+  <br>
+  <button id="installAppBtn">📲 Cài đặt ứng dụng</button>
+</div>
 
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        if (choice.outcome === 'accepted') {
-          console.log('App installed');
-        }
-        deferredPrompt = null;
-        installBtn.style.display = 'none';
-      }
-    });
+<script>
+/* ---------- INSTALL BUTTON ---------- */
+let deferredPrompt;
+const installBtn = document.getElementById('installAppBtn');
 
-    // ✅ Basic product logic (placeholder)
-    const tableBody = document.querySelector('#productTable tbody');
-    const addBtn = document.getElementById('addBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const printBtn = document.getElementById('printBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const searchInput = document.getElementById('searchInput');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-block';
+  console.log('✅ beforeinstallprompt fired');
+});
 
-    addBtn.addEventListener('click', () => {
-      const name = searchInput.value.trim() || "New Item";
-      const row = document.createElement('tr');
-      row.innerHTML = `<td>${name}</td><td>1</td><td>1</td>`;
-      tableBody.appendChild(row);
-      searchInput.value = "";
-    });
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  console.log('User choice:', choice.outcome);
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
 
-    clearBtn.addEventListener('click', () => { tableBody.innerHTML = ''; });
-    printBtn.addEventListener('click', () => window.print());
+/* ---------- SERVICE WORKER ---------- */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('✅ Service Worker registered'))
+    .catch(err => console.error('❌ SW registration failed:', err));
+}
 
-    downloadBtn.addEventListener('click', () => {
-      const text = document.getElementById('content').innerText;
-      const blob = new Blob([text], { type: 'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'receipt.txt';
-      a.click();
-    });
-  </script>
+/* ---------- PRODUCT LOGIC ---------- */
+let products = [];
+let order = [];
+
+async function loadProducts(){
+  products = [];
+  try {
+    const res = await fetch('products.json?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('products.json missing');
+    const data = await res.json();
+    if (Array.isArray(data)) products = data;
+  } catch (e) {
+    console.warn('⚠️ products.json not found, using fallback', e);
+    products = [
+      { name:'Bún Bò Huế', unit:'Tô', code:'SP001' },
+      { name:'Cơm Gà Xối Mỡ', unit:'Dĩa', code:'SP002' },
+      { name:'Trà Đào', unit:'Ly', code:'SP003' },
+      { name:'Nước Suối 500ml', unit:'Chai', code:'SP004' }
+    ];
+  }
+  renderAutocomplete();
+}
+
+function renderAutocomplete(){
+  const dl = document.getElementById('productListData');
+  dl.innerHTML = '';
+  products.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    dl.appendChild(opt);
+  });
+}
+
+function addSelectedProduct(){
+  const v = document.getElementById('searchProduct').value.trim();
+  if(!v) return;
+  const f = products.find(p => p.name.toLowerCase() === v.toLowerCase());
+  const code = f?.code || '';
+  const unit = f?.unit || '';
+  order.push({name:v, code, qty:1, unit});
+  document.getElementById('searchProduct').value = '';
+  renderProducts();
+}
+
+function renderProducts(){
+  const tbody = document.getElementById('productList');
+  tbody.innerHTML = '';
+  order.forEach((it, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(it.name)} ${it.code?`<br><span class="code">(${escapeHtml(it.code)})</span>`:''}</td>
+      <td style="text-align:right;">${it.unit||''}</td>
+      <td style="text-align:right;">${it.qty}</td>
+      <td style="text-align:right;">
+        <button class="small-btn no-print" onclick="deleteProduct(${idx})">Del</button>
+        <input type="number" class="qty-input no-print" min="1" value="${it.qty}" onchange="updateQty(${idx}, this.value)">
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateQty(i,v){ order[i].qty = parseInt(v)||1; renderProducts(); }
+function deleteProduct(i){ order.splice(i,1); renderProducts(); }
+function clearProducts(){ if(confirm('Xóa tất cả món?')){ order=[]; renderProducts(); } }
+
+function printReceipt(){
+  document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
+  window.print();
+  setTimeout(()=>document.querySelectorAll('.no-print').forEach(e=>e.style.display=''),700);
+}
+
+function downloadReceipt(){
+  document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[80,210]});
+  doc.setFont('Helvetica','normal');
+  let y = 8;
+  doc.setFontSize(9); doc.text('Copies 1',5,y); y+=5;
+  doc.setFontSize(12); doc.text('CHẾ BIẾN',40,y,{align:'center'}); y+=7;
+  doc.setFontSize(9); doc.text('Bàn: BÀN 3',5,y); y+=4;
+  doc.text('Phục vụ: Quỳnh Anh',5,y); y+=4;
+  doc.text(document.getElementById('datetime').textContent,5,y); y+=4;
+  doc.line(5,y,75,y); y+=4;
+  doc.text('Món',5,y); doc.text('ĐVT',60,y); doc.text('SL',70,y); y+=3;
+  doc.line(5,y,75,y); y+=3;
+  order.forEach(p => {
+    doc.text(p.name,5,y);
+    if(p.code){ y+=3; doc.text('('+p.code+')',5,y); }
+    doc.text(String(p.qty),70,y);
+    y+=5;
+  });
+  doc.line(5,y,75,y);
+  doc.save('phieu_che_bien.pdf');
+  document.querySelectorAll('.no-print').forEach(e=>e.style.display='');
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function updateDateTime(){
+  const n=new Date();
+  const f=n.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+  document.getElementById('datetime').textContent=`Giờ in: ${f}`;
+}
+
+setInterval(updateDateTime,1000);
+loadProducts();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
