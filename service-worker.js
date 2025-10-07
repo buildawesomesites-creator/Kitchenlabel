@@ -1,19 +1,22 @@
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open('kitchen-v1').then((cache) => {
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open('kitchen-label-cache-v1').then(cache => {
       return cache.addAll([
         './',
         './index.html',
         './manifest.json',
-        './icon-512.png',
-        './icon-192.png'
+        './products.json',
+        './icon-192.png',
+        './icon-512.png'
       ]);
     })
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
   );
 });
