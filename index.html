@@ -257,5 +257,28 @@
   setInterval(updateDateTime, 1000);
   loadProducts().then(() => { renderProducts(); updateDateTime(); });
 </script>
+
+  <button id="installAppBtn" class="no-print" style="display:none;">📲 Cài đặt Ứng dụng</button>
+
+<script>
+  let deferredPrompt;
+  const installBtn = document.getElementById('installAppBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'inline-block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    installBtn.style.display = 'none';
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User installed the app');
+    }
+    deferredPrompt = null;
+  });
+</script>
 </body>
 </html>
