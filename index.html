@@ -132,11 +132,10 @@
       try {
         const res = await fetch("./products.json?v=" + Date.now());
         products = await res.json();
-      } catch {
+      } catch (err) {
+        console.warn("Không thể tải products.json, dùng danh sách tạm.");
         products = [
-          { name: "Water 500ml", dvt: "Chai" },
-          { name: "Coca Cola", dvt: "Lon" },
-          { name: "Bánh Mì", dvt: "Cái" }
+          { name: "Water 500ml", dvt: "Chai" }
         ];
       }
       const datalist = document.getElementById("productList");
@@ -157,13 +156,11 @@
       const serverVal = document.getElementById("serverInput").value || "";
       document.getElementById("previewTable").textContent = tableVal;
       document.getElementById("previewServer").textContent = serverVal;
-
-      const code = randomCode();
       document.getElementById("previewCode").textContent =
-        code + " - " + new Date().toLocaleString("vi-VN");
+        randomCode() + " - " + new Date().toLocaleString("vi-VN");
 
       const tbody = document.getElementById("previewItems");
-      tbody.innerHTML = order.map((item, i) =>
+      tbody.innerHTML = order.map((item) =>
         `<tr><td>${item.name}</td><td>${item.dvt || ""}</td><td>${item.qty}</td></tr>`
       ).join("");
 
@@ -185,10 +182,15 @@
       const name = document.getElementById("searchInput").value.trim();
       if (!name) return;
       const existing = order.find(i => i.name === name);
-      if (existing) existing.qty++;
-      else {
+      if (existing) {
+        existing.qty++;
+      } else {
         const match = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-        order.push({ name, dvt: match?.dvt || "", qty: 1 });
+        order.push({
+          name,
+          dvt: match?.dvt || "",
+          qty: 1
+        });
       }
       document.getElementById("searchInput").value = "";
       renderPreview();
@@ -207,19 +209,28 @@
       a.click();
     }
 
-    // ✅ FIXED: ensures Bàn + Phục vụ visible in print
-    function onPrint() {
+    async function onPrint() {
       if (order.length === 0) { alert("Không có món nào để in!"); return; }
       const data = {
-        table: document.getElementById("tableInput").value || "-",
+        table: document.getElementById("tableInput").value || "",
         server: document.getElementById("serverInput").value || "Quynh Anh",
-        items: order
+        code: randomCode(),
+        timestamp: new Date().toISOString(),
+        items: order.map((item, index) => ({
+          sl: index + 1,
+          name: item.name,
+          dvt: item.dvt || "",
+          qty: item.qty
+        }))
       };
       localStorage.setItem("printData", JSON.stringify(data));
-      window.location.href = "print.html";
+      const w = window.open("print.html", "_blank");
+      if (!w) alert("⚠️ Cho phép cửa sổ bật lên để in!");
     }
 
     loadProducts();
+    // demo item
+    order = [{ name: "Water 500ml", dvt: "Chai", qty: 1 }];
     renderPreview();
 
     if ('serviceWorker' in navigator) {
