@@ -8,9 +8,17 @@
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ff7a00",
+  "description": "Ứng dụng in phiếu chế biến Kitchenlabel – hoạt động offline, thân thiện và in ấn trực tiếp.",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ],
-  "description": "Ứng dụng in phiếu chế biến Kitchenlabel – hoạt động offline, thân thiện và in ấn trực tiếp."
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
