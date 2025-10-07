@@ -58,7 +58,7 @@
     .controls .print { background: #ff7a00; }
     .controls .download { background: #555; }
     .controls .clear { background: #e74c3c; }
-    input, select {
+    input {
       width: 100%;
       padding: 8px;
       border: 1px solid #ddd;
@@ -93,7 +93,7 @@
       <div>Copies 1</div>
       <h2 style="text-align:center;margin:6px 0;">CHẾ BIẾN</h2>
       <div><b>Bàn:</b> <span id="previewTable">1</span></div>
-      <div><b>Phục vụ:</b> <span id="previewServer">Quỳnh Anh</span></div>
+      <div><b>Phuc vu:</b> <span id="previewServer">Quynh Anh</span></div>
       <div><span id="previewCode"></span></div>
       <table>
         <thead>
@@ -104,10 +104,14 @@
     </div>
 
     <label>Bàn</label>
-    <input id="tableInput" value="1" />
-    <label>Phục vụ</label>
-    <input id="serverInput" value="Quỳnh Anh" />
-    <input id="searchInput" placeholder="Tìm món..." />
+    <input id="tableInput" value="1" placeholder="Số bàn..."/>
+
+    <label>Phuc vu</label>
+    <input id="serverInput" value="Quynh Anh" placeholder="Tên phục vụ..."/>
+
+    <label>Tìm món</label>
+    <input id="searchInput" list="productList" placeholder="Nhập món ăn..." />
+    <datalist id="productList"></datalist>
 
     <button style="width:100%;background:#ff7a00;color:white;padding:10px;border:none;border-radius:8px;font-size:16px;margin-bottom:10px;" onclick="addItem()">Thêm</button>
 
@@ -121,37 +125,49 @@
   </div>
 
   <script>
-    // --- Load product list from products.json ---
     let products = [];
-    fetch("products.json")
-      .then(res => res.json())
-      .then(data => { products = data; })
-      .catch(err => console.error("Không thể tải products.json", err));
+    let order = [];
 
-    const searchInput = document.getElementById("searchInput");
-    searchInput.addEventListener("input", () => {
-      const val = searchInput.value.toLowerCase();
-      if (!val) return;
-      const match = products.find(p => p.name.toLowerCase().includes(val));
-      if (match) searchInput.value = match.name;
-    });
-
-    // --- Main data ---
-    let order = [{ name: "Water 500ml", dvt: "Chai", qty: 1 }];
+    // ✅ Load products.json
+    async function loadProducts() {
+      try {
+        const res = await fetch("./products.json?v=" + Date.now());
+        products = await res.json();
+      } catch (err) {
+        console.warn("Không thể tải products.json, dùng danh sách tạm.");
+        products = [
+          { name: "Water 500ml", dvt: "Chai" },
+          { name: "Coca Cola", dvt: "Lon" },
+          { name: "Bánh Mì", dvt: "Cái" }
+        ];
+      }
+      const datalist = document.getElementById("productList");
+      datalist.innerHTML = "";
+      products.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.name;
+        datalist.appendChild(opt);
+      });
+    }
 
     function randomCode() {
       return "HL" + Math.random().toString(36).substr(2,8).toUpperCase();
     }
 
     function renderPreview() {
-      document.getElementById("previewTable").textContent = document.getElementById("tableInput").value;
-      document.getElementById("previewServer").textContent = document.getElementById("serverInput").value;
+      const tableVal = document.getElementById("tableInput").value || "";
+      const serverVal = document.getElementById("serverInput").value || "";
+      document.getElementById("previewTable").textContent = tableVal;
+      document.getElementById("previewServer").textContent = serverVal;
+
       const code = randomCode();
-      document.getElementById("previewCode").textContent = code + " - " + new Date().toLocaleString("vi-VN");
+      document.getElementById("previewCode").textContent =
+        code + " - " + new Date().toLocaleString("vi-VN");
 
       const tbody = document.getElementById("previewItems");
-      tbody.innerHTML = order.map((item, i) => 
-        `<tr><td>${item.name}</td><td>${item.dvt}</td><td>${item.qty}</td></tr>`).join("");
+      tbody.innerHTML = order.map((item, i) =>
+        `<tr><td>${item.name}</td><td>${item.dvt || ""}</td><td>${item.qty}</td></tr>`
+      ).join("");
 
       const list = document.getElementById("itemList");
       list.innerHTML = order.map((item, i) => `
@@ -163,29 +179,35 @@
             <button onclick="inc(${i})">+</button>
             <button class="del" onclick="del(${i})">Del</button>
           </div>
-        </div>`).join("");
+        </div>
+      `).join("");
     }
 
     function addItem() {
       const name = document.getElementById("searchInput").value.trim();
       if (!name) return;
       const existing = order.find(i => i.name === name);
-      if (existing) existing.qty++;
-      else {
-        const match = products.find(p => p.name === name);
-        order.push({ name, dvt: match?.dvt || "", qty: 1 });
+      if (existing) {
+        existing.qty++;
+      } else {
+        const match = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+        order.push({
+          name,
+          dvt: match?.dvt || "",
+          qty: 1
+        });
       }
       document.getElementById("searchInput").value = "";
       renderPreview();
     }
 
     function inc(i) { order[i].qty++; renderPreview(); }
-    function dec(i) { if(order[i].qty>1) order[i].qty--; else order.splice(i,1); renderPreview(); }
-    function del(i) { order.splice(i,1); renderPreview(); }
+    function dec(i) { if (order[i].qty > 1) order[i].qty--; else order.splice(i, 1); renderPreview(); }
+    function del(i) { order.splice(i, 1); renderPreview(); }
     function clearAll() { order = []; renderPreview(); }
 
     function downloadData() {
-      const blob = new Blob([JSON.stringify(order,null,2)], {type:'application/json'});
+      const blob = new Blob([JSON.stringify(order, null, 2)], {type:'application/json'});
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "order.json";
@@ -202,14 +224,15 @@
         items: order.map((item, index) => ({
           sl: index + 1,
           name: item.name,
-          dvt: item.dvt || '',
+          dvt: item.dvt || "",
           qty: item.qty
         }))
       };
       localStorage.setItem("printData", JSON.stringify(data));
-      window.location.assign("./print.html"); // ✅ PWA-safe navigation
+      window.location.assign("./print.html");
     }
 
+    loadProducts();
     renderPreview();
   </script>
 
@@ -219,4 +242,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
