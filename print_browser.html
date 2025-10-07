@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Papsdumskitchenprint7 (Browser)</title>
+<style>
+  @page { size: 80mm auto; margin: 5mm; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    width: 80mm;
+    margin: 0 auto;
+    font-size: 14px;
+  }
+  .receipt { width: 100%; }
+  h2 {
+    text-align: center;
+    margin: 5px 0;
+    font-weight: 900;
+    font-size: 18px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+  }
+  th, td {
+    padding: 4px 0;
+    text-align: left;
+    border-bottom: 1px solid #000;
+  }
+  th {
+    font-weight: bold;
+    border-top: 1px solid #000;
+  }
+  .meta { margin: 5px 0; }
+  .meta b { display: inline-block; width: 70px; }
+  .copy { text-align: left; font-weight: bold; }
+  .no-print { text-align: center; margin-top: 12px; }
+  .print-btn {
+    padding: 8px 16px;
+    background: #ff7a00;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+  }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+  <div class="receipt" id="receipt">
+    <div class="copy">Copies 1</div>
+    <h2>PREPARATION</h2>
+
+    <div class="meta"><b>Table:</b> <span id="tableNum"></span></div>
+    <div class="meta"><b>Server:</b> <span id="serverName"></span></div>
+    <div class="meta"><span id="codeLine"></span></div>
+
+    <table>
+      <thead><tr><th>Item</th><th>Unit</th><th>Qty</th></tr></thead>
+      <tbody id="itemList"></tbody>
+    </table>
+  </div>
+
+  <div class="no-print">
+    <button id="printBtn" class="print-btn">🖨️ Print</button>
+  </div>
+
+<script>
+function fillData() {
+  const data = JSON.parse(localStorage.getItem("printData") || "{}");
+  if (!data.items) {
+    document.body.innerHTML = "<h3 style='text-align:center;'>No print data found.</h3>";
+    return false;
+  }
+
+  document.getElementById("tableNum").textContent = data.table || "-";
+  document.getElementById("serverName").textContent = data.server || "Quynh Anh";
+  document.getElementById("codeLine").textContent =
+    (data.code || "HL" + Math.random().toString(36).substr(2,8).toUpperCase()) +
+    " - " + new Date().toLocaleString("en-GB");
+
+  document.getElementById("itemList").innerHTML = data.items.map(i => `
+    <tr>
+      <td>${i.name}</td>
+      <td>${i.dvt || ""}</td>
+      <td>${i.qty}</td>
+    </tr>`).join("");
+  return true;
+}
+
+window.addEventListener("load", () => {
+  fillData();
+  document.getElementById("printBtn").addEventListener("click", () => window.print());
+});
+</script>
+</body>
+</html>
