@@ -1,238 +1,429 @@
-<!DOCTYPE html>
-<html lang="vi" translate="no" class="notranslate">
+<!doctype html>
+<html lang="vi" translate="no">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-<meta name="google" content="notranslate">
-<title>Kitchenlabel</title>
-<meta name="theme-color" content="#ffffff">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ff7a00">
+<title>Kitchenlabel — PapsdumskitchenUI7 / Papsdumskitchenprint7</title>
 
-<!-- ✅ Static manifest -->
+<!-- Manifest (already present in your repo) -->
 <link rel="manifest" href="./manifest.json">
 
 <style>
-  html,body{
-    margin:0;
-    padding:0;
+  :root{
+    --orange:#ff7a00;
+    --bg:#ffffff;
+    --text:#111;
+  }
+
+  /* App chrome */
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:"Helvetica Neue", "Noto Sans", Roboto, Arial, sans-serif;-webkit-font-smoothing:antialiased;}
+  .app {min-height:100%;display:flex;flex-direction:column;align-items:center;padding:0 12px 20px;box-sizing:border-box;}
+
+  .appbar{
     width:100%;
-    height:100%;
-    font-family:"Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;
+    max-width:900px;
+    background:var(--orange);
+    color:#fff;
+    padding:12px 16px;
+    font-weight:700;
+    font-size:18px;
+    text-align:center;
+    border-radius:6px 6px 0 0;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+  }
+
+  .card{
+    width:100%;
+    max-width:720px;
     background:#fff;
-    color:#000;
-    font-size:12px;
-    overflow:hidden; /* prevent unwanted white space */
-    -webkit-user-select:none;
-    user-select:none;
+    border-radius:12px;
+    padding:16px;
+    margin-top:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,.06);
+    box-sizing:border-box;
   }
-  body{
-    display:flex;
-    flex-direction:column;
-    justify-content:flex-start;
-    align-items:stretch;
-    min-height:100vh;
-  }
-  .content{
-    flex:1;
+
+  /* Receipt preview card (on-screen) */
+  .receipt {
+    width:80mm;
+    max-width:80mm;
+    margin:0 auto 12px;
     padding:8px;
-    overflow-y:auto; /* scroll only inside content */
+    background:#fff;
+    box-sizing:border-box;
+    border-radius:6px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.06);
   }
-  .copies{font-size:10px;margin-bottom:2px;text-align:left;}
-  .center{text-align:center;}
-  .title{font-weight:600;font-size:14px;margin:2px 0 4px 0;}
-  .info{margin:0 0 6px 0;font-size:11px;}
-  .info em{color:#444;font-style:normal;display:block;margin-top:4px;}
-  hr{border:none;border-top:1px solid #000;margin:4px 0;}
-  table{width:100%;border-collapse:collapse;}
-  td{padding:2px 0;vertical-align:top;font-size:12px;}
-  .code{font-size:10px;color:#666;}
-  .qty-input{width:30px;font-size:11px;border:1px solid #ccc;border-radius:3px;text-align:right;margin-left:4px;}
-  .no-print{text-align:center;position:sticky;bottom:0;background:#fff;padding:6px 0;}
-  button{font-size:12px;padding:4px 6px;margin:2px;border:1px solid #aaa;background:#f5f5f5;border-radius:3px;}
-  .small-btn{font-size:10px;padding:1px 4px;}
-  input[type="text"]{font-size:12px;padding:4px;width:80%;border:1px solid #ccc;border-radius:4px;}
-  #installAppBtn{display:none;background:#ff7a00;color:#fff;border:none;border-radius:4px;padding:6px 10px;margin-top:5px;}
+  .copies { font-size:12px; text-align:left; margin-bottom:6px; }
+  .receipt .title { text-align:center; font-weight:700; font-size:18px; margin:4px 0 8px; }
+  .receipt .info { font-size:13px; margin-bottom:4px; }
+  .receipt .ordercode { font-size:11px; color:#333; margin-bottom:8px; }
+
+  .receipt table { width:100%; border-collapse:collapse;font-size:13px; }
+  .receipt thead tr th { text-align:left; font-weight:700; padding-bottom:6px; }
+  .receipt td { padding:8px 0; vertical-align:top; }
+  .receipt td:nth-child(2), .receipt td:nth-child(3){ text-align:right; width:18mm; }
+  /* single thin border under header and single thin border between items */
+  .receipt .header-line td { border-top:1px solid #000; padding:0; }
+  .receipt tbody tr.item td { border-bottom:1px solid #000; padding:8px 0; }
+
+  /* UI controls */
+  .row { display:flex; align-items:center; gap:12px; }
+  label{font-size:13px;font-weight:700;margin-bottom:6px;display:block;}
+  input[type="text"], input[type="number"]{
+    width:100%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #e6e6e6;
+    font-size:15px;
+    box-sizing:border-box;
+  }
+  .search-row{display:flex;gap:8px;align-items:center;margin-top:12px;}
+
+  .product-list{margin-top:14px;border-radius:8px;overflow:hidden;}
+  .product-item{display:flex;align-items:center;justify-content:space-between;padding:12px 8px;background:#fff;border-bottom:1px solid #eee;}
+  .product-name{flex:1;font-size:16px;}
+  .product-controls{display:flex;align-items:center;gap:8px;}
+
+  .btn{background:var(--orange);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;font-size:16px;cursor:pointer;}
+  .btn.secondary{background:#f5f5f5;color:#333;border:1px solid #ddd;font-weight:700;}
+  .small{padding:6px 8px;border-radius:8px;font-size:14px;cursor:pointer;}
+
+  .qty-box{min-width:44px;text-align:center;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff;}
+
+  /* Floating install button */
+  #installBtn{display:none;position:fixed;bottom:18px;right:18px;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:12px 16px;box-shadow:0 6px 20px rgba(0,0,0,0.18);z-index:999;}
+
+  /* Printing rules: hide UI, show only receipt and set page size */
   @media print{
-    .no-print{display:none!important;}
-    body{margin:0;padding:0;width:80mm;}
+    body{background:#fff;-webkit-print-color-adjust:exact;}
+    .appbar, .card, .search-row, .product-list, .buttons-ui, #installBtn, input, .product-controls { display:none !important; }
+    .receipt { display:block; margin:0; padding:6px; box-shadow:none;border-radius:0; }
+    @page { size:80mm auto; margin:0; } /* thermal receipt width */
+  }
+
+  /* small screens: make layout comfortable */
+  @media (max-width:420px){
+    .card{padding:12px;}
+    .btn{font-size:15px;padding:10px 12px;}
   }
 </style>
 </head>
 <body>
-<div class="content" id="content">
-  <div class="copies">Copies 1</div>
-  <div class="center title">CHẾ BIẾN</div>
+  <div class="app">
+    <div class="appbar">Kitchenlabel</div>
 
-  <p class="info">
-    <strong>Bàn:</strong> BÀN 3<br>
-    <strong>Phục vụ:</strong> Quỳnh Anh
-    <em id="datetime"></em>
-  </p>
+    <div class="card">
+      <!-- Receipt preview (visible on screen too) -->
+      <div class="receipt" id="receiptPreview" aria-hidden="false">
+        <div class="copies" id="copiesPreview">Copies 1</div>
 
-  <hr>
+        <div class="title">CHẾ BIẾN</div>
 
-  <table>
-    <thead>
-      <tr style="font-weight:600;">
-        <td>Món</td>
-        <td style="text-align:right; width:18mm;">ĐVT</td>
-        <td style="text-align:right; width:12mm;">SL</td>
-        <td></td>
-      </tr>
-    </thead>
-    <tbody id="productList"></tbody>
-  </table>
+        <div class="info">
+          <div><strong>Bàn:</strong> <span id="tablePreview">&nbsp;</span></div>
+          <div><strong>Phục vụ:</strong> <span id="serverPreview">Quỳnh Anh</span></div>
+        </div>
 
-  <hr>
-</div>
+        <div class="ordercode" id="orderCodePreview"></div>
 
-<div class="no-print">
-  <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
-  <datalist id="productListData"></datalist><br>
-  <button onclick="addSelectedProduct()">Add</button>
-  <button onclick="clearProducts()">Clear All</button>
-  <button onclick="printReceipt()">Print</button>
-  <button onclick="downloadReceipt()">Download</button>
-  <br>
-  <button id="installAppBtn">📲 Cài đặt ứng dụng</button>
-</div>
+        <table aria-hidden="false">
+          <thead>
+            <tr><th>Món</th><th style="text-align:right">ĐVT</th><th style="text-align:right">SL</th></tr>
+            <tr class="header-line"><td colspan="3"></td></tr>
+          </thead>
+          <tbody id="printProducts"></tbody>
+        </table>
+      </div>
 
-<script>
-/* ---------- INSTALL BUTTON ---------- */
-let deferredPrompt;
-const installBtn = document.getElementById('installAppBtn');
+      <!-- UI controls (screen-only) -->
+      <div class="input-ui" style="margin-top:12px;">
+        <div class="row" style="gap:16px;">
+          <div style="flex:1">
+            <label for="tableInput">Bàn</label>
+            <input id="tableInput" type="text" placeholder="Số bàn (vd. 4)">
+          </div>
+          <div style="flex:1">
+            <label for="serverInput">Phục vụ</label>
+            <input id="serverInput" type="text" value="Quỳnh Anh">
+          </div>
+        </div>
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.style.display = 'inline-block';
-  console.log('✅ beforeinstallprompt fired');
-});
+        <div class="search-row">
+          <input id="searchProduct" list="productListData" type="text" placeholder="Tìm món..." aria-label="Search product">
+          <datalist id="productListData"></datalist>
+          <button class="btn" onclick="addSelectedProduct()">Thêm</button>
+        </div>
+      </div>
 
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const choice = await deferredPrompt.userChoice;
-  console.log('User choice:', choice.outcome);
-  deferredPrompt = null;
-  installBtn.style.display = 'none';
-});
+      <!-- Product UI list -->
+      <div class="product-list" id="uiProductList" role="list" aria-label="Order items" style="margin-top:14px;"></div>
 
-/* ---------- SERVICE WORKER ---------- */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js')
-    .then(() => console.log('✅ Service Worker registered'))
-    .catch(err => console.error('❌ SW registration failed:', err));
-}
+      <!-- Bottom buttons -->
+      <div class="buttons-ui" style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn" onclick="printReceipt()">Print</button>
+        <button class="btn secondary" onclick="downloadReceipt()">Download</button>
+        <button class="btn secondary" onclick="clearProducts()">Clear All</button>
+      </div>
+    </div>
+  </div>
 
-/* ---------- PRODUCT LOGIC ---------- */
-let products = [];
-let order = [];
+  <button id="installBtn">📲 Cài đặt ứng dụng</button>
 
-async function loadProducts(){
-  products = [];
-  try {
-    const res = await fetch('products.json?v=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('products.json missing');
-    const data = await res.json();
-    if (Array.isArray(data)) products = data;
-  } catch (e) {
-    console.warn('⚠️ products.json not found, using fallback', e);
-    products = [
-      { name:'Bún Bò Huế', unit:'Tô', code:'SP001' },
-      { name:'Cơm Gà Xối Mỡ', unit:'Dĩa', code:'SP002' },
-      { name:'Trà Đào', unit:'Ly', code:'SP003' },
-      { name:'Nước Suối 500ml', unit:'Chai', code:'SP004' }
-    ];
-  }
-  renderAutocomplete();
-}
+  <!-- jspdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-function renderAutocomplete(){
+  <script>
+  // ----------------------
+  // Config: products JSON raw URL in your GitHub repo
+  // ----------------------
+  const PRODUCTS_URL = 'https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json';
+
+  // ----------------------
+  // State
+  // ----------------------
+  let products = []; // list from JSON { name, ... } - price ignored
+  let order = [];    // items in order: { name, qty }
+
+  // DOM refs
   const dl = document.getElementById('productListData');
-  dl.innerHTML = '';
-  products.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    dl.appendChild(opt);
+  const uiList = document.getElementById('uiProductList');
+  const printProductsEl = document.getElementById('printProducts');
+
+  // ----------------------
+  // Load products.json from GitHub
+  // ----------------------
+  async function loadProducts(){
+    try{
+      const res = await fetch(PRODUCTS_URL + '?v=' + Date.now(), { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if(Array.isArray(data)){
+        // allow both {name, price} or simple array
+        products = data.map(p => (typeof p === 'string') ? {name:p} : p);
+      } else {
+        products = [];
+      }
+    } catch(err){
+      console.warn('products.json load failed, using fallback', err);
+      products = [
+        { name: "Veg Samosa (2 Pcs)" },
+        { name: "Masala Papad" },
+        { name: "Carrot Halwa" },
+        { name: "Ice Cream With Gulab Jamoon" }
+      ];
+    }
+    // fill datalist
+    dl.innerHTML = '';
+    products.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      dl.appendChild(opt);
+    });
+  }
+
+  // ----------------------
+  // Simple helpers
+  // ----------------------
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function randomServiceCode(len=12){
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let out = '';
+    for(let i=0;i<len;i++) out += chars.charAt(Math.floor(Math.random()*chars.length));
+    return out;
+  }
+
+  function formatDateTimeForPrint(d = new Date()){
+    const pad = n => String(n).padStart(2,'0');
+    const hh = pad(d.getHours()), mm = pad(d.getMinutes()), dd = pad(d.getDate()), mmth = pad(d.getMonth()+1), yyyy = d.getFullYear();
+    return `${hh}:${mm} ${dd}/${mmth}/${yyyy}`;
+  }
+
+  // ----------------------
+  // Render UI list
+  // ----------------------
+  function renderUI(){
+    uiList.innerHTML = '';
+    order.forEach((it, idx) => {
+      const div = document.createElement('div');
+      div.className = 'product-item';
+      div.innerHTML = `
+        <div class="product-name">${escapeHtml(it.name)}</div>
+        <div class="product-controls" aria-hidden="false">
+          <button class="small secondary" onclick="decreaseQty(${idx})">−</button>
+          <div class="qty-box">${it.qty}</div>
+          <button class="small secondary" onclick="increaseQty(${idx})">+</button>
+          <button class="small" style="background:#e74c3c;color:#fff;border:none;border-radius:8px;padding:6px 8px;" onclick="deleteProduct(${idx})">Del</button>
+        </div>
+      `;
+      uiList.appendChild(div);
+    });
+    renderPrintPreview();
+  }
+
+  // ----------------------
+  // Render print preview (always visible on screen)
+  // ----------------------
+  function renderPrintPreview(){
+    // table and server
+    document.getElementById('tablePreview').textContent = document.getElementById('tableInput').value || ' ';
+    document.getElementById('serverPreview').textContent = document.getElementById('serverInput').value || 'Quỳnh Anh';
+
+    // order code preview (random)
+    const code = randomServiceCode();
+    document.getElementById('orderCodePreview').textContent = code + ' - ' + formatDateTimeForPrint();
+
+    // items into print table
+    printProductsEl.innerHTML = '';
+    order.forEach(it => {
+      const tr = document.createElement('tr');
+      tr.className = 'item';
+      // DVT purposely left blank
+      tr.innerHTML = `<td>${escapeHtml(it.name)}</td><td></td><td>${it.qty}</td>`;
+      printProductsEl.appendChild(tr);
+    });
+  }
+
+  // ----------------------
+  // Order operations
+  // ----------------------
+  function addSelectedProduct(){
+    const v = (document.getElementById('searchProduct').value || '').trim();
+    if(!v) return;
+    // merge if existing
+    const i = order.findIndex(x => x.name.toLowerCase() === v.toLowerCase());
+    if(i >= 0) order[i].qty += 1; else order.push({ name: v, qty: 1 });
+    document.getElementById('searchProduct').value = '';
+    renderUI();
+  }
+  function increaseQty(i){ order[i].qty = (order[i].qty||0) + 1; renderUI(); }
+  function decreaseQty(i){ order[i].qty = Math.max(1, (order[i].qty||1) - 1); renderUI(); }
+  function deleteProduct(i){ order.splice(i,1); renderUI(); }
+  function clearProducts(){ if(confirm('Clear all products?')){ order = []; renderUI(); } }
+
+  // ----------------------
+  // Print / Download
+  // ----------------------
+  function prepareForPrint(){
+    // set copy & preview fields
+    document.getElementById('copiesPreview').textContent = 'Copies 1';
+    document.getElementById('tablePreview').textContent = document.getElementById('tableInput').value || ' ';
+    document.getElementById('serverPreview').textContent = document.getElementById('serverInput').value || 'Quỳnh Anh';
+    // set code + datetime
+    const code = randomServiceCode();
+    document.getElementById('orderCodePreview').textContent = code + ' - ' + formatDateTimeForPrint();
+    // ensure print rows are current
+    renderPrintPreview();
+  }
+
+  function printReceipt(){
+    if(order.length === 0){ alert('Chưa có món nào!'); return; }
+    prepareForPrint();
+    // small timeout to allow layout/reflow before invoking print
+    setTimeout(() => {
+      try {
+        window.print();
+      } catch(e){
+        console.warn('print() failed', e);
+        alert('Print dialog failed. Try Download instead.');
+      }
+    }, 250);
+  }
+
+  async function downloadReceipt(){
+    if(order.length === 0){ alert('Chưa có món nào!'); return; }
+    // pdf fallback using jsPDF
+    const { jsPDF } = window.jspdf;
+    const lineHeight = 6;
+    const heightMM = 30 + (order.length * (lineHeight + 1)) + 20;
+    const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(heightMM, 120)] });
+    doc.setFontSize(12);
+    doc.text('Copies 1', 6, 8);
+    doc.setFontSize(18); doc.setFont(undefined, 'bold');
+    doc.text('CHẾ BIẾN', 40, 12, { align: 'center' });
+    doc.setFontSize(11); doc.setFont(undefined, 'normal');
+    doc.text('Bàn: ' + (document.getElementById('tableInput').value || ''), 6, 20);
+    doc.text('Phục vụ: ' + (document.getElementById('serverInput').value || 'Quỳnh Anh'), 6, 24);
+    const code = randomServiceCode();
+    doc.setFontSize(10);
+    doc.text(code + ' - ' + formatDateTimeForPrint(), 6, 28);
+    doc.line(6, 30, 74, 30);
+    let y = 36;
+    doc.setFontSize(12);
+    doc.text('Món', 6, y); doc.text('SL', 74, y, { align:'right' }); y += 6;
+    doc.line(6, y, 74, y); y += 6;
+    order.forEach(it => {
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(it.name, 60);
+      doc.text(lines, 6, y);
+      doc.text(String(it.qty), 74, y, { align:'right' });
+      y += (lines.length * 5) + 6;
+      doc.line(6, y, 74, y);
+      y += 4;
+    });
+    doc.save('kitchenlabel.pdf');
+  }
+
+  // ----------------------
+  // PWA install handling
+  // ----------------------
+  let deferredPrompt;
+  const installBtn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'inline-block';
   });
-}
-
-function addSelectedProduct(){
-  const v = document.getElementById('searchProduct').value.trim();
-  if(!v) return;
-  const f = products.find(p => p.name.toLowerCase() === v.toLowerCase());
-  const code = f?.code || '';
-  const unit = f?.unit || '';
-  order.push({name:v, code, qty:1, unit});
-  document.getElementById('searchProduct').value = '';
-  renderProducts();
-}
-
-function renderProducts(){
-  const tbody = document.getElementById('productList');
-  tbody.innerHTML = '';
-  order.forEach((it, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(it.name)} ${it.code?`<br><span class="code">(${escapeHtml(it.code)})</span>`:''}</td>
-      <td style="text-align:right;">${it.unit||''}</td>
-      <td style="text-align:right;">${it.qty}</td>
-      <td style="text-align:right;">
-        <button class="small-btn no-print" onclick="deleteProduct(${idx})">Del</button>
-        <input type="number" class="qty-input no-print" min="1" value="${it.qty}" onchange="updateQty(${idx}, this.value)">
-      </td>`;
-    tbody.appendChild(tr);
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+    console.log('PWA install choice', choice);
   });
-}
 
-function updateQty(i,v){ order[i].qty = parseInt(v)||1; renderProducts(); }
-function deleteProduct(i){ order.splice(i,1); renderProducts(); }
-function clearProducts(){ if(confirm('Xóa tất cả món?')){ order=[]; renderProducts(); } }
+  // ----------------------
+  // Register service worker
+  // ----------------------
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./service-worker.js?v=' + Date.now())
+      .then(() => console.log('Service worker registered'))
+      .catch(e => console.warn('SW registration failed:', e));
+  }
 
-function printReceipt(){
-  document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
-  window.print();
-  setTimeout(()=>document.querySelectorAll('.no-print').forEach(e=>e.style.display=''),700);
-}
+  // ----------------------
+  // Init
+  // ----------------------
+  (function init(){
+    // load products from GitHub
+    loadProducts().then(()=> {
+      // autopopulate preview with demo items if desired -- comment out if not needed
+      // render a few demo items removed to keep blank initial order
+      // order = [{name:'Veg Samosa (2 Pcs)',qty:1},{name:'Masala Papad',qty:1}];
+      renderUI();
+    });
 
-function downloadReceipt(){
-  document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[80,210]});
-  doc.setFont('Helvetica','normal');
-  let y = 8;
-  doc.setFontSize(9); doc.text('Copies 1',5,y); y+=5;
-  doc.setFontSize(12); doc.text('CHẾ BIẾN',40,y,{align:'center'}); y+=7;
-  doc.setFontSize(9); doc.text('Bàn: BÀN 3',5,y); y+=4;
-  doc.text('Phục vụ: Quỳnh Anh',5,y); y+=4;
-  doc.text(document.getElementById('datetime').textContent,5,y); y+=4;
-  doc.line(5,y,75,y); y+=4;
-  doc.text('Món',5,y); doc.text('ĐVT',60,y); doc.text('SL',70,y); y+=3;
-  doc.line(5,y,75,y); y+=3;
-  order.forEach(p => {
-    doc.text(p.name,5,y);
-    if(p.code){ y+=3; doc.text('('+p.code+')',5,y); }
-    doc.text(String(p.qty),70,y);
-    y+=5;
-  });
-  doc.line(5,y,75,y);
-  doc.save('phieu_che_bien.pdf');
-  document.querySelectorAll('.no-print').forEach(e=>e.style.display='');
-}
+    // keep preview updated when table/server input change
+    document.getElementById('tableInput').addEventListener('input', renderPrintPreview);
+    document.getElementById('serverInput').addEventListener('input', renderPrintPreview);
 
-function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function updateDateTime(){
-  const n=new Date();
-  const f=n.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
-  document.getElementById('datetime').textContent=`Giờ in: ${f}`;
-}
+    // Enter adds product
+    document.getElementById('searchProduct').addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ addSelectedProduct(); e.preventDefault(); }
+    });
+  })();
 
-setInterval(updateDateTime,1000);
-loadProducts();
-</script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  // Expose a couple functions to onclick handlers (because not in module scope)
+  window.addSelectedProduct = addSelectedProduct;
+  window.increaseQty = increaseQty;
+  window.decreaseQty = decreaseQty;
+  window.deleteProduct = deleteProduct;
+  window.clearProducts = clearProducts;
+  window.printReceipt = printReceipt;
+  window.downloadReceipt = downloadReceipt;
+  </script>
 </body>
 </html>
