@@ -1,60 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi" translate="no">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Papsdumskitchenprint7</title>
 <style>
-body{font-family:"Helvetica Neue",Arial,sans-serif;margin:0;padding:6px;width:80mm;}
-.header{text-align:center;font-weight:700;font-size:18px;margin-bottom:6px;}
-.line{border-bottom:1px solid #000;margin:4px 0;}
-table{width:100%;border-collapse:collapse;font-size:13px;}
-td,th{padding:4px 0;vertical-align:top;}
-th{text-align:left;}
-th:nth-child(2),th:nth-child(3),td:nth-child(2),td:nth-child(3){text-align:right;}
-@page{size:80mm auto;margin:0;}
-@media print{
-  html,body{width:80mm;margin:0;}
-}
+  @page {
+    size: 80mm auto;
+    margin: 5mm;
+  }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    width: 80mm;
+    margin: 0 auto;
+    font-size: 14px;
+  }
+  .receipt {
+    width: 100%;
+  }
+  .center {
+    text-align: center;
+  }
+  h2 {
+    text-align: center;
+    margin: 5px 0;
+    font-weight: bold;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+  }
+  th, td {
+    padding: 4px 0;
+    text-align: left;
+    border-bottom: 1px solid #000;
+  }
+  th {
+    font-weight: bold;
+    border-top: 1px solid #000;
+  }
+  .meta {
+    margin: 5px 0;
+  }
+  .meta b {
+    display: inline-block;
+    width: 70px;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .copy {
+    text-align: left;
+    font-weight: bold;
+  }
+  @media print {
+    body { margin: 0; }
+    .no-print { display: none; }
+  }
 </style>
 </head>
 <body>
-<div id="receipt"></div>
+  <div class="receipt">
+    <div class="copy">Copies 1</div>
+    <h2>CHẾ BIẾN</h2>
 
-<script>
-const data = JSON.parse(localStorage.getItem('printData') || '{}');
-const now = new Date();
-const hh = String(now.getHours()).padStart(2,'0');
-const mm = String(now.getMinutes()).padStart(2,'0');
-const dd = String(now.getDate()).padStart(2,'0');
-const MM = String(now.getMonth()+1).padStart(2,'0');
-const yyyy = now.getFullYear();
-const serviceCode = `${hh}-${mm}- ${dd}/${MM}/${yyyy}`;
+    <div class="meta"><b>Bàn:</b> <span id="tableNum"></span></div>
+    <div class="meta"><b>Phuc vu:</b> <span id="serverName"></span></div>
+    <div class="meta"><span id="codeLine"></span></div>
 
-let html = `
-<div>Copies 1</div>
-<div class="header">CHẾ BIẾN</div>
-<div><b>Bàn:</b> ${data.tableNumber || ''}</div>
-<div><b>Phục vụ:</b> ${data.serverName || ''}</div>
-<div>${serviceCode}</div>
-<br>
-<table>
-<thead>
-<tr><th>Món</th><th>ĐVT</th><th>SL</th></tr>
-</thead>
-<tbody>
-<tr><td colspan="3" class="line"></td></tr>`;
+    <table>
+      <thead>
+        <tr><th>Món</th><th>ĐVT</th><th>SL</th></tr>
+      </thead>
+      <tbody id="itemList"></tbody>
+    </table>
 
-(data.items || []).forEach(it => {
-  const qty = it.sl || it.qty || it.quantity || ''; // ✅ Fallback fix
-  html += `<tr><td>${it.name || ''}</td><td>${it.dvt || ''}</td><td>${qty}</td></tr>
-  <tr><td colspan="3" class="line"></td></tr>`;
-});
+    <div class="footer">-- Hết --</div>
+  </div>
 
-html += `</tbody></table>`;
-document.getElementById("receipt").innerHTML = html;
+  <div class="no-print" style="text-align:center;margin-top:10px;">
+    <button onclick="window.print()">🖨️ In</button>
+    <button onclick="window.location.href='index.html'">⬅️ Quay lại</button>
+  </div>
 
-window.onload = () => window.print();
-</script>
+  <script>
+    function randomCode() {
+      return "HL" + Math.random().toString(36).substr(2,8).toUpperCase();
+    }
+
+    const data = JSON.parse(localStorage.getItem("printData") || "{}");
+    if (!data || !data.items) {
+      document.body.innerHTML = "<h3 style='text-align:center;'>Không có dữ liệu in.</h3>";
+    } else {
+      document.getElementById("tableNum").textContent = data.table || "-";
+      document.getElementById("serverName").textContent = data.server || "Quynh Anh";
+
+      const codeLine = randomCode() + " - " + new Date().toLocaleString("vi-VN");
+      document.getElementById("codeLine").textContent = codeLine;
+
+      const tbody = document.getElementById("itemList");
+      tbody.innerHTML = data.items.map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.dvt || ""}</td>
+          <td>${item.qty}</td>
+        </tr>`).join("");
+    }
+  </script>
 </body>
-</html>
+              </html>
