@@ -62,6 +62,22 @@
     .no-print { display: none !important; }
     body { width: 80mm; margin: 0; padding: 0; }
   }
+
+  /* Floating Install Button */
+  #installButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #ff7a00;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    display: none;
+    z-index: 100;
+  }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -98,9 +114,11 @@
     <button onclick="clearProducts()">Clear</button>
     <button onclick="printReceipt()">Print</button>
     <button onclick="downloadReceipt()">Download</button>
-    <button id="installButton" style="display:none;">Install App</button>
   </div>
 </div>
+
+<!-- Floating Install Button -->
+<button id="installButton">📲 Install App</button>
 
 <script>
 const { jsPDF } = window.jspdf;
@@ -214,73 +232,33 @@ function updateDateTime() {
   document.getElementById('datetime').textContent = `17-84 - ${f}`;
 }
 
-// PWA Install button
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  window.deferredPrompt = e;
-  document.getElementById('installButton').style.display = 'inline-block';
-});
-
-document.getElementById('installButton').addEventListener('click', async () => {
-  const promptEvent = window.deferredPrompt;
-  if (!promptEvent) return;
-  promptEvent.prompt();
-  const { outcome } = await promptEvent.userChoice;
-  window.deferredPrompt = null;
-  document.getElementById('installButton').style.display = 'none';
-});
-
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
-
-setInterval(updateDateTime, 1000);
-loadProducts();
-updateDateTime();
-</script>
-
-<!-- Install Button -->
-<button id="installButton" style="
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: #ff7a00;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  display: none;
-">
-  📲 Install App
-</button>
-
-<script>
+// ✅ Install App Button Logic
 let deferredPrompt;
 const installBtn = document.getElementById('installButton');
 
-// Listen for install prompt
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
   installBtn.style.display = 'block';
 });
 
-// When user clicks the install button
 installBtn.addEventListener('click', async () => {
   installBtn.style.display = 'none';
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') {
-    console.log('User accepted the install');
-  } else {
-    console.log('User dismissed the install');
-  }
+  console.log('Install outcome:', outcome);
   deferredPrompt = null;
 });
+
+// ✅ Register Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('Service Worker Registered'));
+}
+
+setInterval(updateDateTime, 1000);
+loadProducts();
+updateDateTime();
 </script>
-  
 </body>
 </html>
