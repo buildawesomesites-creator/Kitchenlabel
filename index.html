@@ -2,246 +2,167 @@
 <html lang="vi" translate="no">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="google" content="notranslate">
-<title>Kitchenlabel</title>
-<meta name="theme-color" content="#ffffff">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="theme-color" content="#ff7a00">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-
 <link rel="manifest" href="./manifest.json">
+<title>Kitchenlabel</title>
 
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100dvh; /* ✅ Use full visible screen height */
-    background: #fff;
-    color: #000;
-    font-family: "Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;
-    font-size: 13px; /* ✅ Slightly larger for real app feel */
-    overscroll-behavior: none;
-    overflow: hidden; /* ✅ No global scroll */
-    touch-action: none; /* Disable global gestures */
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-text-size-adjust: none;
-    user-select: none;
-    position: fixed;
-    inset: 0;
-  }
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100dvh;
+  background: #ffffff;
+  color: #000;
+  font-family: "Roboto","Noto Sans",sans-serif;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  overflow: hidden;
+}
 
-  body {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    overflow: hidden;
-  }
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
 
-  .content {
-    flex: 1;
-    padding: 8px;
-    overflow-y: auto; /* ✅ Only this scrolls */
-    -webkit-overflow-scrolling: touch;
-    box-sizing: border-box;
-    scrollbar-width: none;
-  }
+.app-container {
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 10px;
+  overflow: hidden;
+}
 
-  .content::-webkit-scrollbar { display: none; }
+header {
+  text-align: center;
+  font-weight: 700;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
 
-  .copies { font-size: 11px; margin-bottom: 2px; text-align: left; }
-  .center { text-align: center; }
-  .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px 0; }
-  .info { margin: 0 0 8px 0; font-size: 12px; }
-  .info em { color: #555; font-style: normal; display: block; margin-top: 4px; }
-  hr { border: none; border-top: 1px solid #000; margin: 6px 0; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 3px 0; vertical-align: top; font-size: 13px; }
-  .code { font-size: 10px; color: #666; }
-  .qty-input { width: 36px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px; text-align: right; margin-left: 4px; }
-  .no-print { margin-top: 8px; text-align: center; }
-  button {
-    font-size: 13px;
-    padding: 6px 8px;
-    margin: 2px;
-    border: none;
-    background: #f2f2f2;
-    border-radius: 6px;
-  }
-  button:active { background: #ddd; }
-  #installAppBtn {
-    display: none;
-    background: #ff7a00;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-top: 6px;
-  }
+.info {
+  font-size: 14px;
+  margin-bottom: 4px;
+  text-align: left;
+}
 
-  @media print {
-    .no-print { display: none!important; }
-    body { margin: 0; padding: 0; width: 80mm; }
-  }
+hr {
+  border: none;
+  border-top: 1px solid #000;
+  margin: 6px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.content::-webkit-scrollbar {
+  display: none;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+button {
+  font-size: 15px;
+  padding: 6px 12px;
+  border: none;
+  background: #ff7a00;
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+button:active {
+  opacity: 0.8;
+}
 </style>
 </head>
+
 <body>
-  <div class="content">
+  <div class="app-container">
     <div class="copies">Copies 1</div>
-    <div class="center title">CHẾ BIẾN</div>
-
-    <p class="info">
-      <strong>Bàn:</strong> BÀN 3<br>
-      <strong>Phục vụ:</strong> Quỳnh Anh
-      <em id="datetime"></em>
-    </p>
-
+    <header>CHẾ BIẾN</header>
+    <div class="info"><b>Bàn:</b> BÀN 3<br><b>Phục vụ:</b> Quỳnh Anh</div>
+    <div class="info">17:84 - 15:28 07/10/2025</div>
     <hr>
-
     <table>
-      <thead>
-        <tr style="font-weight:600;">
-          <td>Món</td>
-          <td style="text-align:right; width:18mm;">ĐVT</td>
-          <td style="text-align:right; width:12mm;">SL</td>
-          <td></td>
-        </tr>
-      </thead>
-      <tbody id="productList"></tbody>
+      <tr><td><b>Món</b></td><td><b>ĐVT</b></td><td><b>SL</b></td></tr>
     </table>
 
-    <hr>
-
-    <div class="no-print">
-      <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
-      <datalist id="productListData"></datalist><br>
-      <button onclick="addSelectedProduct()">Add</button>
-      <button onclick="clearProducts()">Clear All</button>
-      <button onclick="printReceipt()">Print</button>
-      <button onclick="downloadReceipt()">Download</button><br>
-      <button id="installAppBtn">📲 Cài đặt ứng dụng</button>
+    <div class="content">
+      <input type="text" placeholder="Search product..." style="width:100%;padding:8px;font-size:15px;margin-bottom:8px;">
+      <div class="controls">
+        <button>Add</button>
+        <button>Clear All</button>
+        <button>Print</button>
+        <button>Download</button>
+      </div>
     </div>
   </div>
 
-<script>
-/* ---------- Install Prompt ---------- */
-let deferredPrompt;
-const installBtn = document.getElementById('installAppBtn');
+  <script>
+  let deferredPrompt;
+  const installBtn = document.createElement('button');
+  installBtn.textContent = 'Install App';
+  installBtn.style.cssText = `
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:#ff7a00;color:#fff;font-size:16px;padding:10px 20px;
+    border:none;border-radius:8px;z-index:9999;display:none;box-shadow:0 2px 5px rgba(0,0,0,0.3);
+  `;
+  document.body.appendChild(installBtn);
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.style.display = 'inline-block';
-  console.log('✅ beforeinstallprompt fired');
-});
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+  });
 
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const choice = await deferredPrompt.userChoice;
-  console.log('User choice:', choice.outcome);
-  deferredPrompt = null;
-  installBtn.style.display = 'none';
-});
+  installBtn.addEventListener('click', async () => {
+    installBtn.style.display = 'none';
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') console.log('User accepted install');
+    deferredPrompt = null;
+  });
 
-/* ---------- Service Worker ---------- */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js')
-    .then(() => console.log('✅ Service Worker registered'))
-    .catch(err => console.error('❌ SW registration failed:', err));
-}
-
-/* ---------- Product Logic ---------- */
-let products = [];
-let order = [];
-
-async function loadProducts(){
-  try {
-    const res = await fetch('products.json?v=' + Date.now(), {cache:'no-store'});
-    products = await res.json();
-  } catch (e){
-    console.warn('Failed to load products.json', e);
-    products = [{name:'Nước suối 500 ml', code:'SP000216'}];
+  // ✅ Register Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => console.log('Service Worker Registered'));
   }
-  renderAutocomplete();
-}
-
-function renderAutocomplete(){
-  const dl = document.getElementById('productListData');
-  dl.innerHTML = '';
-  products.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    dl.appendChild(opt);
-  });
-}
-
-function addSelectedProduct(){
-  const v = document.getElementById('searchProduct').value.trim();
-  if(!v) return;
-  const f = products.find(p => p.name.toLowerCase() === v.toLowerCase());
-  const code = f?.code || '';
-  order.push({name:v, code, qty:1});
-  document.getElementById('searchProduct').value = '';
-  renderProducts();
-}
-
-function renderProducts(){
-  const tbody = document.getElementById('productList');
-  tbody.innerHTML = '';
-  order.forEach((it, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(it.name)} ${it.code?`<br><span class="code">(${escapeHtml(it.code)})</span>`:''}</td>
-      <td style="text-align:right;">${it.unit||''}</td>
-      <td style="text-align:right;">${it.qty}</td>
-      <td style="text-align:right;">
-        <button class="small-btn no-print" onclick="deleteProduct(${idx})">Del</button>
-        <input type="number" class="qty-input no-print" min="1" value="${it.qty}" onchange="updateQty(${idx}, this.value)">
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-function updateQty(i,v){ order[i].qty = parseInt(v)||1; renderProducts(); }
-function deleteProduct(i){ order.splice(i,1); renderProducts(); }
-function clearProducts(){ if(confirm('Clear all products?')){ order=[]; renderProducts(); } }
-
-function printReceipt(){
-  document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
-  window.print();
-  setTimeout(()=>document.querySelectorAll('.no-print').forEach(e=>e.style.display=''),700);
-}
-
-function downloadReceipt(){
-  document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:[80,210]});
-  doc.setFont('Helvetica','normal');
-  let y = 8;
-  doc.setFontSize(9); doc.text('Copies 1',5,y); y+=5;
-  doc.setFontSize(12); doc.text('CHẾ BIẾN',40,y,{align:'center'}); y+=7;
-  doc.setFontSize(9); doc.text('Bàn: BÀN 3',5,y); y+=4;
-  doc.text('Phục vụ: Quỳnh Anh',5,y); y+=4;
-  doc.text(document.getElementById('datetime').textContent,5,y); y+=4;
-  doc.line(5,y,75,y); y+=4;
-  doc.text('Món',5,y); doc.text('ĐVT',60,y); doc.text('SL',70,y); y+=3;
-  doc.line(5,y,75,y); y+=3;
-  order.forEach(p => { doc.text(p.name,5,y); if(p.code){ y+=3; doc.text('('+p.code+')',5,y);} doc.text(String(p.qty),70,y); y+=5; });
-  doc.line(5,y,75,y);
-  doc.save('phieu_che_bien.pdf');
-  document.querySelectorAll('.no-print').forEach(e=>e.style.display='');
-}
-
-function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function updateDateTime(){ const n=new Date(); const f=n.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}); document.getElementById('datetime').textContent=`17-84 - ${f}`; }
-
-setInterval(updateDateTime,1000);
-loadProducts();
-</script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </script>
 </body>
 </html>
