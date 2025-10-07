@@ -1,4 +1,4 @@
-const CACHE_NAME = "papsdumskitchen-v1";
+const CACHE_NAME = "papsdumskitchen-v3";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
