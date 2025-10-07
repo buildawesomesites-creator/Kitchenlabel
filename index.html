@@ -2,116 +2,128 @@
 <html lang="vi" translate="no">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Kitchenlabel</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-<!-- ✅ Manifest -->
 <link rel="manifest" href="./manifest.json">
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  max-width: 80mm;
-  font-family: "Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;
-  background: #fff;
-  color: #000;
-  font-size: 12px;
-  overscroll-behavior: none;
-  overflow: hidden;
-  touch-action: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-text-size-adjust: 100%;
-  height: 100dvh; /* ✅ handles mobile dynamic height */
-}
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100dvh; /* ✅ Use full visible screen height */
+    background: #fff;
+    color: #000;
+    font-family: "Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;
+    font-size: 13px; /* ✅ Slightly larger for real app feel */
+    overscroll-behavior: none;
+    overflow: hidden; /* ✅ No global scroll */
+    touch-action: none; /* Disable global gestures */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: none;
+    user-select: none;
+    position: fixed;
+    inset: 0;
+  }
 
-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  height: 100dvh;
-  overflow: hidden;
-  position: fixed;
-  inset: 0;
-}
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
+  }
 
-.content {
-  flex: 1;
-  padding: 5px;
-  overflow-y: auto;
-  box-sizing: border-box;
-  scrollbar-width: none;
-}
-.content::-webkit-scrollbar { display: none; }
+  .content {
+    flex: 1;
+    padding: 8px;
+    overflow-y: auto; /* ✅ Only this scrolls */
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    scrollbar-width: none;
+  }
 
-.copies { font-size:10px; margin-bottom:2px; text-align:left; }
-.center { text-align:center; }
-.title { font-weight:600; font-size:14px; margin:2px 0 4px 0; }
-.info { margin:0 0 6px 0; font-size:11px; }
-.info em { color:#444; font-style:normal; display:block; margin-top:4px; }
-hr { border:none; border-top:1px solid #000; margin:4px 0; }
-table { width:100%; border-collapse:collapse; }
-td { padding:2px 0; vertical-align:top; font-size:12px; }
-.code { font-size:10px; color:#666; }
-.qty-input { width:30px; font-size:11px; border:1px solid #ccc; border-radius:3px; text-align:right; margin-left:4px; }
-.no-print { margin-top:6px; text-align:center; }
-button { font-size:12px; padding:4px 6px; margin:2px; border:1px solid #aaa; background:#f5f5f5; border-radius:3px; }
-.small-btn { font-size:10px; padding:1px 4px; }
-input[type="text"] { font-size:12px; padding:4px; width:80%; border:1px solid #ccc; border-radius:4px; }
-#installAppBtn { display:none; background:#ff7a00; color:#fff; border:none; border-radius:4px; padding:6px 10px; margin-top:5px; }
-@media print {
-  .no-print { display:none!important; }
-  body { margin:0; padding:0; width:80mm; }
-}
+  .content::-webkit-scrollbar { display: none; }
+
+  .copies { font-size: 11px; margin-bottom: 2px; text-align: left; }
+  .center { text-align: center; }
+  .title { font-weight: 700; font-size: 16px; margin: 4px 0 6px 0; }
+  .info { margin: 0 0 8px 0; font-size: 12px; }
+  .info em { color: #555; font-style: normal; display: block; margin-top: 4px; }
+  hr { border: none; border-top: 1px solid #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 3px 0; vertical-align: top; font-size: 13px; }
+  .code { font-size: 10px; color: #666; }
+  .qty-input { width: 36px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px; text-align: right; margin-left: 4px; }
+  .no-print { margin-top: 8px; text-align: center; }
+  button {
+    font-size: 13px;
+    padding: 6px 8px;
+    margin: 2px;
+    border: none;
+    background: #f2f2f2;
+    border-radius: 6px;
+  }
+  button:active { background: #ddd; }
+  #installAppBtn {
+    display: none;
+    background: #ff7a00;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 6px;
+  }
+
+  @media print {
+    .no-print { display: none!important; }
+    body { margin: 0; padding: 0; width: 80mm; }
+  }
 </style>
 </head>
-
 <body>
-<div class="content">
-  <div class="copies">Copies 1</div>
-  <div class="center title">CHẾ BIẾN</div>
+  <div class="content">
+    <div class="copies">Copies 1</div>
+    <div class="center title">CHẾ BIẾN</div>
 
-  <p class="info">
-    <strong>Bàn:</strong> BÀN 3<br>
-    <strong>Phục vụ:</strong> Quỳnh Anh
-    <em id="datetime"></em>
-  </p>
+    <p class="info">
+      <strong>Bàn:</strong> BÀN 3<br>
+      <strong>Phục vụ:</strong> Quỳnh Anh
+      <em id="datetime"></em>
+    </p>
 
-  <hr>
+    <hr>
 
-  <table>
-    <thead>
-      <tr style="font-weight:600;">
-        <td>Món</td>
-        <td style="text-align:right; width:18mm;">ĐVT</td>
-        <td style="text-align:right; width:12mm;">SL</td>
-        <td></td>
-      </tr>
-    </thead>
-    <tbody id="productList"></tbody>
-  </table>
+    <table>
+      <thead>
+        <tr style="font-weight:600;">
+          <td>Món</td>
+          <td style="text-align:right; width:18mm;">ĐVT</td>
+          <td style="text-align:right; width:12mm;">SL</td>
+          <td></td>
+        </tr>
+      </thead>
+      <tbody id="productList"></tbody>
+    </table>
 
-  <hr>
+    <hr>
 
-  <div class="no-print">
-    <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
-    <datalist id="productListData"></datalist><br>
-    <button onclick="addSelectedProduct()">Add</button>
-    <button onclick="clearProducts()">Clear All</button>
-    <button onclick="printReceipt()">Print</button>
-    <button onclick="downloadReceipt()">Download</button>
-    <br>
-    <!-- ✅ Install button -->
-    <button id="installAppBtn">📲 Cài đặt ứng dụng</button>
+    <div class="no-print">
+      <input type="text" id="searchProduct" placeholder="Search product..." list="productListData">
+      <datalist id="productListData"></datalist><br>
+      <button onclick="addSelectedProduct()">Add</button>
+      <button onclick="clearProducts()">Clear All</button>
+      <button onclick="printReceipt()">Print</button>
+      <button onclick="downloadReceipt()">Download</button><br>
+      <button id="installAppBtn">📲 Cài đặt ứng dụng</button>
+    </div>
   </div>
-</div>
 
 <script>
 /* ---------- Install Prompt ---------- */
@@ -141,7 +153,7 @@ if ('serviceWorker' in navigator) {
     .catch(err => console.error('❌ SW registration failed:', err));
 }
 
-/* ---------- Product logic ---------- */
+/* ---------- Product Logic ---------- */
 let products = [];
 let order = [];
 
@@ -224,11 +236,7 @@ function downloadReceipt(){
 }
 
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function updateDateTime(){
-  const n=new Date();
-  const f=n.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
-  document.getElementById('datetime').textContent=`17-84 - ${f}`;
-}
+function updateDateTime(){ const n=new Date(); const f=n.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}); document.getElementById('datetime').textContent=`17-84 - ${f}`; }
 
 setInterval(updateDateTime,1000);
 loadProducts();
