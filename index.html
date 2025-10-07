@@ -1,319 +1,197 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi" translate="no">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#ff7a00">
-  <title>Kitchenlabel — PapsdumskitchenUI7</title>
-  <link rel="manifest" href="./manifest.json">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PapsdumskitchenUI7</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff7a00" />
   <style>
-    /* ---------- App UI ---------- */
-    :root{ --orange:#ff7a00; --bg:#f5f6f7; --card:#fff; --muted:#777; --line:#dcdcdc; }
-    html,body{height:100%;margin:0;background:var(--bg);font-family: "Helvetica Neue","Noto Sans","Roboto",Arial,sans-serif;color:#111}
-    .appbar{background:var(--orange);color:#fff;text-align:center;font-weight:700;padding:12px 8px;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
-    .container{max-width:420px;margin:14px auto;padding:12px;box-sizing:border-box}
-    .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
-    /* receipt preview */
-    .receipt{width:280px;margin:6px auto 10px;background:#fff;padding:10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-    .receipt .copies{font-size:13px;color:var(--muted);text-align:left;}
-    .receipt .title{font-size:20px;font-weight:800;margin:6px 0;text-align:center}
-    .receipt .info{font-size:13px;margin:6px 0}
-    .receipt .ordercode{font-size:11px;color:#666;margin-bottom:6px}
-    .receipt table{width:100%;border-collapse:collapse;font-size:13px}
-    .receipt thead tr td{font-weight:700}
-    .receipt tbody tr{border-bottom:1px solid #000}
-    .receipt td{padding:6px 0;vertical-align:top}
-    .receipt td.dv{width:40px;text-align:right}
-    .receipt td.sl{width:30px;text-align:right}
-    /* inputs and controls */
-    .row {display:flex;gap:10px;align-items:center}
-    label{display:block;font-weight:700;margin-bottom:6px}
-    input[type="text"]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);font-size:15px;box-sizing:border-box}
-    #search{padding:12px;border-radius:12px;border:1px solid var(--line);width:100%;font-size:15px;margin-top:12px}
-    .btn {border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
-    .btn.primary{background:var(--orange);color:#fff}
-    .btn.neutral{background:#f5f5f5;border:1px solid #e6e6e6;color:#222}
-    .btn.danger{background:#ef5350;color:#fff}
-    /* product list */
-    .product-list{margin-top:12px}
-    .product-item{display:flex;align-items:center;justify-content:space-between;padding:14px 6px;border-bottom:1px solid #eee}
-    .product-name{flex:1;font-size:16px}
-    .controls{display:flex;align-items:center;gap:10px}
-    .qty{display:flex;align-items:center;gap:8px}
-    .qty button{width:38px;height:38px;border-radius:10px;background:#fff;border:2px solid #ccc;font-size:18px}
-    .del-btn{padding:8px 10px;border-radius:8px;background:#ef5350;color:#fff;border:none}
-    /* layout buttons row */
-    .actions{display:flex;gap:12px;margin-top:14px;justify-content:center;flex-wrap:wrap}
-    /* install PWA button */
-    #installBtn{display:none;position:fixed;right:18px;bottom:18px;background:var(--orange);color:#fff;border:none;padding:12px 14px;border-radius:14px;z-index:999}
-    /* print-specific */
-    @media print {
-      @page { size: 80mm auto; margin:0 }
-      body * { visibility: hidden; }
-      #print-content, #print-content * { visibility: visible; }
-      #print-content { position: absolute; left:0; top:0; width:80mm; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 0;
+      background: #f6f6f6;
+    }
+    header {
+      background: #ff7a00;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .container {
+      padding: 10px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table th, table td {
+      padding: 6px;
+      text-align: left;
+    }
+    table th {
+      border-bottom: 1px solid #ddd;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .controls button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .controls .print { background: #ff7a00; }
+    .controls .download { background: #555; }
+    .controls .clear { background: #e74c3c; }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .item-row button {
+      background: #ff7a00;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 16px;
+    }
+    .item-row .del {
+      background: #e74c3c;
     }
   </style>
 </head>
 <body>
-  <div class="appbar">Kitchenlabel</div>
+  <header>Kitchenlabel</header>
   <div class="container">
-    <div class="card">
+    <div class="card" id="receiptPreview">
+      <div>Copies 1</div>
+      <h2 style="text-align:center;margin:6px 0;">CHẾ BIẾN</h2>
+      <div><b>Bàn:</b> <span id="previewTable">1</span></div>
+      <div><b>Phục vụ:</b> <span id="previewServer">Quỳnh Anh</span></div>
+      <div><span id="previewCode"></span></div>
+      <table>
+        <thead>
+          <tr><th>Món</th><th>ĐVT</th><th>SL</th></tr>
+        </thead>
+        <tbody id="previewItems"></tbody>
+      </table>
+    </div>
 
-      <!-- small receipt preview -->
-      <div class="receipt" id="receiptPreview">
-        <div class="copies">Copies 1</div>
-        <div class="title">CHẾ BIẾN</div>
+    <label>Bàn</label>
+    <input id="tableInput" value="1" />
+    <label>Phục vụ</label>
+    <input id="serverInput" value="Quỳnh Anh" />
+    <input id="searchInput" placeholder="Tìm món..." />
 
-        <div class="info"><div><strong>Bàn:</strong> <span id="previewTable"></span></div>
-        <div><strong>Phục vụ:</strong> <span id="previewServer">Quỳnh Anh</span></div></div>
+    <button style="width:100%;background:#ff7a00;color:white;padding:10px;border:none;border-radius:8px;font-size:16px;margin-bottom:10px;" onclick="addItem()">Thêm</button>
 
-        <div class="ordercode" id="previewCode"></div>
+    <div id="itemList"></div>
 
-        <table>
-          <thead><tr><td>Món</td><td class="dv">ĐVT</td><td class="sl">SL</td></tr></thead>
-          <tbody id="previewProducts"></tbody>
-        </table>
-      </div>
-
-      <!-- inputs -->
-      <div style="display:flex;gap:12px;align-items:flex-start;margin-top:8px;">
-        <div style="flex:1;">
-          <label>Bàn</label>
-          <input id="tableInput" type="text" placeholder="Số bàn (ví dụ: 1)">
-        </div>
-        <div style="flex:1;">
-          <label>Phục vụ</label>
-          <input id="serverInput" type="text" value="Quỳnh Anh">
-        </div>
-      </div>
-
-      <!-- search -->
-      <input id="search" list="productListData" placeholder="Tìm món..." autocomplete="off">
-      <datalist id="productListData"></datalist>
-      <div style="margin-top:10px; display:flex;justify-content:flex-end">
-        <button class="btn primary" onclick="addSelectedProduct()">Thêm</button>
-      </div>
-
-      <!-- PRODUCTS UI LIST -->
-      <div class="product-list" id="uiList" aria-live="polite"></div>
-
-      <!-- action buttons -->
-      <div class="actions">
-        <button class="btn primary" onclick="onPrint()">Print</button>
-        <button class="btn neutral" onclick="downloadReceipt()">Download</button>
-        <button class="btn neutral" onclick="clearProducts()">Clear All</button>
-      </div>
+    <div class="controls">
+      <button class="print" onclick="onPrint()">Print</button>
+      <button class="download" onclick="downloadData()">Download</button>
+      <button class="clear" onclick="clearAll()">Clear All</button>
     </div>
   </div>
 
-  <!-- PWA install -->
-  <button id="installBtn">📲 Cài đặt ứng dụng</button>
+  <script>
+    let order = [{ name: "Water 500ml", dvt: "Chai", qty: 1 }];
 
-<script>
-/* ---------- state ---------- */
-let products = [];
-let order = []; // {name, dvt, qty}
+    function randomCode() {
+      return "HL" + Math.random().toString(36).substr(2,8).toUpperCase();
+    }
 
-/* ---------- load products.json from GitHub (fallback if missing) ---------- */
-const PRODUCTS_JSON_RAW = 'https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json';
-async function loadProducts(){
-  try {
-    const r = await fetch(PRODUCTS_JSON_RAW, {cache:'no-store'});
-    if(!r.ok) throw new Error('not ok');
-    products = await r.json();
-  } catch(e){
-    console.warn('products.json fetch failed, using fallback', e);
-    
-  }
-  const dl = document.getElementById('productListData');
-  dl.innerHTML = '';
-  products.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    dl.appendChild(opt);
-  });
-}
+    function renderPreview() {
+      document.getElementById("previewTable").textContent = document.getElementById("tableInput").value;
+      document.getElementById("previewServer").textContent = document.getElementById("serverInput").value;
+      const code = randomCode();
+      document.getElementById("previewCode").textContent = code + " - " + new Date().toLocaleString("vi-VN");
 
-/* ---------- UI render ---------- */
-function renderUI(){
-  // preview header
-  document.getElementById('previewTable').textContent = document.getElementById('tableInput').value || '';
-  document.getElementById('previewServer').textContent = document.getElementById('serverInput').value || 'Quỳnh Anh';
-  // preview code (keeps same while editing)
-  updatePreviewCode();
+      const tbody = document.getElementById("previewItems");
+      tbody.innerHTML = order.map(item => 
+        `<tr><td>${item.name}</td><td>${item.dvt}</td><td>${item.qty}</td></tr>`).join("");
 
-  // UI list
-  const ui = document.getElementById('uiList');
-  ui.innerHTML = '';
-  order.forEach((it, idx) => {
-    const row = document.createElement('div');
-    row.className = 'product-item';
-    row.innerHTML = `
-      <div class="product-name">${escapeHtml(it.name)}</div>
-      <div class="controls">
-        <div class="qty">
-          <button onclick="decrease(${idx})">−</button>
-          <div style="min-width:28px;text-align:center">${it.qty}</div>
-          <button onclick="increase(${idx})">+</button>
-        </div>
-        <button class="del-btn" onclick="deleteItem(${idx})">Del</button>
-      </div>`;
-    ui.appendChild(row);
-  });
+      const list = document.getElementById("itemList");
+      list.innerHTML = order.map((item, i) => `
+        <div class="item-row">
+          <span>${item.name}</span>
+          <div>
+            <button onclick="dec(${i})">-</button>
+            <span>${item.qty}</span>
+            <button onclick="inc(${i})">+</button>
+            <button class="del" onclick="del(${i})">Del</button>
+          </div>
+        </div>`).join("");
+    }
 
-  // preview products table
-  const tbody = document.getElementById('previewProducts');
-  tbody.innerHTML = '';
-  order.forEach(it => {
-    // single line between products (print uses border-bottom)
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${escapeHtml(it.name)}</td><td class="dv">${it.dvt||''}</td><td class="sl">${it.qty}</td>`;
-    tbody.appendChild(tr);
-  });
-}
+    function addItem() {
+      const name = document.getElementById("searchInput").value.trim();
+      if (!name) return;
+      const existing = order.find(i => i.name === name);
+      if (existing) existing.qty++;
+      else order.push({ name, dvt: "", qty: 1 });
+      document.getElementById("searchInput").value = "";
+      renderPreview();
+    }
+    function inc(i) { order[i].qty++; renderPreview(); }
+    function dec(i) { if(order[i].qty>1) order[i].qty--; else order.splice(i,1); renderPreview(); }
+    function del(i) { order.splice(i,1); renderPreview(); }
+    function clearAll() { order = []; renderPreview(); }
 
-/* ---------- helpers ---------- */
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
-function increase(i){ order[i].qty++; renderUI(); }
-function decrease(i){ order[i].qty = Math.max(1, order[i].qty-1); renderUI(); }
-function deleteItem(i){ order.splice(i,1); renderUI(); }
-function clearProducts(){ if(confirm('Clear all products?')){ order = []; renderUI(); } }
+    function downloadData() {
+      const blob = new Blob([JSON.stringify(order,null,2)], {type:'application/json'});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "order.json";
+      a.click();
+    }
 
-/* ---------- add product ---------- */
-function addSelectedProduct(){
-  const v = document.getElementById('search').value.trim();
-  if(!v) return;
-  const found = products.find(p => p.name.toLowerCase() === v.toLowerCase());
-  const name = found ? found.name : v;
-  const dvt = found ? (found.dvt || '') : '';
-  const existing = order.find(o => o.name.toLowerCase() === name.toLowerCase());
-  if(existing) existing.qty++;
-  else order.push({ name, dvt, qty:1 });
-  document.getElementById('search').value = '';
-  renderUI();
-}
+    function onPrint() {
+      if (order.length === 0) { alert("Không có món nào để in!"); return; }
+      const data = {
+        table: document.getElementById("tableInput").value || "",
+        server: document.getElementById("serverInput").value || "",
+        code: randomCode(),
+        timestamp: new Date().toISOString(),
+        items: order
+      };
+      localStorage.setItem("printData", JSON.stringify(data));
+      window.location.assign("./print.html"); // ✅ PWA-safe navigation
+    }
 
-/* Enter to add */
-document.getElementById('search').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ addSelectedProduct(); e.preventDefault(); } });
-document.getElementById('tableInput').addEventListener('input', renderUI);
-document.getElementById('serverInput').addEventListener('input', renderUI);
+    renderPreview();
+  </script>
 
-/* ---------- preview code generator ---------- */
-let lastPreviewCode = '';
-function updatePreviewCode(){
-  if(!lastPreviewCode){ lastPreviewCode = randomCode(); }
-  const now = new Date();
-  const date = now.toLocaleDateString('vi-VN');
-  const time = now.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
-  document.getElementById('previewCode').textContent = `${lastPreviewCode} - ${date} ${time}`;
-}
-function randomCode(){ const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; let s=""; for(let i=0;i<10;i++) s+=chars.charAt(Math.floor(Math.random()*chars.length)); return s; }
-
-/* ---------- Printing: create a full HTML page in a new window and print ---------- */
-function onPrint(){
-  if(order.length === 0){ alert('Chưa có món nào để in.'); return; }
-  // prepare data
-  const data = {
-    table: document.getElementById('tableInput').value || '',
-    server: document.getElementById('serverInput').value || 'Quỳnh Anh',
-    code: randomCode(),
-    timestamp: new Date(),
-    items: order
-  };
-
-  // build print HTML (full page)
-  let html = `<!doctype html><html><head><meta charset="utf-8"><title>In - Kitchenlabel</title>
-    <style>
-      body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:6px}
-      .paper{width:80mm;padding:6px;box-sizing:border-box}
-      .copies{font-size:12px;color:#444;margin-bottom:8px}
-      .title{font-weight:800;text-align:center;font-size:18px;margin-bottom:8px}
-      .info{font-size:12px;margin-bottom:6px}
-      .ordercode{font-size:11px;color:#333;margin-bottom:8px}
-      table{width:100%;border-collapse:collapse;font-size:12px}
-      thead tr td{font-weight:700;padding-bottom:6px}
-      tbody tr{border-bottom:1px solid #000}
-      td{padding:6px 0;vertical-align:top}
-      td.dv{width:40px;text-align:right}
-      td.sl{width:30px;text-align:right}
-      @page { size: 80mm auto; margin: 0; }
-    </style>
-    </head><body><div class="paper" id="print-content">
-      <div class="copies">Copies 1</div>
-      <div class="title">CHẾ BIẾN</div>
-      <div class="info"><div><strong>Bàn:</strong> ${escapeHtml(data.table)}</div><div><strong>Phục vụ:</strong> ${escapeHtml(data.server)}</div></div>
-      <div class="ordercode">${escapeHtml(data.code)} - ${data.timestamp.toLocaleDateString('vi-VN')} ${data.timestamp.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</div>
-      <table><thead><tr><td>Món</td><td class="dv">ĐVT</td><td class="sl">SL</td></tr></thead><tbody>`;
-
-  data.items.forEach(it => {
-    html += `<tr><td>${escapeHtml(it.name)}</td><td class="dv">${escapeHtml(it.dvt || '')}</td><td class="sl">${it.qty}</td></tr>`;
-  });
-
-  html += `</tbody></table></div></body></html>`;
-
-  // open print window and write HTML into it (prevents blank preview)
-  const w = window.open('', '_blank', 'noopener');
-  if(!w){
-    alert('Mở cửa sổ in bị chặn — cho phép popup cho trang này rồi thử lại.');
-    return;
-  }
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-
-  // ensure printing after content loads
-  w.focus();
-  w.onload = () => {
-    setTimeout(()=>{ w.print(); /* optionally keep open for manual print */ }, 150);
-  };
-}
-
-/* ---------- Download fallback (save simple HTML file of the receipt) ---------- */
-function downloadReceipt(){
-  if(order.length === 0){ alert('Chưa có món để download'); return; }
-  // reuse the same HTML build as print, but save as file
-  const code = randomCode();
-  const now = new Date();
-  let html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title></head><body>`;
-  html += document.getElementById('receiptPreview').outerHTML;
-  html += `</body></html>`;
-  const blob = new Blob([html], {type:'text/html'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'receipt.html';
-  a.click();
-}
-
-/* ---------- PWA install prompt ---------- */
-let deferredPrompt;
-const installBtn = document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt', (e)=>{
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.style.display = 'inline-block';
-});
-installBtn.addEventListener('click', async ()=>{
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const res = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  installBtn.style.display = 'none';
-});
-
-/* ---------- service worker registration ---------- */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./service-worker.js').catch(e=>console.warn('SW register failed', e));
-}
-
-/* ---------- init ---------- */
-(async function init(){
-  await loadProducts();
-  // start with sample order for demo like your screenshot
-  
-  renderUI();
-})();
-</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
 </body>
 </html>
