@@ -6,6 +6,8 @@
 <meta name="google" content="notranslate">
 <title>Kitchenlabel</title>
 <meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 
 <!-- ✅ Static manifest reference -->
 <link rel="manifest" href="./manifest.json">
@@ -19,7 +21,14 @@
     background:#fff;color:#000;font-size:12px;
     overflow-x:hidden;
   }
-  body{display:flex;flex-direction:column;justify-content:flex-start;min-height:100%;}
+  body{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  min-height:100vh;       /* ✅ use full viewport height */
+  height:100vh;           /* ✅ no scrolling gap on PWA */
+  overflow:hidden;        /* ✅ remove white space below */
+}
   .content{flex:1;padding:5px;}
   .copies{font-size:10px;margin-bottom:2px;text-align:left;}
   .center{text-align:center;}
