@@ -75,20 +75,22 @@
   </div>
 
 <script>
+// Load data + render receipt
 function fillData() {
-  const data = JSON.parse(localStorage.getItem("printData") || "{}");
-  if (!data || !data.items) {
+  const dataText = localStorage.getItem("printData");
+  if (!dataText) {
     document.body.innerHTML = "<h3 style='text-align:center;'>Không có dữ liệu in.</h3>";
     return false;
   }
+  const data = JSON.parse(dataText);
 
   document.getElementById("tableNum").textContent = data.table || "-";
   document.getElementById("serverName").textContent = data.server || "Quynh Anh";
   document.getElementById("codeLine").textContent =
-    (data.code || "HL" + Math.random().toString(36).substr(2,8).toUpperCase()) +
+    (data.code || "HL3JX4D9KQ") +
     " - " + new Date().toLocaleString("vi-VN");
 
-  document.getElementById("itemList").innerHTML = data.items.map(i => `
+  document.getElementById("itemList").innerHTML = (data.items || []).map(i => `
     <tr>
       <td>${i.name}</td>
       <td>${i.dvt || ""}</td>
@@ -98,13 +100,12 @@ function fillData() {
   return true;
 }
 
-async function autoPrint() {
-  const filled = fillData();
-  if (!filled) return;
+// Print logic
+async function handlePrint(auto = false) {
+  const ok = fillData();
+  if (!ok) return;
 
   const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-  await new Promise(r => setTimeout(r, 700));
 
   if (isPWA) {
     try {
@@ -116,22 +117,23 @@ async function autoPrint() {
       console.log("Đã gửi đến máy in Zywell.");
     } catch (err) {
       console.warn("Không thể gửi đến máy in Zywell:", err);
-      alert("Không thể gửi đến máy in Zywell. Nhấn nút In thủ công.");
+      if (!auto) alert("Không thể gửi đến máy in Zywell. Nhấn nút In thủ công.");
     }
   } else {
-    try { window.print(); } catch(e) { console.error(e); }
+    window.print(); // normal print dialog in Chrome/GitHub
   }
 }
 
-// ✅ Manual fallback button always active
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("printBtn").addEventListener("click", () => {
-    try { window.print(); } catch(e) { console.error(e); }
-  });
-});
+// Bind events AFTER DOM loaded
+window.addEventListener("load", () => {
+  fillData();
 
-// Run automatically when loaded
-window.addEventListener("load", autoPrint);
+  const btn = document.getElementById("printBtn");
+  if (btn) btn.addEventListener("click", () => handlePrint(false));
+
+  // Auto-print after 1.5s
+  setTimeout(() => handlePrint(true), 1500);
+});
 </script>
 </body>
 </html>
