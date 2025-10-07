@@ -121,6 +121,22 @@
   </div>
 
   <script>
+    // --- Load product list from products.json ---
+    let products = [];
+    fetch("products.json")
+      .then(res => res.json())
+      .then(data => { products = data; })
+      .catch(err => console.error("Không thể tải products.json", err));
+
+    const searchInput = document.getElementById("searchInput");
+    searchInput.addEventListener("input", () => {
+      const val = searchInput.value.toLowerCase();
+      if (!val) return;
+      const match = products.find(p => p.name.toLowerCase().includes(val));
+      if (match) searchInput.value = match.name;
+    });
+
+    // --- Main data ---
     let order = [{ name: "Water 500ml", dvt: "Chai", qty: 1 }];
 
     function randomCode() {
@@ -134,7 +150,7 @@
       document.getElementById("previewCode").textContent = code + " - " + new Date().toLocaleString("vi-VN");
 
       const tbody = document.getElementById("previewItems");
-      tbody.innerHTML = order.map(item => 
+      tbody.innerHTML = order.map((item, i) => 
         `<tr><td>${item.name}</td><td>${item.dvt}</td><td>${item.qty}</td></tr>`).join("");
 
       const list = document.getElementById("itemList");
@@ -155,10 +171,14 @@
       if (!name) return;
       const existing = order.find(i => i.name === name);
       if (existing) existing.qty++;
-      else order.push({ name, dvt: "", qty: 1 });
+      else {
+        const match = products.find(p => p.name === name);
+        order.push({ name, dvt: match?.dvt || "", qty: 1 });
+      }
       document.getElementById("searchInput").value = "";
       renderPreview();
     }
+
     function inc(i) { order[i].qty++; renderPreview(); }
     function dec(i) { if(order[i].qty>1) order[i].qty--; else order.splice(i,1); renderPreview(); }
     function del(i) { order.splice(i,1); renderPreview(); }
@@ -179,7 +199,12 @@
         server: document.getElementById("serverInput").value || "",
         code: randomCode(),
         timestamp: new Date().toISOString(),
-        items: order
+        items: order.map((item, index) => ({
+          sl: index + 1,
+          name: item.name,
+          dvt: item.dvt || '',
+          qty: item.qty
+        }))
       };
       localStorage.setItem("printData", JSON.stringify(data));
       window.location.assign("./print.html"); // ✅ PWA-safe navigation
