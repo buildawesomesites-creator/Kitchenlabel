@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" translate="no">
+<html lang="vi" translate="no">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,16 +13,28 @@
     font-size: 14px;
   }
   .receipt { width: 100%; }
+  .copy {
+    text-align: left;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
   h2 {
     text-align: center;
-    margin: 5px 0;
+    margin: 0 0 5px 0;
     font-weight: 900;
     font-size: 18px;
+  }
+  .meta { margin: 3px 0; }
+  .meta b { display: inline-block; width: 75px; }
+  .code-line {
+    margin-top: 4px;
+    margin-bottom: 8px;
+    font-size: 13px;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 6px;
+    margin-top: 2px;
   }
   th, td {
     padding: 4px 0;
@@ -31,11 +43,8 @@
   }
   th {
     font-weight: bold;
-    border-top: 1px solid #000;
+    border-top: none !important; /* ❌ no top line */
   }
-  .meta { margin: 5px 0; }
-  .meta b { display: inline-block; width: 70px; }
-  .copy { text-align: left; font-weight: bold; }
   .no-print { text-align: center; margin-top: 12px; }
   .print-btn {
     padding: 8px 16px;
@@ -51,40 +60,53 @@
 <body>
   <div class="receipt" id="receipt">
     <div class="copy">Copies 1</div>
-    <h2>PREPARATION</h2>
+    <h2>CHẾ BIẾN</h2>
 
-    <div class="meta"><b>Table:</b> <span id="tableNum"></span></div>
-    <div class="meta"><b>Server:</b> <span id="serverName"></span></div>
-    <div class="meta"><span id="codeLine"></span></div>
+    <div class="meta"><b>Bàn:</b> <span id="tableNum"></span></div>
+    <div class="meta"><b>Phục vụ:</b> <span id="serverName"></span></div>
+    <div class="code-line" id="codeLine"></div>
 
     <table>
-      <thead><tr><th>Item</th><th>Unit</th><th>Qty</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Món</th>
+          <th>ĐVT</th>
+          <th>SL</th>
+        </tr>
+      </thead>
       <tbody id="itemList"></tbody>
     </table>
   </div>
 
   <div class="no-print">
-    <button id="printBtn" class="print-btn">🖨️ Print</button>
+    <button id="printBtn" class="print-btn">🖨️ In</button>
   </div>
 
 <script>
 function fillData() {
   const data = JSON.parse(localStorage.getItem("printData") || "{}");
   if (!data.items) {
-    document.body.innerHTML = "<h3 style='text-align:center;'>No print data found.</h3>";
+    document.body.innerHTML = "<h3 style='text-align:center;'>Không có dữ liệu để in.</h3>";
     return false;
   }
 
+  const randomCode =
+    Math.floor(10000000 + Math.random() * 90000000) +
+    "-" +
+    Math.random().toString(36).substr(2, 14).toUpperCase();
+
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString("vi-VN");
+  const formattedTime = now.toLocaleTimeString("vi-VN", { hour12: false });
+
   document.getElementById("tableNum").textContent = data.table || "-";
-  document.getElementById("serverName").textContent = data.server || "Quynh Anh";
-  document.getElementById("codeLine").textContent =
-    (data.code || "HL" + Math.random().toString(36).substr(2,8).toUpperCase()) +
-    " - " + new Date().toLocaleString("en-GB");
+  document.getElementById("serverName").textContent = data.server || "Quỳnh Anh";
+  document.getElementById("codeLine").textContent = `${randomCode} - ${formattedTime} ${formattedDate}`;
 
   document.getElementById("itemList").innerHTML = data.items.map(i => `
     <tr>
       <td>${i.name}</td>
-      <td>${i.dvt || ""}</td>
+      <td></td> <!-- ĐVT always blank -->
       <td>${i.qty}</td>
     </tr>`).join("");
   return true;
@@ -94,7 +116,9 @@ async function handlePrint(auto = false) {
   const ok = fillData();
   if (!ok) return;
 
-  const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const isPWA =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone;
 
   if (isPWA) {
     try {
@@ -103,10 +127,10 @@ async function handlePrint(auto = false) {
         headers: { "Content-Type": "text/html" },
         body: document.documentElement.outerHTML
       });
-      console.log("Sent to Zywell printer.");
+      console.log("Đã gửi đến máy in Zywell.");
     } catch (err) {
-      console.warn("Printer connection failed:", err);
-      if (!auto) alert("Failed to send to Zywell printer. Please check Wi-Fi or print manually.");
+      console.warn("Kết nối máy in thất bại:", err);
+      if (!auto) alert("Không thể gửi tới máy in. Kiểm tra Wi-Fi hoặc in thủ công.");
     }
   } else {
     window.print();
@@ -116,7 +140,7 @@ async function handlePrint(auto = false) {
 window.addEventListener("load", () => {
   fillData();
   document.getElementById("printBtn").addEventListener("click", () => handlePrint(false));
-  // Auto print after small delay (for PWA only)
+  // 🕒 Tự động in sau 1.5 giây (chỉ khi ở chế độ PWA)
   setTimeout(() => handlePrint(true), 1500);
 });
 </script>
