@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Papsdumskitchenprint7 Browser</title>
+<title>Papsdumskitchenprint7 (Browser)</title>
 <style>
   @page { size: 80mm auto; margin: 5mm; }
   body {
@@ -13,28 +13,16 @@
     font-size: 14px;
   }
   .receipt { width: 100%; }
-  .copies {
-    text-align: left;
-    font-weight: bold;
-    margin-bottom: 4px;
-  }
   h2 {
     text-align: center;
-    margin: 0 0 5px 0;
+    margin: 5px 0;
     font-weight: 900;
     font-size: 18px;
-  }
-  .meta { margin: 3px 0; }
-  .meta b { display: inline-block; width: 75px; }
-  .code-line {
-    margin-top: 4px;
-    margin-bottom: 8px;
-    font-size: 13px;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 2px;
+    margin-top: 6px;
   }
   th, td {
     padding: 4px 0;
@@ -43,12 +31,12 @@
   }
   th {
     font-weight: bold;
-    border-top: none !important; /* no top line */
+    border-top: none; /* ❌ no line above header */
   }
-  .no-print {
-    text-align: center;
-    margin-top: 12px;
-  }
+  .meta { margin: 5px 0; }
+  .meta b { display: inline-block; width: 70px; }
+  .copy { text-align: left; font-weight: bold; }
+  .no-print { text-align: center; margin-top: 12px; }
   .print-btn {
     padding: 8px 16px;
     background: #ff7a00;
@@ -62,62 +50,60 @@
 </head>
 <body>
   <div class="receipt" id="receipt">
-    <div class="copies">Copies 1</div>
+    <div class="copy">Copies 1</div>
     <h2>CHẾ BIẾN</h2>
 
     <div class="meta"><b>Bàn:</b> <span id="tableNum"></span></div>
     <div class="meta"><b>Phục vụ:</b> <span id="serverName"></span></div>
-    <div class="code-line" id="codeLine"></div>
+    <div class="meta"><span id="codeLine"></span></div>
 
     <table>
-      <thead>
-        <tr>
-          <th>Món</th>
-          <th>ĐVT</th>
-          <th>SL</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Món</th><th></th><th>SL</th></tr></thead>
       <tbody id="itemList"></tbody>
     </table>
   </div>
 
   <div class="no-print">
-    <button id="printBtn" class="print-btn">🖨️ In</button>
+    <button id="printBtn" class="print-btn">🖨️ Browser Print</button>
   </div>
 
 <script>
+// Prevent cache problems by auto-refreshing with unique version
+if (!window.location.search.includes("v=")) {
+  window.location.search = "?v=" + Date.now();
+}
+
 function fillData() {
   const data = JSON.parse(localStorage.getItem("printData") || "{}");
   if (!data.items) {
-    document.body.innerHTML = "<h3 style='text-align:center;'>Không có dữ liệu để in.</h3>";
+    document.body.innerHTML = "<h3 style='text-align:center;'>Không có dữ liệu in.</h3>";
     return false;
   }
 
-  const randomCode =
-    Math.floor(10000000 + Math.random() * 90000000) +
-    "-" +
-    Math.random().toString(36).substr(2, 14).toUpperCase();
-
-  const now = new Date();
-  const formattedDate = now.toLocaleDateString("vi-VN");
-  const formattedTime = now.toLocaleTimeString("vi-VN", { hour12: false });
-
   document.getElementById("tableNum").textContent = data.table || "-";
   document.getElementById("serverName").textContent = data.server || "Quỳnh Anh";
-  document.getElementById("codeLine").textContent = `${randomCode} - ${formattedTime} ${formattedDate}`;
+  document.getElementById("codeLine").textContent =
+    (data.code || "HL" + Math.random().toString(36).substr(2,8).toUpperCase()) +
+    " - " + new Date().toLocaleString("vi-VN");
 
   document.getElementById("itemList").innerHTML = data.items.map(i => `
     <tr>
       <td>${i.name}</td>
-      <td></td> <!-- ĐVT always blank -->
+      <td></td> <!-- blank Dvt -->
       <td>${i.qty}</td>
     </tr>`).join("");
   return true;
 }
 
+function handlePrint() {
+  const ok = fillData();
+  if (!ok) return;
+  window.print();
+}
+
 window.addEventListener("load", () => {
   fillData();
-  document.getElementById("printBtn").addEventListener("click", () => window.print());
+  document.getElementById("printBtn").addEventListener("click", handlePrint);
 });
 </script>
 </body>
