@@ -41,7 +41,24 @@
     font-weight:800;
     font-size:18px;
     box-shadow:var(--shadow);
+    position:relative;
   }
+  #syncStatus{
+    position:absolute;
+    right:12px;
+    top:10px;
+    background:#fff3;
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    color:#fff;
+    transition:all 0.3s ease;
+  }
+  #syncStatus.online{background:#00b86b;}
+  #syncStatus.offline{background:#e55353;}
+  #syncStatus.syncing{background:#ffb400;}
+
   .wrap{
     display:flex;
     flex-direction:column;
@@ -183,9 +200,13 @@
   @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
   </style>
 </head>
+
 <body>
 
-<header>Papadums POS</header>
+<header>
+  Papadums POS
+  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+</header>
 
 <div class="wrap">
   <div class="table-panel">
@@ -232,34 +253,16 @@
   </div>
 </div>
 
-<!-- ✅ ONLINE FIREBASE VERSION (MODULE BASED) -->
+<!-- ✅ ONLINE FIREBASE VERSION -->
 <script type="module" src="./index_function.online.js"></script>
 
-<!-- ✅ SERVICE WORKER REGISTRATION -->
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").then(() => {
-    console.log("Service Worker registered ✅");
-  }).catch(err => console.warn("SW registration failed:", err));
+  navigator.serviceWorker.register("sw.js")
+    .then(()=>console.log("Service Worker registered ✅"))
+    .catch(err=>console.warn("SW registration failed:",err));
 }
 </script>
-
-<div id="syncStatus" style="
-  position: fixed;
-  bottom: 80px;
-  right: 10px;
-  background: #0b74ff;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 12px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.2);
-  z-index: 9999;
-  transition: background 0.3s;
-">
-  🔄 Syncing...
-</div>
 
 </body>
 </html>
