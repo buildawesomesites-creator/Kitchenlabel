@@ -1,4 +1,4 @@
-const CACHE_NAME = "papadums-pos-v3-" + Date.now();
+const CACHE_NAME = "papadums-pos-v1-" + Date.now();
 
 // ✅ All core files to cache for offline use
 const ASSETS = [
