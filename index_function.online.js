@@ -2,6 +2,11 @@
 // Papadums POS — online edition (ES module). Imports firebase_client.js
 
 import { authState, saveOrderToFirestore, subscribeToTable } from "./firebase_client.js";
+import {
+  onSnapshot,
+  collection
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { db } from "./firebase_client.js";
 
 console.log("✅ index_function.online.js loaded (module)");
 
@@ -64,7 +69,6 @@ async function saveCurrentOrderToFirestore(){
   }
 }
 function saveCurrentOrder(){
-  // don't await here from UI actions; Firestore handles offline queueing
   saveCurrentOrderToFirestore();
 }
 
@@ -85,13 +89,11 @@ function subscribeToCurrentTableRealtime(){
   try {
     unsubscribeCurrentTable = subscribeToTable(currentTable, (docData) => {
       if (!docData) {
-        // if remote missing and we have local data, push local to Firestore
         const local = loadAllOrders();
         const localItems = local[currentTable] || [];
         if (localItems.length) saveCurrentOrderToFirestore();
         return;
       }
-      // Accept remote as authoritative
       orderItems = docData.items || [];
       saveAllOrders({ ...loadAllOrders(), [currentTable]: orderItems });
       renderPreview();
@@ -204,7 +206,7 @@ document.getElementById("downloadInv").onclick=()=>openInvoice("invoice_browser.
 /* ===== Initialize ===== */
 (async function init(){
   try {
-    await authState(); // wait so saves have an authenticated user
+    await authState();
     console.log("Firebase auth ready");
   } catch (err) {
     console.warn("authState failed:", err);
@@ -215,3 +217,89 @@ document.getElementById("downloadInv").onclick=()=>openInvoice("invoice_browser.
   renderPreview();
   subscribeToCurrentTableRealtime();
 })();
+
+/* -----------------------------------------------------------
+   🔄 SYNC STATUS INDICATOR — Papadums POS
+----------------------------------------------------------- */
+
+// Create floating badge if not in HTML
+let syncBadge = document.getElementById("syncStatus");
+if (!syncBadge) {
+  syncBadge = document.createElement("div");
+  syncBadge.id = "syncStatus";
+  syncBadge.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 10px;
+    background: #0b74ff;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 12px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+    z-index: 9999;
+    transition: background 0.3s, opacity 0.3s;
+  `;
+  syncBadge.textContent = "🔄 Syncing...";
+  document.body.appendChild(syncBadge);
+}
+
+/** Update badge text + color */
+function setSyncStatus(status) {
+  if (!syncBadge) return;
+  switch (status) {
+    case "online":
+      syncBadge.textContent = "✅ Synced";
+      syncBadge.style.background = "#28a745";
+      fadeOutSyncBadge();
+      break;
+    case "offline":
+      syncBadge.textContent = "⚠️ Offline";
+      syncBadge.style.background = "#ff9800";
+      syncBadge.style.opacity = "1";
+      break;
+    case "syncing":
+    default:
+      syncBadge.textContent = "🔄 Syncing...";
+      syncBadge.style.background = "#0b74ff";
+      syncBadge.style.opacity = "1";
+  }
+}
+
+/** Smoothly hide when synced for a while */
+function fadeOutSyncBadge() {
+  clearTimeout(syncBadge._timer);
+  syncBadge._timer = setTimeout(() => {
+    syncBadge.style.opacity = "0";
+  }, 3000);
+}
+
+/** Show again if status changes */
+function showBadge() {
+  syncBadge.style.opacity = "1";
+  clearTimeout(syncBadge._timer);
+}
+
+/* ---- Detect network state ---- */
+window.addEventListener("online", () => {
+  showBadge();
+  setSyncStatus("syncing");
+});
+window.addEventListener("offline", () => {
+  showBadge();
+  setSyncStatus("offline");
+});
+
+/* ---- Firestore Realtime Connection Monitor ---- */
+try {
+  onSnapshot(collection(db, "orders"), () => {
+    if (navigator.onLine) setSyncStatus("online");
+  });
+} catch (e) {
+  console.warn("Sync monitor error:", e);
+  setSyncStatus("offline");
+}
+
+/* ---- Initial State ---- */
+setSyncStatus(navigator.onLine ? "syncing" : "offline");
