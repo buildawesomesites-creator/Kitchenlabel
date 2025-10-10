@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi" translate="no" class="notranslate">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Papadums Invoice</title>
+
+<!-- ✅ jsPDF + html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+*{box-sizing:border-box;}
+body{font-family:Arial, sans-serif;background:#fff;margin:0;padding:0;}
+.receipt{width:58mm;margin:auto;padding:6px;background:#fff;color:#000;}
+.center{text-align:center;}
+.right{text-align:right;}
+.small{font-size:11px;}
+.bold{font-weight:700;}
+.items{margin-top:6px;}
+.items .row{display:grid;grid-template-columns:1fr 55px 25px 55px;align-items:center;padding:3px 0;border-bottom:1px dashed #ddd;font-size:12px;}
+.items .row.header{font-weight:700;border-bottom:1px solid #000;}
+.totals{margin-top:6px;font-size:13px;}
+.totals .line{display:flex;justify-content:space-between;padding:2px 0;}
+.header-title{font-weight:700;font-size:13px;}
+.roundbox{border:1px solid #000;padding:4px 8px;border-radius:10px;font-size:12px;font-weight:700;display:inline-block;}
+button{width:100%;padding:10px;margin-top:10px;background:#007bff;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;}
+button:hover{background:#0056b3;}
+#message{display:none;text-align:center;margin-top:8px;font-size:13px;color:green;font-weight:bold;}
+@media print {
+  body {margin:0;padding:0;}
+  button {display:none;}
+  #message {display:none;}
+  .receipt {box-shadow:none;border-radius:0;margin:0;width:58mm;}
+}
+</style>
+</head>
+<body>
+<div class="receipt" id="invoice">
+
+  <!-- ✅ Header -->
+  <div class="center" style="margin-bottom:6px;">
+    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
+    <div class="small">35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
+    <div class="small">Hotline: 0946 024 520</div>
+  </div>
+
+  <!-- ✅ Info Row -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:6px;">
+    <div>
+      <div class="roundbox" id="tableBox"></div>
+      <div class="small" style="margin-top:4px;">Time in: <span id="timeInLabel"></span></div>
+    </div>
+    <div style="text-align:right;">
+      <div class="bold">INVOICE</div>
+      <div class="small">Bill No: <span id="billLabel"></span></div>
+      <div class="small">Time out: <span id="timeOutLabel"></span></div>
+    </div>
+  </div>
+
+  <!-- ✅ Items List -->
+  <div class="items" id="itemsList">
+    <div class="row header">
+      <div>Item</div>
+      <div class="right">Price</div>
+      <div class="right">Qty</div>
+      <div class="right">Amt</div>
+    </div>
+  </div>
+
+  <!-- ✅ Totals -->
+  <div style="border-top:1px solid #000;margin-top:6px;padding-top:6px">
+    <div class="totals">
+      <div class="line"><div>Total Price:</div><div id="totalPrice" class="right"></div></div>
+      <div class="line"><div>Discount:</div><div id="discountLabel" class="right"></div></div>
+      <div class="line"><div>Other revenue: VAT (8%):</div><div id="vatAmount" class="right"></div></div>
+      <div class="line" style="font-size:15px"><div style="font-weight:700">TOTAL:</div><div id="grandTotal" class="right" style="font-weight:700"></div></div>
+    </div>
+  </div>
+
+  <!-- ✅ Footer -->
+  <div class="center" style="margin-top:8px;">
+    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
+    <div class="small">35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
+    <div class="small">Hotline: 0946 024 520</div>
+    <div class="small">WiFi: <b>PAPADUMS INDIAN CUISINE 5G</b></div>
+    <div class="small">Pass: <b>everyday</b></div>
+  </div>
+
+  <div class="center" style="margin-top:6px;">
+    <canvas id="qrImg" width="80" height="80"></canvas>
+    <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
+  </div>
+
+  <!-- ✅ Buttons -->
+  <div id="buttonsArea">
+    <button onclick="window.print()">🖨️ Print Invoice</button>
+    <button onclick="downloadPDF()">📥 Download Invoice (58mm PDF)</button>
+  </div>
+
+  <div id="message">✅ Invoice downloaded successfully!</div>
+</div>
+
+<!-- ✅ Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script>
+function formatDateTime() {
+  const now = new Date();
+  return now.toLocaleString('vi-VN', { hour12: false });
+}
+
+// ✅ Load invoice data
+document.addEventListener('DOMContentLoaded', () => {
+  const order = JSON.parse(localStorage.getItem('papadumsInvoiceData')) || {};
+
+  // Top info mapping
+  const tableBox = document.getElementById('tableBox');
+  if (order.table) {
+    tableBox.textContent = `Bàn: ${order.table.replace("table","")}`;
+  } else if (order.type === "takeaway") {
+    tableBox.textContent = "Take Away";
+  } else if (order.type === "online") {
+    tableBox.textContent = "Online";
+  } else {
+    tableBox.style.display = "none";
+  }
+
+  document.getElementById('billLabel').textContent = order.billNo || '';
+  document.getElementById('timeInLabel').textContent = order.time || formatDateTime();
+  document.getElementById('timeOutLabel').textContent = formatDateTime();
+
+  // Items
+  const itemsList = document.getElementById('itemsList');
+  if (Array.isArray(order.items)) {
+    order.items.forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <div>${it.name}</div>
+        <div class="right">${(it.price || 0).toLocaleString()}</div>
+        <div class="right">${it.qty || 1}</div>
+        <div class="right">${((it.price || 0) * (it.qty || 1)).toLocaleString()}</div>
+      `;
+      itemsList.appendChild(row);
+    });
+  }
+
+  // Totals
+  const total = order.items?.reduce((sum, i) => sum + ((i.price || 0) * (i.qty || 1)), 0) || 0;
+  const discount = order.discount || 0;
+  const vat = total * 0.08;
+  const grandTotal = total + vat - discount;
+
+  document.getElementById('totalPrice').textContent = total.toLocaleString();
+  document.getElementById('discountLabel').textContent = discount.toLocaleString();
+  document.getElementById('vatAmount').textContent = vat.toLocaleString();
+  document.getElementById('grandTotal').textContent = grandTotal.toLocaleString();
+
+  // QR Code
+  new QRious({
+    element: document.getElementById("qrImg"),
+    value: `Papadums Invoice - Bàn ${order.table || ''} - ${formatDateTime()}`,
+    size: 80
+  });
+});
+
+// ✅ Download PDF without buttons, then show success message
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const invoice = document.getElementById('invoice');
+  const buttons = document.getElementById('buttonsArea');
+  const message = document.getElementById('message');
+
+  // Temporarily hide buttons
+  buttons.style.display = 'none';
+
+  const canvas = await html2canvas(invoice, { scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+  
+  // 58mm = ~2.283 inches
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: [58, (canvas.height * 58) / canvas.width]
+  });
+
+  pdf.addImage(imgData, 'PNG', 0, 0, 58, (canvas.height * 58) / canvas.width);
+  const filename = `Papadums_Invoice_${Date.now()}.pdf`;
+  pdf.save(filename);
+
+  // Restore buttons and show success message
+  buttons.style.display = 'block';
+  message.style.display = 'block';
+  setTimeout(() => message.style.display = 'none', 3000);
+}
+</script>
+</body>
+</html>

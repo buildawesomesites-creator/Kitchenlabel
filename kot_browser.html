@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi" translate="no" class="notranslate">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google" content="notranslate">
+  <meta http-equiv="Content-Language" content="vi">
+  <title>KOT Print (Browser)</title>
+  <style>
+    @page { size: 80mm auto; margin: 3mm; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      width: 80mm;
+      margin: 0 auto;
+      font-size: 14px;
+    }
+    .receipt { width: 100%; }
+    .copy { text-align: left; font-weight: bold; margin-bottom: 3px; }
+    h2 {
+      text-align: center;
+      margin: 2px 0 5px 0;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .meta {
+      font-size: 14px;
+      margin: 1px 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .meta b {
+      font-weight: bold;
+      min-width: auto;
+    }
+    .code-line {
+      font-size: 13px;
+      margin: 4px 0 6px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 4px 0;
+      text-align: left;
+      border-bottom: 1px solid #000;
+      font-size: 14px;
+    }
+    th { font-weight: bold; }
+    @media print {
+      .no-print { display: none !important; }
+    }
+    #kotPrintBtn {
+      background: #0066ff;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="receipt" id="receipt">
+    <div class="copy">Copies 1</div>
+    <h2>CHẾ BIẾN</h2>
+
+    <div class="meta"><b>Bàn:</b><span id="tableNum">—</span></div>
+    <div class="meta"><b>Phục vụ:</b><span id="serverName">Quỳnh Anh</span></div>
+    <div class="code-line" id="codeLine"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Món</th>
+          <th>DVT</th>
+          <th>SL</th>
+        </tr>
+      </thead>
+      <tbody id="itemList">
+        <tr><td colspan="3" style="text-align:center;">Đang tải...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="no-print" style="text-align:center;">
+    <button id="kotPrintBtn">KOT Print</button>
+  </div>
+
+  <script>
+    // === Random service code + date/time ===
+    function randomCode() {
+      const p1 = Math.floor(Math.random() * 90 + 10);
+      const p2 = Math.floor(Math.random() * 90 + 10);
+      return `${p1}-${p2}`;
+    }
+    const now = new Date();
+    const date = now.toLocaleDateString('en-GB');
+    const time = now.toLocaleTimeString('en-GB', { hour12: false });
+    document.getElementById('codeLine').textContent = `${randomCode()}  ${time}  ${date}`;
+
+    // === Get data (from localStorage or URL) ===
+    const params = new URLSearchParams(window.location.search);
+    let table = params.get("table");
+    let itemsData = params.get("items");
+    let items = [];
+
+    // If URL doesn’t have data, check saved localStorage data
+    if (!itemsData) {
+      const saved = localStorage.getItem("papadumsInvoiceData");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          table = parsed.table || table;
+          items = parsed.items || [];
+        } catch (e) { console.warn(e); }
+      }
+    } else {
+      try {
+        items = JSON.parse(decodeURIComponent(itemsData));
+      } catch (e) {
+        console.warn("❌ Error parsing items:", e);
+      }
+    }
+
+    document.getElementById("tableNum").textContent = table || "—";
+
+    // === Render items ===
+    const tbody = document.getElementById("itemList");
+    tbody.innerHTML = "";
+    if (!items || items.length === 0) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="3" style="text-align:center;">Không có món</td>`;
+      tbody.appendChild(tr);
+    } else {
+      items.forEach(it => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${it.name}</td>
+          <td>${it.unit || ""}</td>
+          <td>${it.qty}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // === Print ===
+    document.getElementById("kotPrintBtn").addEventListener("click", () => window.print());
+  </script>
+</body>
+</html>
