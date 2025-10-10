@@ -1,206 +1,216 @@
-console.log("✅ index_function.js loaded");
+// index_function.js — Papadums Blue Layout 7 (Final, Oct 2025)
 
-// === DOM references ===
-const productSearch = document.getElementById("productSearch");
-const qtyInput = document.getElementById("qty");
-const addBtn = document.getElementById("addBtn");
-const previewBody = document.getElementById("previewBody");
-const totalDisplay = document.getElementById("totalDisplay");
-const clearBtn = document.getElementById("clearBtn");
-const previewInfo = document.getElementById("previewInfo");
+import { db } from "./firebase_config.js";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-let allProducts = [];
-let orderItems = [];
+// 🔹 Local state
 let currentTable = "table1";
-const LOCAL_KEY = "papadumsOrderCache_v2";
+let orderItems = [];
 
-// === load products ===
-async function loadProducts() {
-  try {
-    const res = await fetch("./products.json");
-    allProducts = await res.json();
-    localStorage.setItem("offlineProducts", JSON.stringify(allProducts));
-  } catch {
-    allProducts = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
+// 🔹 Format number as currency
+function formatCurrency(num) {
+  return num.toLocaleString("vi-VN") + "₫";
+}
+
+// 🔹 Load local order data on startup
+document.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("papadumsOrder");
+  if (saved) {
+    const data = JSON.parse(saved);
+    currentTable = data.table || "table1";
+    orderItems = data.items || [];
   }
-  populateDatalist();
-}
-
-function populateDatalist() {
-  const list = document.getElementById("productList");
-  list.innerHTML = "";
-  allProducts.forEach(p => {
-    const o = document.createElement("option");
-    o.value = p.name;
-    list.appendChild(o);
-  });
-}
-
-// === localStorage per-table ===
-function loadAllOrders() {
-  return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
-}
-function saveAllOrders(data) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
-}
-function saveCurrentOrder() {
-  const all = loadAllOrders();
-  all[currentTable] = orderItems;
-  saveAllOrders(all);
-}
-function loadCurrentOrder() {
-  const all = loadAllOrders();
-  orderItems = all[currentTable] || [];
-  renderPreview();
-}
-
-// === table switching ===
-document.querySelectorAll(".table-card").forEach(card => {
-  card.addEventListener("click", () => {
-    document.querySelectorAll(".table-card").forEach(c => c.classList.remove("active"));
-    card.classList.add("active");
-    currentTable = card.dataset.table;
-    previewInfo.textContent = card.textContent.trim();
-    loadCurrentOrder();
-  });
+  updateUI();
+  loadProducts();
+  initRealtimeListener(); // 👈 start live Firestore sync
 });
 
-// === add item ===
-addBtn.addEventListener("click", () => {
-  const name = productSearch.value.trim();
-  const qty = parseInt(qtyInput.value) || 1;
-  if (!name) return alert("Enter a product");
-  const prod = allProducts.find(p => p.name.toLowerCase() === name.toLowerCase());
-  if (!prod) return alert("Product not found");
+// 🔹 Save to localStorage
+function saveOrder() {
+  localStorage.setItem("papadumsOrder", JSON.stringify({
+    table: currentTable,
+    items: orderItems
+  }));
+}
+
+// 🔹 Load products for autocomplete (from local products.json)
+function loadProducts() {
+  fetch("products.json")
+    .then(res => res.json())
+    .then(products => {
+      const list = document.getElementById("productList");
+      list.innerHTML = "";
+      products.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.name;
+        list.appendChild(opt);
+      });
+    })
+    .catch(() => console.warn("⚠️ No products.json found (offline mode)"));
+}
+
+// 🔹 Add item
+document.getElementById("addBtn").addEventListener("click", () => {
+  const name = document.getElementById("productSearch").value.trim();
+  const qty = parseInt(document.getElementById("qty").value) || 1;
+  if (!name) return alert("Enter product name");
 
   const existing = orderItems.find(i => i.name === name);
-  if (existing) {
-    existing.qty += qty;
-    existing.amount = existing.qty * existing.price;
-  } else {
-    orderItems.push({
-      name: prod.name,
-      price: +prod.price,
-      qty,
-      amount: qty * +prod.price
-    });
-  }
+  if (existing) existing.qty += qty;
+  else orderItems.push({ name, qty, price: 0 });
 
-  renderPreview();
-  saveCurrentOrder();
-  productSearch.value = "";
-  qtyInput.value = 1;
+  document.getElementById("productSearch").value = "";
+  document.getElementById("qty").value = 1;
+
+  saveOrder();
+  updateUI();
 });
 
-// === render preview ===
-function renderPreview() {
-  previewBody.innerHTML = "";
+// 🔹 Update UI
+function updateUI() {
+  const body = document.getElementById("previewBody");
+  const totalDisplay = document.getElementById("totalDisplay");
+  const info = document.getElementById("previewInfo");
+
+  document.querySelectorAll(".table-card").forEach(el => {
+    el.classList.toggle("active", el.dataset.table === currentTable);
+  });
+  info.textContent = currentTable.replace("table", "Table ");
+
   if (orderItems.length === 0) {
-    previewBody.innerHTML = `<div style="text-align:center;color:#777;padding:18px">No items</div>`;
+    body.innerHTML = `<div style="text-align:center;color:#777;padding:18px">No items</div>`;
     totalDisplay.textContent = "0₫";
     return;
   }
-  orderItems.forEach((it, i) => {
+
+  body.innerHTML = "";
+  let total = 0;
+  orderItems.forEach((item, i) => {
     const row = document.createElement("div");
     row.className = "item-row";
     row.innerHTML = `
-      <div class="item-left">${it.name}</div>
+      <div class="item-left">${item.name}</div>
       <div class="item-right">
-        <button class="qty-btn minus" data-i="${i}">-</button>
-        <div>${it.qty}</div>
-        <button class="qty-btn plus" data-i="${i}">+</button>
-        <button class="remove-btn del" data-i="${i}">x</button>
-        <div class="price-amount">${(it.amount).toLocaleString()}</div>
-      </div>`;
-    previewBody.appendChild(row);
+        <button class="qty-btn minus">-</button>
+        <span>${item.qty}</span>
+        <button class="qty-btn plus">+</button>
+        <button class="remove-btn">x</button>
+      </div>
+    `;
+    row.querySelector(".minus").onclick = () => {
+      if (item.qty > 1) item.qty--;
+      else orderItems.splice(i, 1);
+      saveOrder(); updateUI();
+    };
+    row.querySelector(".plus").onclick = () => {
+      item.qty++;
+      saveOrder(); updateUI();
+    };
+    row.querySelector(".remove-btn").onclick = () => {
+      orderItems.splice(i, 1);
+      saveOrder(); updateUI();
+    };
+    body.appendChild(row);
   });
-  const total = orderItems.reduce((a, b) => a + b.amount, 0);
-  totalDisplay.textContent = total.toLocaleString() + "₫";
-  attachRowEvents();
+
+  totalDisplay.textContent = formatCurrency(total);
 }
 
-// === row buttons ===
-function attachRowEvents() {
-  document.querySelectorAll(".plus").forEach(b => b.onclick = () => {
-    const i = +b.dataset.i;
-    orderItems[i].qty++;
-    orderItems[i].amount = orderItems[i].qty * orderItems[i].price;
-    renderPreview(); saveCurrentOrder();
-  });
-  document.querySelectorAll(".minus").forEach(b => b.onclick = () => {
-    const i = +b.dataset.i;
-    if (orderItems[i].qty > 1) orderItems[i].qty--;
-    else orderItems.splice(i, 1);
-    if (orderItems[i]) orderItems[i].amount = orderItems[i].qty * orderItems[i].price;
-    renderPreview(); saveCurrentOrder();
-  });
-  document.querySelectorAll(".del").forEach(b => b.onclick = () => {
-    const i = +b.dataset.i;
-    orderItems.splice(i, 1);
-    renderPreview(); saveCurrentOrder();
-  });
-}
-
-// === clear all ===
-clearBtn.onclick = () => {
+// 🔹 Clear order
+document.getElementById("clearBtn").addEventListener("click", () => {
   if (confirm("Clear all items?")) {
     orderItems = [];
-    renderPreview();
-    saveCurrentOrder();
+    saveOrder();
+    updateUI();
   }
-};
+});
 
-// === print / invoice ===
+// 🔹 Table switching
+document.querySelectorAll(".table-card").forEach(el => {
+  el.addEventListener("click", () => {
+    currentTable = el.dataset.table;
+    saveOrder();
+    updateUI();
+  });
+});
 
-// 🍳 KOT (Kitchen Order Ticket)
-function openKOT(file) {
-  saveCurrentOrder();
-  const kotItems = orderItems.map(it => ({
-    name: it.name,
-    unit: it.unit || "",
-    qty: it.qty
-  }));
+// 🔹 Print KOT
+document.getElementById("printKOT").addEventListener("click", () => {
+  if (orderItems.length === 0) return alert("No items to print");
+
   const kotData = {
     table: currentTable,
-    items: kotItems,
-    time: new Date().toLocaleString(),
-    staff: "Quỳnh Anh"
-  };
-  localStorage.setItem("papadumsKOTData", JSON.stringify(kotData));
-  // Small delay to ensure data saved
-  setTimeout(() => window.open(file, "_blank"), 150);
-}
-
-// 🧾 INVOICE (Customer Receipt)
-function openInvoice(file) {
-  saveCurrentOrder();
-
-  const fullItems = orderItems.map(it => ({
-    name: it.name,
-    qty: it.qty,
-    price: it.price || 0,
-    amount: (it.price || 0) * (it.qty || 1)
-  }));
-
-  const invoiceData = {
-    table: currentTable,
-    items: fullItems,
-    time: new Date().toLocaleString(),
-    staff: "Quỳnh Anh"
+    items: orderItems,
+    staff: "Quỳnh Anh",
+    timestamp: new Date().toISOString(),
+    type: "KOT"
   };
 
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(invoiceData));
-  setTimeout(() => window.open(file, "_blank"), 150);
-}
+  // Save to Firestore
+  addDoc(collection(db, "orders"), {
+    ...kotData,
+    createdAt: serverTimestamp()
+  }).then(() => console.log("✅ KOT saved to Firestore"))
+    .catch(e => console.warn("⚠️ Firestore save failed (offline)", e));
 
-// === button handlers ===
-document.getElementById("printKOT").onclick = () => openKOT("kot_browser.html");
-document.getElementById("printInv").onclick = () => openInvoice("invoice_browser.html");
-document.getElementById("downloadInv").onclick = () => openInvoice("invoice_browser.html?download=true");
-
-// === init ===
-window.addEventListener("load", async () => {
-  await loadProducts();
-  loadCurrentOrder();
-  renderPreview();
+  localStorage.setItem("papadumsKOT", JSON.stringify(kotData));
+  window.open("kot_browser.html", "_blank");
 });
+
+// 🔹 Print Invoice
+document.getElementById("printInv").addEventListener("click", () => {
+  if (orderItems.length === 0) return alert("No items to print");
+
+  const invData = {
+    table: currentTable,
+    items: orderItems,
+    staff: "Quỳnh Anh",
+    timestamp: new Date().toISOString(),
+    type: "Invoice"
+  };
+
+  localStorage.setItem("papadumsInvoice", JSON.stringify(invData));
+  window.open("invoice.html", "_blank");
+});
+
+// 🔹 Download Invoice
+document.getElementById("downloadInv").addEventListener("click", () => {
+  if (orderItems.length === 0) return alert("No items to download");
+
+  const invData = {
+    table: currentTable,
+    items: orderItems,
+    staff: "Quỳnh Anh",
+    timestamp: new Date().toISOString(),
+    type: "Invoice"
+  };
+
+  localStorage.setItem("papadumsInvoice", JSON.stringify(invData));
+  window.open("invoice_download.html", "_blank");
+});
+
+// 🔹 🔥 Real-time Firestore updates (multi-user live sync)
+function initRealtimeListener() {
+  try {
+    const ordersRef = collection(db, "orders");
+
+    onSnapshot(ordersRef, (snapshot) => {
+      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log("📡 Live Firestore data:", orders);
+
+      // Optional: Live update of tab title
+      const kotCount = orders.filter(o => o.type === "KOT").length;
+      const invCount = orders.filter(o => o.type === "Invoice").length;
+      document.title = `Papadums POS — ${kotCount} KOT | ${invCount} Invoices`;
+    });
+
+    console.log("✅ Firestore live listener active");
+  } catch (e) {
+    console.warn("⚠️ Firestore listener failed", e);
+  }
+}
