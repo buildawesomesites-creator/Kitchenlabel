@@ -228,6 +228,30 @@
   .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}
   @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
   </style>
+<!-- ✅ Fix for overlapping datalist dropdown -->
+<style>
+input[list] {
+  position: relative;
+  z-index: 1000;
+}
+
+datalist {
+  position: absolute;
+  z-index: 2000;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #333;
+  color: #fff;
+  border-radius: 6px;
+  border: 1px solid #555;
+  scrollbar-width: thin;
+}
+
+datalist option {
+  padding: 8px;
+  font-size: 15px;
+}
+</style>
 </head>
 
 <body>
@@ -297,4 +321,4 @@ if ("serviceWorker" in navigator) {
 </script>
 
 </body>
-</html>
+      </html>
