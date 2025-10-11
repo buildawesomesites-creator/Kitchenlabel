@@ -3,15 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS V.9</title>
+  <title>Papadums POS V.7</title>
 
-  <header>
-    <span id="versionTag">V. 2</span>
-    Papadums POS
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
-
-  <!-- PWA meta -->
+  <!-- PWA META -->
   <meta name="theme-color" content="#0b74ff" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" type="image/png" />
@@ -145,6 +139,12 @@
 </head>
 
 <body>
+  <header>
+    <span id="versionTag">V. 1</span>
+    Papadums POS
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
+
   <div class="wrap">
     <!-- ✅ TABLES -->
     <div class="table-panel">
@@ -196,49 +196,31 @@
     </div>
   </div>
 
-  <!-- ✅ FIREBASE FUNCTION -->
+  <!-- ✅ FUNCTION SCRIPT -->
   <script type="module" src="./index_function.online.js"></script>
 
+  <!-- ✅ REGISTER SERVICE WORKER -->
   <script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js")
-      .then(()=>console.log("Service Worker registered ✅"))
-      .catch(err=>console.warn("SW registration failed:",err));
-  }
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", async () => {
+        try {
+          const reg = await navigator.serviceWorker.register("./service-worker.js");
+          console.log("✅ Service Worker registered:", reg.scope);
 
-  window.addEventListener('resize', () => {
-    const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-      setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 300);
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("⚡ New version available, refreshing...");
+                newWorker.postMessage({ type: "SKIP_WAITING" });
+              }
+            });
+          });
+        } catch (err) {
+          console.warn("❌ SW registration failed:", err);
+        }
+      });
     }
-  });
-  </script>
-
-  <script>
-  const wrap = document.querySelector('.wrap');
-  const inputs = document.querySelectorAll('input, textarea');
-
-  inputs.forEach(input => {
-    input.addEventListener('focus', () => {
-      document.body.style.height = '150vh';
-      document.body.style.overflowY = 'scroll';
-      setTimeout(() => {
-        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
-    });
-
-    input.addEventListener('blur', () => {
-      document.body.style.height = '';
-      document.body.style.overflowY = '';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  });
-
-  const previewBody = document.getElementById('previewBody');
-  const observer = new MutationObserver(() => {
-    previewBody.scrollTop = previewBody.scrollHeight;
-  });
-  observer.observe(previewBody, { childList: true });
   </script>
 </body>
 </html>
