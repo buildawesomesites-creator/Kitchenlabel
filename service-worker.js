@@ -1,5 +1,5 @@
 // ✅ Papadums POS — Service Worker (Offline + Auto Update)
-const CACHE_NAME = "papadums-pos-v3";
+const CACHE_NAME = "papadums-pos-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
