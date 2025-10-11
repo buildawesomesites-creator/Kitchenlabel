@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS — Blue Layout 7</title>
+  <title>Papadums POS — Blue Layout V.1</title>
 
   <!-- PWA meta -->
   <meta name="theme-color" content="#0b74ff" />
@@ -228,30 +228,41 @@
   .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}
   @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
   </style>
-<!-- ✅ Fix for overlapping datalist dropdown -->
-<style>
-input[list] {
-  position: relative;
-  z-index: 1000;
-}
 
-datalist {
-  position: absolute;
-  z-index: 2000;
-  max-height: 200px;
-  overflow-y: auto;
-  background: #333;
-  color: #fff;
-  border-radius: 6px;
-  border: 1px solid #555;
-  scrollbar-width: thin;
-}
+  <!-- ✅ Only fix for overlapping datalist dropdown -->
+  <style>
+  input[list] {
+    position: relative;
+    z-index: 1000;
+  }
 
-datalist option {
-  padding: 8px;
-  font-size: 15px;
-}
-</style>
+  /* ✅ Fixed position so dropdown never covers footer */
+  datalist {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 120px; /* keep above footer buttons */
+    max-height: 200px;
+    overflow-y: auto;
+    background: #333;
+    color: #fff;
+    border-radius: 6px;
+    border: 1px solid #555;
+    scrollbar-width: thin;
+    z-index: 3000;
+  }
+
+  @media (max-height: 700px) {
+    datalist {
+      bottom: 160px;
+    }
+  }
+
+  datalist option {
+    padding: 8px;
+    font-size: 15px;
+  }
+  </style>
 </head>
 
 <body>
@@ -321,4 +332,4 @@ if ("serviceWorker" in navigator) {
 </script>
 
 </body>
-      </html>
+</html>
