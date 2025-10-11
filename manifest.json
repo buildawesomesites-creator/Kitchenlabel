@@ -2,15 +2,15 @@
   "name": "Papadums POS",
   "short_name": "PapadumsPOS",
   "lang": "en",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/Kitchenlabel/index.html",
+  "scope": "/Kitchenlabel/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#0b74ff",
   "description": "Papadums POS — offline-friendly restaurant billing system.",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/Kitchenlabel/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/Kitchenlabel/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
