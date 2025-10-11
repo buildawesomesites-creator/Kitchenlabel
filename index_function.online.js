@@ -1,271 +1,285 @@
-// ✅ Papadums POS — Online Function Script (with Sync Indicator)
-console.log("✅ index_function.online.js loaded (module)");
+// ✅ Papadums POS — Online Function Script (Local + Firebase Sync + Multi-user)
+console.log("✅ index_function.online.js loaded");
 
-/* ====== Firebase Import (Safe Fallback) ====== */
-let authState = async () => Promise.resolve();
-let saveOrderToFirestore = async () => Promise.resolve();
-let subscribeToTable = () => () => {};
-
-try {
-  const mod = await import("./firebase_client.js");
-  authState = mod.authState;
-  saveOrderToFirestore = mod.saveOrderToFirestore;
-  subscribeToTable = mod.subscribeToTable;
-  console.log("✅ Firebase module loaded");
-} catch (err) {
-  console.warn("⚠️ Firebase offline or not found — running locally");
-}
+/* ===== Firebase ===== */
+import { db } from "./firebase_config.js";
+import {
+  collection, doc, setDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ===== DOM Refs ===== */
 const productSearch = document.getElementById("productSearch");
 const qtyInput = document.getElementById("qty");
 const addBtn = document.getElementById("addBtn");
+const clearBtn = document.getElementById("clearBtn");
+const datalist = document.getElementById("productList");
 const previewBody = document.getElementById("previewBody");
 const totalDisplay = document.getElementById("totalDisplay");
-const clearBtn = document.getElementById("clearBtn");
 const previewInfo = document.getElementById("previewInfo");
+const syncStatus = document.getElementById("syncStatus");
+const tables = document.querySelectorAll(".table-card");
+
+/* ===== State ===== */
+let currentTable = "table1";
+let products = [];
+let cart = JSON.parse(localStorage.getItem("cart_" + currentTable) || "[]");
+let isSyncing = false;
 
 /* ===== Sync Indicator ===== */
-const header = document.querySelector("header");
-const syncIndicator = document.createElement("div");
-syncIndicator.id = "syncStatus";
-syncIndicator.textContent = "Offline";
-syncIndicator.style.cssText = `
-  position:absolute; right:10px; top:10px;
-  background:#ffffff33; color:#fff;
-  border-radius:12px; padding:5px 10px;
-  font-size:13px; font-weight:600;
-  transition:all 0.3s ease;
-`;
-header.style.position = "relative";
-header.appendChild(syncIndicator);
-
-function setSyncStatus(status, color) {
-  syncIndicator.textContent = status;
-  syncIndicator.style.background = color;
+function setSyncState(state) {
+  if (!syncStatus) return;
+  syncStatus.className = state;
+  if (state === "online") syncStatus.textContent = "✅ Online";
+  else if (state === "offline") syncStatus.textContent = "⚠️ Offline";
+  else syncStatus.textContent = "🔄 Syncing...";
 }
 
-/* ===== Variables ===== */
-let allProducts = [];
-let orderItems = [];
-let currentTable = "table1";
-const LOCAL_KEY = "papadumsOrderCache_v2";
+/* ===== Load Products (GitHub → Local → Cache) ===== */
+const GITHUB_RAW_URL =
+  "https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json";
 
-/* ===== Load Products (with local fallback) ===== */
 async function loadProducts() {
   try {
-    const res = await fetch("./products.json");
-    allProducts = await res.json();
-    localStorage.setItem("offlineProducts", JSON.stringify(allProducts));
-    console.log("📦 Products loaded:", allProducts.length);
-  } catch (err) {
-    console.warn("⚠️ Using offline products cache");
-    allProducts = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
+    const res = await fetch(GITHUB_RAW_URL, { cache: "no-cache" });
+    if (!res.ok) throw new Error("GitHub fetch failed");
+    products = await res.json();
+    localStorage.setItem("offlineProducts", JSON.stringify(products));
+    console.log("📦 Products from GitHub:", products.length);
+  } catch {
+    try {
+      const resLocal = await fetch("./products.json");
+      products = await resLocal.json();
+      localStorage.setItem("offlineProducts", JSON.stringify(products));
+      console.log("📦 Products from local file:", products.length);
+    } catch {
+      products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
+      console.log("📦 Products from cache:", products.length);
+    }
   }
-  populateDatalist();
+  populateProductList();
 }
 
-function populateDatalist() {
-  const list = document.getElementById("productList");
-  list.innerHTML = "";
-  allProducts.forEach(p => {
-    const o = document.createElement("option");
-    o.value = p.name;
-    list.appendChild(o);
+function populateProductList() {
+  if (!datalist) return;
+  datalist.innerHTML = "";
+  products.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.name;
+    datalist.appendChild(opt);
   });
 }
 
-/* ===== Local Cache ===== */
-function loadAllOrders() {
-  return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
-}
-function saveAllOrders(data) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
-}
-function saveCurrentOrderLocally() {
-  const all = loadAllOrders();
-  all[currentTable] = orderItems;
-  saveAllOrders(all);
-}
-
-/* ===== Firestore Sync ===== */
-async function saveCurrentOrderToFirestore() {
-  try {
-    setSyncStatus("Syncing...", "orange");
-    await saveOrderToFirestore(currentTable, {
-      table: currentTable,
-      items: orderItems,
+/* ===== Render Cart ===== */
+function renderCart() {
+  previewBody.innerHTML = "";
+  if (cart.length === 0) {
+    previewBody.innerHTML = `<div style="text-align:center;color:#777;padding:18px">No items</div>`;
+  } else {
+    cart.forEach((item, i) => {
+      const div = document.createElement("div");
+      div.className = "item-row";
+      div.innerHTML = `
+        <div class="item-left">${item.name}</div>
+        <div class="item-right">
+          <button class="qty-btn" data-i="${i}" data-type="minus">−</button>
+          <span>${item.qty}</span>
+          <button class="qty-btn" data-i="${i}" data-type="plus">+</button>
+          <strong class="price-amount">${(item.qty * item.price).toFixed(0)}₫</strong>
+          <button class="remove-btn" data-i="${i}">x</button>
+        </div>`;
+      previewBody.appendChild(div);
     });
-    saveCurrentOrderLocally();
-    setSyncStatus("Synced ✅", "green");
-    setTimeout(() => setSyncStatus("Idle", "#0b74ff"), 2000);
-  } catch (err) {
-    console.warn("Firestore save failed:", err);
-    setSyncStatus("Offline (Saved Locally)", "gray");
-    saveCurrentOrderLocally();
   }
-}
-function saveCurrentOrder() {
-  saveCurrentOrderToFirestore();
+  const total = cart.reduce((t, i) => t + i.price * i.qty, 0);
+  totalDisplay.textContent = total.toFixed(0) + "₫";
+  localStorage.setItem("cart_" + currentTable, JSON.stringify(cart));
 }
 
-/* ===== Load Order ===== */
-function loadCurrentOrder() {
-  const all = loadAllOrders();
-  orderItems = all[currentTable] || [];
-  renderPreview();
-}
-
-/* ===== Realtime Table Sync ===== */
-let unsubscribeCurrentTable = null;
-function subscribeToCurrentTableRealtime() {
-  if (typeof unsubscribeCurrentTable === "function") {
-    unsubscribeCurrentTable();
-    unsubscribeCurrentTable = null;
-  }
-  try {
-    unsubscribeCurrentTable = subscribeToTable(currentTable, docData => {
-      if (!docData) {
-        const local = loadAllOrders();
-        const localItems = local[currentTable] || [];
-        if (localItems.length) saveCurrentOrderToFirestore();
-        return;
-      }
-      orderItems = docData.items || [];
-      saveAllOrders({ ...loadAllOrders(), [currentTable]: orderItems });
-      renderPreview();
-      setSyncStatus("Updated 🔄", "green");
-      setTimeout(() => setSyncStatus("Idle", "#0b74ff"), 2000);
-    });
-  } catch (err) {
-    console.warn("subscribeToTable error:", err);
-  }
-}
-
-/* ===== Table Switching ===== */
-document.querySelectorAll(".table-card").forEach(card => {
-  card.addEventListener("click", () => {
-    document.querySelectorAll(".table-card").forEach(c => c.classList.remove("active"));
-    card.classList.add("active");
-    currentTable = card.dataset.table;
-    previewInfo.textContent = card.textContent.trim();
-    loadCurrentOrder();
-    subscribeToCurrentTableRealtime();
-  });
+/* ===== Modify Qty / Remove ===== */
+previewBody.addEventListener("click", (e) => {
+  const i = e.target.dataset.i;
+  if (i === undefined) return;
+  if (e.target.dataset.type === "plus") cart[i].qty++;
+  else if (e.target.dataset.type === "minus" && cart[i].qty > 1) cart[i].qty--;
+  else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
+  renderCart();
+  queueSync();
 });
 
-/* ===== Add Item ===== */
-addBtn.addEventListener("click", async () => {
+/* ===== Add / Clear Buttons ===== */
+addBtn.addEventListener("click", () => {
   const name = productSearch.value.trim();
-  const qty = parseInt(qtyInput.value) || 1;
-  if (!name) return alert("Enter a product name");
-
-  const prod = allProducts.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (!name) return;
+  const qty = parseInt(qtyInput.value || "1");
+  const prod = products.find(p => p.name.toLowerCase() === name.toLowerCase());
   if (!prod) return alert("Product not found!");
-
-  const existing = orderItems.find(i => i.name === prod.name);
-  if (existing) {
-    existing.qty += qty;
-    existing.amount = existing.qty * existing.price;
-  } else {
-    orderItems.push({ name: prod.name, price: +prod.price, qty, amount: qty * +prod.price });
-  }
-
-  renderPreview();
-  saveCurrentOrder();
+  const existing = cart.find(i => i.name === prod.name);
+  if (existing) existing.qty += qty;
+  else cart.push({ ...prod, qty });
+  renderCart();
+  queueSync();
   productSearch.value = "";
   qtyInput.value = 1;
 });
 
-/* ===== Render Preview ===== */
-function renderPreview() {
-  previewBody.innerHTML = "";
-  if (orderItems.length === 0) {
-    previewBody.innerHTML = `<div style="text-align:center;color:#777;padding:18px">No items</div>`;
-    totalDisplay.textContent = "0₫";
-    return;
-  }
-
-  orderItems.forEach((it, i) => {
-    const row = document.createElement("div");
-    row.className = "item-row";
-    row.innerHTML = `
-      <div class="item-left">${it.name}</div>
-      <div class="item-right">
-        <button class="qty-btn minus" data-i="${i}">-</button>
-        <div>${it.qty}</div>
-        <button class="qty-btn plus" data-i="${i}">+</button>
-        <button class="remove-btn del" data-i="${i}">x</button>
-        <div class="price-amount">${(it.amount).toLocaleString()}</div>
-      </div>`;
-    previewBody.appendChild(row);
-  });
-
-  const total = orderItems.reduce((a, b) => a + b.amount, 0);
-  totalDisplay.textContent = total.toLocaleString() + "₫";
-  attachRowEvents();
-}
-
-/* ===== Row Events ===== */
-function attachRowEvents() {
-  document.querySelectorAll(".plus").forEach(b => b.onclick = () => {
-    const i = +b.dataset.i;
-    orderItems[i].qty++;
-    orderItems[i].amount = orderItems[i].qty * orderItems[i].price;
-    renderPreview();
-    saveCurrentOrder();
-  });
-
-  document.querySelectorAll(".minus").forEach(b => b.onclick = () => {
-    const i = +b.dataset.i;
-    if (orderItems[i].qty > 1) orderItems[i].qty--;
-    else orderItems.splice(i, 1);
-    if (orderItems[i]) orderItems[i].amount = orderItems[i].qty * orderItems[i].price;
-    renderPreview();
-    saveCurrentOrder();
-  });
-
-  document.querySelectorAll(".del").forEach(b => b.onclick = () => {
-    const i = +b.dataset.i;
-    orderItems.splice(i, 1);
-    renderPreview();
-    saveCurrentOrder();
-  });
-}
-
-/* ===== Clear All ===== */
-clearBtn.onclick = () => {
+clearBtn.addEventListener("click", () => {
   if (confirm("Clear all items?")) {
-    orderItems = [];
-    renderPreview();
-    saveCurrentOrder();
+    cart = [];
+    renderCart();
+    queueSync();
   }
-};
+});
 
-/* ===== Invoice Printing ===== */
-function openInvoice(file) {
-  const data = { table: currentTable, items: orderItems, time: new Date().toLocaleString() };
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(data));
-  window.open(file, "_blank");
+/* ===== Table Switch ===== */
+tables.forEach(t => t.addEventListener("click", () => {
+  tables.forEach(el => el.classList.remove("active"));
+  t.classList.add("active");
+  currentTable = t.dataset.table;
+  previewInfo.textContent = currentTable;
+  cart = JSON.parse(localStorage.getItem("cart_" + currentTable) || "[]");
+  renderCart();
+  subscribeToFirestore();
+}));
+
+/* ===== Firestore Sync ===== */
+let syncTimeout;
+function queueSync() {
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(syncToFirestore, 1000);
 }
 
-document.getElementById("printKOT").onclick = () => openInvoice("kot_browser.html");
-document.getElementById("printInv").onclick = () => openInvoice("invoice_browser.html");
-document.getElementById("downloadInv").onclick = () => openInvoice("invoice_browser.html?download=true");
-
-/* ===== Initialize ===== */
-(async function init() {
+async function syncToFirestore() {
   try {
-    await authState();
-    console.log("Firebase auth ready");
-    setSyncStatus("Connected ✅", "green");
+    if (isSyncing) return;
+    isSyncing = true;
+    setSyncState("syncing");
+    await setDoc(doc(collection(db, "orders"), currentTable), {
+      items: cart,
+      updatedAt: new Date().toISOString(),
+    });
+    setSyncState("online");
+    isSyncing = false;
   } catch (err) {
-    console.warn("authState failed:", err);
-    setSyncStatus("Offline", "gray");
+    console.warn("Sync failed, will retry when online:", err);
+    setSyncState("offline");
+    isSyncing = false;
   }
+}
 
-  await loadProducts();
-  loadCurrentOrder();
-  renderPreview();
-  subscribeToCurrentTableRealtime();
-})();
+function subscribeToFirestore() {
+  const ref = doc(collection(db, "orders"), currentTable);
+  onSnapshot(ref, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    if (!data.items) return;
+
+    const localUpdated = localStorage.getItem("updatedAt_" + currentTable);
+    if (!localUpdated || data.updatedAt > localUpdated) {
+      cart = data.items;
+      localStorage.setItem("cart_" + currentTable, JSON.stringify(cart));
+      localStorage.setItem("updatedAt_" + currentTable, data.updatedAt);
+      renderCart();
+      console.log(`🔄 Updated from Firestore: ${currentTable}`);
+    }
+    setSyncState("online");
+  });
+}
+
+/* ===== Network Reconnect Auto-Sync ===== */
+window.addEventListener("online", () => {
+  console.log("🌐 Back online, syncing pending data...");
+  syncToFirestore();
+});
+
+/* ===== Save Order for Print ===== */
+function saveOrderDataForPrint() {
+  const orderData = {
+    table: currentTable,
+    time: new Date().toLocaleString("vi-VN", { hour12: false }),
+    items: cart.map(i => ({
+      name: i.name,
+      price: i.price,
+      qty: i.qty,
+      unit: i.unit || ""
+    })),
+    discount: 0,
+    billNo: "INV" + Date.now(),
+    type: "dinein"
+  };
+  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
+  console.log("💾 Order data saved for print:", orderData);
+}
+
+/* ===== Scroll Fix for Mobile Keyboard ===== */
+productSearch.addEventListener("focus", () => {
+  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
+});
+qtyInput.addEventListener("focus", () => {
+  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
+});
+
+/* ===== Start ===== */
+await loadProducts();
+renderCart();
+subscribeToFirestore();
+setSyncState("online");
+console.log("🚀 Papadums POS ready");
+
+/* ===== Auto-add when selecting from datalist (minimal, safe) ===== */
+/* This only adds when the product name in the input exactly matches a datalist option/product name. */
+let _autoAddTimer;
+function tryAutoAddFromDatalist() {
+  clearTimeout(_autoAddTimer);
+  _autoAddTimer = setTimeout(() => {
+    const name = productSearch.value.trim();
+    if (!name) return;
+    // only proceed if name exactly matches a known product
+    const prod = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (!prod) return;
+    // ensure this value exists in the datalist options (so we only auto-add when user selected from list)
+    const options = Array.from(datalist ? datalist.querySelectorAll("option") : []);
+    const isOption = options.some(o => o.value.toLowerCase() === name.toLowerCase());
+    if (!isOption) return;
+
+    const qty = parseInt(qtyInput.value || "1");
+    const existing = cart.find(i => i.name === prod.name);
+    if (existing) existing.qty += qty;
+    else cart.push({ ...prod, qty });
+
+    renderCart();
+    queueSync();
+
+    // reset inputs
+    productSearch.value = "";
+    qtyInput.value = 1;
+  }, 120); // short debounce to avoid accidental adds while typing
+}
+productSearch.addEventListener("change", tryAutoAddFromDatalist);
+productSearch.addEventListener("input", tryAutoAddFromDatalist);
+
+/* ===== Footer Buttons ===== */
+document.getElementById("printKOT")?.addEventListener("click", () => {
+  saveOrderDataForPrint();
+  const w = window.open("kot_browser.html", "_blank", "width=400,height=600");
+  w?.focus();
+});
+
+document.getElementById("printInv")?.addEventListener("click", () => {
+  saveOrderDataForPrint();
+  const w = window.open("invoice_browser.html", "_blank", "width=400,height=600");
+  w?.focus();
+});
+
+document.getElementById("downloadInv")?.addEventListener("click", async () => {
+  saveOrderDataForPrint();
+  const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Papadums_Invoice.html";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  console.log("✅ Invoice downloaded");
+});
