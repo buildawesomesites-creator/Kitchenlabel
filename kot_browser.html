@@ -127,7 +127,7 @@
       }
     }
 
-    document.getElementById("tableNum").textContent = table || "—";
+    document.getElementById("tableNum").textContent = (table || "—").replace(/table\s*/i, "");
 
     // === Render items ===
     const tbody = document.getElementById("itemList");
