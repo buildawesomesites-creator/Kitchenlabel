@@ -1,336 +1,317 @@
 <!doctype html>
-<html lang="en" translate="no">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS V.3</title>
 
-  <!-- PWA meta -->
-  <meta name="theme-color" content="#0b74ff" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon-192.png" type="image/png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="PapadumsPOS" />
-
-  <style>
-  :root{
-    --blue1:#0b74ff;
-    --blue2:#0062cc;
-    --bg:#f5f8ff;
-    --card:#fff;
-    --danger:#e55353;
-    --shadow:0 6px 18px rgba(3,20,66,0.06);
-  }
-
-  /* ✅ Allow scroll when keyboard opens */
-  html,body{
-    height:100%;
-    margin:0;
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-    background:var(--bg);
-    color:#111;
-    -webkit-font-smoothing:antialiased;
-    overflow:auto;
-    overscroll-behavior:contain;
-  }
-
-  header{
-    margin:10px;
-    border-radius:10px;
-    background:linear-gradient(90deg,var(--blue1),var(--blue2));
-    color:#fff;
-    text-align:center;
-    padding:12px;
-    font-weight:800;
-    font-size:18px;
-    box-shadow:var(--shadow);
-    position:relative;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  #versionTag{
-    position:absolute;
-    left:14px;
-    background:#fff;
-    color:var(--blue2);
-    font-weight:800;
-    padding:2px 8px;
-    border-radius:8px;
-    font-size:13px;
-  }
-  #syncStatus{
-    position:absolute;
-    right:12px;
-    top:10px;
-    background:#fff3;
-    padding:4px 10px;
-    border-radius:8px;
-    font-size:13px;
-    font-weight:600;
-    color:#fff;
-    transition:all 0.3s ease;
-  }
-  #syncStatus.online{background:#00b86b;}
-  #syncStatus.offline{background:#e55353;}
-  #syncStatus.syncing{background:#ffb400;}
-
-  /* ✅ Main container scrollable when keyboard opens */
-  .wrap{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    padding:8px;
-    min-height:calc(100dvh - 84px);
-    box-sizing:border-box;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-
-  .table-panel{
-    background:var(--card);
-    border-radius:12px;
-    padding:8px;
-    box-shadow:var(--shadow);
-  }
-  .table-panel h3{
-    margin:6px 0;
-    text-align:center;
-    color:var(--blue2);
-    font-size:15px;
-    font-weight:700;
-  }
-  .tables{
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:8px;
-  }
-  .table-card{
-    background:linear-gradient(180deg,#fff,#f6fbff);
-    border:1px solid #dfecff;
-    border-radius:8px;
-    height:52px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    cursor:pointer;
-    font-weight:800;
-    color:#0a4fd8;
-    user-select:none;
-  }
-  .table-card.active{
-    background:linear-gradient(90deg,var(--blue1),var(--blue2));
-    color:#fff;
-    box-shadow:0 6px 18px rgba(11,116,255,0.14);
-  }
-
-  .controls-panel{
-    background:var(--card);
-    border-radius:12px;
-    padding:10px;
-    box-shadow:var(--shadow);
-  }
-  .top-row{
-    display:flex;
-    gap:8px;
-    margin-bottom:8px;
-  }
-  .bottom-row{
-    display:flex;
-    gap:8px;
-  }
-  #productSearch{ flex:0 0 70%; }
-  #qty{ flex:0 0 10%; text-align:center; }
-  .btn-add{
-    flex:0 0 70%;
-    background:linear-gradient(90deg,var(--blue1),var(--blue2));
-    color:#fff;
-    border:none;
-    padding:10px 14px;
-    border-radius:10px;
-    font-weight:800;
-    font-size:15px;
-    cursor:pointer;
-  }
-  .btn-clear{
-    flex:0 0 20%;
-    background:var(--danger);
-    color:#fff;
-    border:none;
-    border-radius:10px;
-    padding:10px;
-    font-weight:800;
-    cursor:pointer;
-  }
-
-  .controls-panel input[type="text"],
-  .controls-panel input[type="number"]{
-    border:1px solid #e6eefc;
-    border-radius:10px;
-    padding:10px;
-    font-size:15px;
-    background:#fff;
-  }
-
-  .preview-panel{
-    background:var(--card);
-    border-radius:12px;
-    box-shadow:var(--shadow);
-    display:flex;
-    flex-direction:column;
-    flex:1 1 auto;
-    overflow:hidden;
-  }
-  .preview-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px;
-    border-bottom:1px solid #f0f4ff;
-  }
-  .preview-header h3{ margin:0;color:var(--blue2);font-size:16px;font-weight:800; }
-  .preview-body{
-    padding:10px;
-    overflow-y:auto;
-    flex:1;
-  }
-  .item-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    background:#f9fbff;
-    border:1px solid #f0f6ff;
-    border-radius:8px;
-    padding:10px;
-    margin-bottom:8px;
-  }
-  .item-left{font-size:15px;font-weight:700;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .item-right{display:flex;align-items:center;gap:8px;font-size:14px;}
-  .qty-btn{
-    background:linear-gradient(90deg,var(--blue1),var(--blue2));
-    color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;min-width:36px;
-  }
-  .remove-btn{
-    background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;
-  }
-  .price-amount{font-weight:800;min-width:72px;text-align:right;}
-  .totals-row{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;
-  }
-
-  .footer-fixed{
-    position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);
-    z-index:999;display:flex;justify-content:center;
-  }
-  .footer-inner{
-    width:100%;max-width:980px;background:var(--card);border-radius:12px;
-    box-shadow:var(--shadow);display:flex;gap:8px;padding:10px;box-sizing:border-box;
-  }
-  .footer-btn{
-    flex:1;border:none;padding:12px;border-radius:10px;font-weight:900;font-size:15px;color:#fff;cursor:pointer;
-  }
-  .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}
-  .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}
-  .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}
-  @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
-  </style>
-
-  <!-- ✅ Keep datalist dropdown above footer -->
-  <style>
-  input[list] { position: relative; z-index: 1000; }
-  datalist {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    bottom: 120px;
-    max-height: 200px;
-    overflow-y: auto;
-    background: #333;
-    color: #fff;
-    border-radius: 6px;
-    border: 1px solid #555;
-    scrollbar-width: thin;
-    z-index: 3000;
-  }
-  @media (max-height: 700px) {
-    datalist { bottom: 160px; }
-  }
-  datalist option {
-    padding: 8px;
-    font-size: 15px;
-  }
-  </style>
-</head>
-
-<body>
-
-<header>
-  <span id="versionTag">V. 1</span>
-  Papadums POS
-  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-</header>
-
-<div class="wrap">
-  <div class="table-panel">
-    <h3>Tables</h3>
-    <div class="tables" id="tablesContainer">
-      <div class="table-card active" data-table="table1"><strong>1</strong></div>
-      <div class="table-card" data-table="table2"><strong>2</strong></div>
-      <div class="table-card" data-table="table3"><strong>3</strong></div>
-      <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>
-      <div class="table-card" data-table="online"><strong>Online</strong></div>
-    </div>
-  </div>
-
-  <div class="controls-panel">
-    <div class="top-row">
-      <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
-      <datalist id="productList"></datalist>
-      <input id="qty" type="number" min="1" value="1" />
-    </div>
-    <div class="bottom-row">
-      <button id="clearBtn" class="btn-clear">Clear Items</button>
-      <button id="addBtn" class="btn-add">Add Item</button>
-    </div>
-  </div>
-
-  <div class="preview-panel">
-    <div class="preview-header">
-      <h3>Order Preview</h3>
-      <small id="previewInfo">Table 1</small>
-    </div>
-    <div class="preview-body" id="previewBody">
-      <div style="text-align:center;color:#777;padding:18px">No items</div>
-    </div>
-    <div class="totals-row">
-      <div>Total</div>
-      <div id="totalDisplay">0₫</div>
-    </div>
-  </div>
-</div>
-
-<div class="footer-fixed">
-  <div class="footer-inner">
-    <button id="printKOT" class="footer-btn kot">Print KOT</button>
-    <button id="printInv" class="footer-btn inv">Print Invoice</button>
-    <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>
-  </div>
-</div>
-
-<!-- ✅ ONLINE FIREBASE VERSION -->
-<script type="module" src="./index_function.online.js"></script>
-
-<!-- ✅ Auto-scroll active inputs/buttons into view -->
-<script>
-window.addEventListener('resize', () => {
-  const active = document.activeElement;
-  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-    setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 200);
-  }
-});
-</script>
-
-</body>
-</html>
+<html lang="en" translate="no">  
+<head>  
+  <meta charset="utf-8" />  
+  <meta name="viewport" content="width=device-width,initial-scale=1" />  
+  <title>Papadums POS Blue V2</title>  <header>  
+  <span id="versionTag">V. 1</span>  
+  Papadums POS  
+  <div id="syncStatus" class="syncing">🔄 Syncing...</div>  
+</header>    <!-- PWA meta -->    <meta name="theme-color" content="#0b74ff" />  
+  <link rel="manifest" href="manifest.json" />  
+  <link rel="icon" href="icon-192.png" type="image/png" />  
+  <meta name="apple-mobile-web-app-capable" content="yes" />  
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />  
+  <meta name="apple-mobile-web-app-title" content="PapadumsPOS" />    <style>  
+  :root{  
+    --blue1:#0b74ff;  
+    --blue2:#0062cc;  
+    --bg:#f5f8ff;  
+    --card:#fff;  
+    --danger:#e55353;  
+    --shadow:0 6px 18px rgba(3,20,66,0.06);  
+  }  
+  
+  /* ✅ Fixed scrolling behavior for Android keyboard */  
+  html,body{  
+    height:100%;  
+    margin:0;  
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;  
+    background:var(--bg);  
+    color:#111;  
+    -webkit-font-smoothing:antialiased;  
+    overflow:auto; /* allow scroll when keyboard appears */  
+    overscroll-behavior:contain;  
+  }  
+  
+  @supports (height: 100dvh) {  
+    .wrap {  
+      height: calc(100dvh - 84px);  
+    }  
+  }  
+  
+  header{  
+    margin:10px;  
+    border-radius:10px;  
+    background:linear-gradient(90deg,var(--blue1),var(--blue2));  
+    color:#fff;  
+    text-align:center;  
+    padding:12px;  
+    font-weight:800;  
+    font-size:18px;  
+    box-shadow:var(--shadow);  
+    position:relative;  
+    display:flex;  
+    align-items:center;  
+    justify-content:center;  
+  }  
+  #versionTag{  
+    position:absolute;  
+    left:14px;  
+    background:#fff;  
+    color:var(--blue2);  
+    font-weight:800;  
+    padding:2px 8px;  
+    border-radius:8px;  
+    font-size:13px;  
+  }  
+  #syncStatus{  
+    position:absolute;  
+    right:12px;  
+    top:10px;  
+    background:#fff3;  
+    padding:4px 10px;  
+    border-radius:8px;  
+    font-size:13px;  
+    font-weight:600;  
+    color:#fff;  
+    transition:all 0.3s ease;  
+  }  
+  #syncStatus.online{background:#00b86b;}  
+  #syncStatus.offline{background:#e55353;}  
+  #syncStatus.syncing{background:#ffb400;}  
+  
+  .wrap{  
+    display:flex;  
+    flex-direction:column;  
+    gap:10px;  
+    padding:8px;  
+    height:calc(100% - 84px);  
+    box-sizing:border-box;  
+  }  
+  .table-panel{  
+    background:var(--card);  
+    border-radius:12px;  
+    padding:8px;  
+    box-shadow:var(--shadow);  
+  }  
+  .table-panel h3{  
+    margin:6px 0;  
+    text-align:center;  
+    color:var(--blue2);  
+    font-size:15px;  
+    font-weight:700;  
+  }  
+  .tables{  
+    display:grid;  
+    grid-template-columns:repeat(5,1fr);  
+    gap:8px;  
+  }  
+  .table-card{  
+    background:linear-gradient(180deg,#fff,#f6fbff);  
+    border:1px solid #dfecff;  
+    border-radius:8px;  
+    height:52px;  
+    display:flex;  
+    justify-content:center;  
+    align-items:center;  
+    cursor:pointer;  
+    font-weight:800;  
+    color:#0a4fd8;  
+    user-select:none;  
+  }  
+  .table-card.active{  
+    background:linear-gradient(90deg,var(--blue1),var(--blue2));  
+    color:#fff;  
+    box-shadow:0 6px 18px rgba(11,116,255,0.14);  
+  }  
+  
+  .controls-panel{  
+    background:var(--card);  
+    border-radius:12px;  
+    padding:10px;  
+    box-shadow:var(--shadow);  
+  }  
+  .top-row{  
+    display:flex;  
+    gap:8px;  
+    margin-bottom:8px;  
+  }  
+  .bottom-row{  
+    display:flex;  
+    gap:8px;  
+  }  
+  #productSearch{ flex:0 0 70%; }  
+  #qty{ flex:0 0 10%; text-align:center; }  
+  .btn-add{  
+    flex:0 0 70%;  
+    background:linear-gradient(90deg,var(--blue1),var(--blue2));  
+    color:#fff;  
+    border:none;  
+    padding:10px 14px;  
+    border-radius:10px;  
+    font-weight:800;  
+    font-size:15px;  
+    cursor:pointer;  
+  }  
+  .btn-clear{  
+    flex:0 0 20%;  
+    background:var(--danger);  
+    color:#fff;  
+    border:none;  
+    border-radius:10px;  
+    padding:10px;  
+    font-weight:800;  
+    cursor:pointer;  
+  }  
+  
+  .controls-panel input[type="text"],  
+  .controls-panel input[type="number"]{  
+    border:1px solid #e6eefc;  
+    border-radius:10px;  
+    padding:10px;  
+    font-size:15px;  
+    background:#fff;  
+  }  
+  
+  .preview-panel{  
+    background:var(--card);  
+    border-radius:12px;  
+    box-shadow:var(--shadow);  
+    display:flex;  
+    flex-direction:column;  
+    flex:1 1 auto;  
+    overflow:hidden;  
+  }  
+  .preview-header{  
+    display:flex;  
+    justify-content:space-between;  
+    align-items:center;  
+    padding:12px;  
+    border-bottom:1px solid #f0f4ff;  
+  }  
+  .preview-header h3{ margin:0;color:var(--blue2);font-size:16px;font-weight:800; }  
+  .preview-body{  
+    padding:10px;  
+    overflow-y:auto;  
+    flex:1;  
+  }  
+  .item-row{  
+    display:flex;  
+    justify-content:space-between;  
+    align-items:center;  
+    background:#f9fbff;  
+    border:1px solid #f0f6ff;  
+    border-radius:8px;  
+    padding:10px;  
+    margin-bottom:8px;  
+  }  
+  .item-left{font-size:15px;font-weight:700;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}  
+  .item-right{display:flex;align-items:center;gap:8px;font-size:14px;}  
+  .qty-btn{  
+    background:linear-gradient(90deg,var(--blue1),var(--blue2));  
+    color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;min-width:36px;  
+  }  
+  .remove-btn{  
+    background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;  
+  }  
+  .price-amount{font-weight:800;min-width:72px;text-align:right;}  
+  .totals-row{  
+    display:flex;justify-content:space-between;align-items:center;  
+    padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;  
+  }  
+  
+  .footer-fixed{  
+    position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);  
+    z-index:999;display:flex;justify-content:center;  
+  }  
+  .footer-inner{  
+    width:100%;max-width:980px;background:var(--card);border-radius:12px;  
+    box-shadow:var(--shadow);display:flex;gap:8px;padding:10px;box-sizing:border-box;  
+  }  
+  .footer-btn{  
+    flex:1;border:none;padding:12px;border-radius:10px;font-weight:900;font-size:15px;color:#fff;cursor:pointer;  
+  }  
+  .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}  
+  .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}  
+  .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}  
+  @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}  
+  </style>    <!-- ✅ Keep datalist dropdown above footer -->    <style>  
+  input[list] { position: relative; z-index: 1000; }  
+  datalist {  
+    position: fixed;  
+    left: 8px;  
+    right: 8px;  
+    bottom: 120px;  
+    max-height: 200px;  
+    overflow-y: auto;  
+    background: #333;  
+    color: #fff;  
+    border-radius: 6px;  
+    border: 1px solid #555;  
+    scrollbar-width: thin;  
+    z-index: 3000;  
+  }  
+  @media (max-height: 700px) {  
+    datalist { bottom: 160px; }  
+  }  
+  datalist option {  
+    padding: 8px;  
+    font-size: 15px;  
+  }  
+  </style>  </head>  <body>  <div class="wrap">  
+  <div class="table-panel">  
+    <h3>Tables</h3>  
+    <div class="tables" id="tablesContainer">  
+      <div class="table-card active" data-table="table1"><strong>1</strong></div>  
+      <div class="table-card" data-table="table2"><strong>2</strong></div>  
+      <div class="table-card" data-table="table3"><strong>3</strong></div>  
+      <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>  
+      <div class="table-card" data-table="online"><strong>Online</strong></div>  
+    </div>  
+  </div>    <div class="controls-panel">  
+    <div class="top-row">  
+      <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />  
+      <datalist id="productList"></datalist>  
+      <input id="qty" type="number" min="1" value="1" />  
+    </div>  
+    <div class="bottom-row">  
+      <button id="clearBtn" class="btn-clear">Clear Items</button>  
+      <button id="addBtn" class="btn-add">Add Item</button>  
+    </div>  
+  </div>    <div class="preview-panel">  
+    <div class="preview-header">  
+      <h3>Order Preview</h3>  
+      <small id="previewInfo">Table 1</small>  
+    </div>  
+    <div class="preview-body" id="previewBody">  
+      <div style="text-align:center;color:#777;padding:18px">No items</div>  
+    </div>  
+    <div class="totals-row">  
+      <div>Total</div>  
+      <div id="totalDisplay">0₫</div>  
+    </div>  
+  </div>  
+</div>  <div class="footer-fixed">  
+  <div class="footer-inner">  
+    <button id="printKOT" class="footer-btn kot">Print KOT</button>  
+    <button id="printInv" class="footer-btn inv">Print Invoice</button>  
+    <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>  
+  </div>  
+</div>  <!-- ✅ ONLINE FIREBASE VERSION -->  <script type="module" src="./index_function.online.js"></script>  <script>  
+if ("serviceWorker" in navigator) {  
+  navigator.serviceWorker.register("sw.js")  
+    .then(()=>console.log("Service Worker registered ✅"))  
+    .catch(err=>console.warn("SW registration failed:",err));  
+}  
+  
+/* ✅ Auto-scroll inputs/buttons into view when keyboard opens */  
+window.addEventListener('resize', () => {  
+  const active = document.activeElement;  
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {  
+    setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 300);  
+  }  
+});  
+</script>  </body>  
+</html> 
