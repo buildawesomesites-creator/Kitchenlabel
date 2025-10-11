@@ -116,4 +116,4 @@ if ("serviceWorker" in navigator) {
     }
   `;
   document.head.appendChild(style);
-                         }
+}
