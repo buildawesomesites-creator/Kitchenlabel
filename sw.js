@@ -1,5 +1,5 @@
 // ✅ Papadums POS Service Worker
-const SW_VERSION = "Kitchen.POS.V.7";
+const SW_VERSION = "Kitchen.POS.V.6";
 const CACHE_NAME = "papadums-blue-layout7-v11";
 
 const APP_SHELL = [
