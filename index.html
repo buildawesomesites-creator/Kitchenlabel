@@ -7,9 +7,9 @@
 
 <body>
   <header>
-    <span id="versionTag">V. 3</span>
+    <spanconst id="versionTag">V. 1</span>
     Papadums POS
-    <div id="syncStatus" class="syncing"></div>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
   </header>
 
   <!-- PWA META -->
@@ -205,7 +205,8 @@
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", async () => {
         try {
-          const reg = await navigator.serviceWorker.register("./service-worker.js");
+           const reg = await navigator.serviceWorker.register("/Kitchenlabel/service-worker.js", { scope: "/Kitchenlabel/" });
+
           console.log("✅ Service Worker registered:", reg.scope);
 
           reg.addEventListener("updatefound", () => {
@@ -224,7 +225,7 @@
     }
   </script>
 
-  <!-- ✅ PWA Install Prompt -->
+<!-- ✅ PWA Install Prompt -->
 <button id="installBtn" style="
   position:fixed;
   bottom:80px;
@@ -271,4 +272,4 @@
   });
 </script>
 </body>
-</html>
+  </html>
