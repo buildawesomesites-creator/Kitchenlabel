@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS V.9</title>
+  <title>Papadums POS V.7</title>
 
   <header>
     <span id="versionTag">V. 1</span>
@@ -209,5 +209,33 @@ window.addEventListener('resize', () => {
   }
 });
 </script>
+<script>
+const wrap = document.querySelector('.wrap');
+const inputs = document.querySelectorAll('input, textarea');
+
+inputs.forEach(input => {
+  input.addEventListener('focus', () => {
+    document.body.style.height = '150vh'; // allow scroll when keyboard opens
+    document.body.style.overflowY = 'scroll';
+    setTimeout(() => {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  });
+
+  input.addEventListener('blur', () => {
+    document.body.style.height = '';
+    document.body.style.overflowY = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// Ensure preview scroll stays smooth when many items are added
+const previewBody = document.getElementById('previewBody');
+const observer = new MutationObserver(() => {
+  previewBody.scrollTop = previewBody.scrollHeight;
+});
+observer.observe(previewBody, { childList: true });
+</script>
+  
 </body>
 </html>
