@@ -145,97 +145,100 @@
 </head>
 
 <body>
-<div class="wrap">
-  <div class="table-panel">
-    <h3>Tables</h3>
-    <div class="tables" id="tablesContainer">
-      <div class="table-card active" data-table="table1"><strong>1</strong></div>
-      <div class="table-card" data-table="table2"><strong>2</strong></div>
-      <div class="table-card" data-table="table3"><strong>3</strong></div>
-      <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>
-      <div class="table-card" data-table="online"><strong>Online</strong></div>
+  <div class="wrap">
+    <!-- ✅ TABLES -->
+    <div class="table-panel">
+      <h3>Tables</h3>
+      <div class="tables" id="tablesContainer">
+        <div class="table-card active" data-table="table1"><strong>1</strong></div>
+        <div class="table-card" data-table="table2"><strong>2</strong></div>
+        <div class="table-card" data-table="table3"><strong>3</strong></div>
+        <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>
+        <div class="table-card" data-table="online"><strong>Online</strong></div>
+      </div>
+    </div>
+
+    <!-- ✅ SEARCH + BUTTONS -->
+    <div class="controls-panel">
+      <div class="top-row">
+        <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
+        <datalist id="productList"></datalist>
+        <input id="qty" type="number" min="1" value="1" />
+      </div>
+      <div class="bottom-row">
+        <button id="clearBtn" class="btn-clear">Clear Items</button>
+        <button id="addBtn" class="btn-add">Add Item</button>
+      </div>
+    </div>
+
+    <!-- ✅ PREVIEW PANEL -->
+    <div class="preview-panel">
+      <div class="preview-header">
+        <h3>Order Preview</h3>
+        <small id="previewInfo">Table 1</small>
+      </div>
+      <div class="preview-body" id="previewBody">
+        <div style="text-align:center;color:#777;padding:18px">No items</div>
+      </div>
+      <div class="totals-row">
+        <div>Total</div>
+        <div id="totalDisplay">0₫</div>
+      </div>
     </div>
   </div>
 
-  <div class="controls-panel">
-    <div class="top-row">
-      <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
-      <datalist id="productList"></datalist>
-      <input id="qty" type="number" min="1" value="1" />
-    </div>
-    <div class="bottom-row">
-      <button id="clearBtn" class="btn-clear">Clear Items</button>
-      <button id="addBtn" class="btn-add">Add Item</button>
+  <!-- ✅ FOOTER -->
+  <div class="footer-fixed">
+    <div class="footer-inner">
+      <button id="printKOT" class="footer-btn kot">Print KOT</button>
+      <button id="printInv" class="footer-btn inv">Print Invoice</button>
+      <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>
     </div>
   </div>
 
-  <div class="preview-panel">
-    <div class="preview-header">
-      <h3>Order Preview</h3>
-      <small id="previewInfo">Table 1</small>
-    </div>
-    <div class="preview-body" id="previewBody">
-      <div style="text-align:center;color:#777;padding:18px">No items</div>
-    </div>
-    <div class="totals-row">
-      <div>Total</div>
-      <div id="totalDisplay">0₫</div>
-    </div>
-  </div>
-</div>
+  <!-- ✅ FIREBASE FUNCTION -->
+  <script type="module" src="./index_function.online.js"></script>
 
-<div class="footer-fixed">
-  <div class="footer-inner">
-    <button id="printKOT" class="footer-btn kot">Print KOT</button>
-    <button id="printInv" class="footer-btn inv">Print Invoice</button>
-    <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>
-  </div>
-</div>
-
-<!-- ✅ ONLINE FIREBASE VERSION -->
-<script type="module" src="./index_function.online.js"></script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js")
-    .then(()=>console.log("Service Worker registered ✅"))
-    .catch(err=>console.warn("SW registration failed:",err));
-}
-
-window.addEventListener('resize', () => {
-  const active = document.activeElement;
-  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-    setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 300);
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+      .then(()=>console.log("Service Worker registered ✅"))
+      .catch(err=>console.warn("SW registration failed:",err));
   }
-});
-</script>
 
-<script>
-const wrap = document.querySelector('.wrap');
-const inputs = document.querySelectorAll('input, textarea');
+  window.addEventListener('resize', () => {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+      setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 300);
+    }
+  });
+  </script>
 
-inputs.forEach(input => {
-  input.addEventListener('focus', () => {
-    document.body.style.height = '150vh'; // allow scroll when keyboard opens
-    document.body.style.overflowY = 'scroll';
-    setTimeout(() => {
-      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
+  <script>
+  const wrap = document.querySelector('.wrap');
+  const inputs = document.querySelectorAll('input, textarea');
+
+  inputs.forEach(input => {
+    input.addEventListener('focus', () => {
+      document.body.style.height = '150vh';
+      document.body.style.overflowY = 'scroll';
+      setTimeout(() => {
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    });
+
+    input.addEventListener('blur', () => {
+      document.body.style.height = '';
+      document.body.style.overflowY = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   });
 
-  input.addEventListener('blur', () => {
-    document.body.style.height = '';
-    document.body.style.overflowY = '';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const previewBody = document.getElementById('previewBody');
+  const observer = new MutationObserver(() => {
+    previewBody.scrollTop = previewBody.scrollHeight;
   });
-});
-
-// Ensure preview scroll stays smooth when many items are added
-const previewBody = document.getElementById('previewBody');
-const observer = new MutationObserver(() => {
-  previewBody.scrollTop = previewBody.scrollHeight;
-});
-observer.observe(previewBody, { childList: true });
-</script>
+  observer.observe(previewBody, { childList: true });
+  </script>
 </body>
-  </html>
+</html>
