@@ -1,5 +1,5 @@
 // ✅ Papadums POS Service Worker
-const SW_VERSION = "Kitchen.POS.V.6";
+const SW_VERSION = "Kitchen.POS.V.11";
 const CACHE_NAME = "papadums-blue-layout7-v11";
 
 const APP_SHELL = [
@@ -20,7 +20,7 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // immediately activate
 });
 
 // ✅ Activate
@@ -33,6 +33,16 @@ self.addEventListener("activate", event => {
     )
   );
   self.clients.claim();
+
+  // ✅ NEW: notify all clients (tabs/pages) to reload after update
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then(clients => {
+        for (const client of clients) {
+          client.postMessage({ action: "reloadNow", version: SW_VERSION });
+        }
+      })
+  );
 });
 
 // ✅ Fetch handler
@@ -74,7 +84,6 @@ self.addEventListener("message", event => {
   } else if (event.data?.action === "skipWaiting") {
     self.skipWaiting();
   } else if (event.data === "clearAllCaches") {
-    // Optional — clean caches via UI message
     caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   }
 });
