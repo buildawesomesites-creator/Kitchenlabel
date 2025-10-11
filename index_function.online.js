@@ -1,4 +1,5 @@
 // ✅ Papadums POS — Online Function Script (index_function.online.js)
+// Clean version — No Service Worker + Sync Indicator
 console.log("✅ index_function.online.js loaded (module)");
 
 /* ===== DOM References ===== */
@@ -9,15 +10,63 @@ const clearBtn = document.getElementById("clearBtn");
 const cartList = document.getElementById("cartList");
 const totalEl = document.getElementById("total");
 
+/* ===== Sync Indicator ===== */
+const syncIndicator = document.createElement("div");
+syncIndicator.id = "syncIndicator";
+syncIndicator.textContent = navigator.onLine ? "🟢 Online" : "🔴 Offline";
+syncIndicator.style.cssText = `
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  background: ${navigator.onLine ? "#00c853" : "#d50000"};
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px #0002;
+  z-index: 9999;
+  transition: background 0.3s ease, color 0.3s ease;
+`;
+document.body.appendChild(syncIndicator);
+
+window.addEventListener("online", () => {
+  syncIndicator.textContent = "🟢 Online";
+  syncIndicator.style.background = "#00c853";
+});
+
+window.addEventListener("offline", () => {
+  syncIndicator.textContent = "🔴 Offline";
+  syncIndicator.style.background = "#d50000";
+});
+
 /* ===== Load Products ===== */
 let products = [];
+
 fetch("./products.json")
   .then(res => res.json())
   .then(data => {
     products = data;
     console.log("📦 Products loaded:", data.length);
   })
-  .catch(err => console.error("❌ Failed to load products.json", err));
+  .catch(err => {
+    console.error("❌ Failed to load products.json", err);
+    const msg = document.createElement("div");
+    msg.textContent = "⚠️ Unable to load products. Check connection or JSON file.";
+    msg.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff5252;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 9999;
+    `;
+    document.body.appendChild(msg);
+  });
 
 /* ===== Cart Logic ===== */
 const cart = [];
@@ -41,11 +90,16 @@ function renderCart() {
   totalEl.textContent = total.toFixed(0) + "₫";
 }
 
+/* ===== Add Product ===== */
 addBtn?.addEventListener("click", () => {
   const name = productSearch.value.trim();
   const qty = parseInt(qtyInput.value || "1");
   const prod = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-  if (!prod) return alert("Product not found!");
+
+  if (!prod) {
+    alert("Product not found!");
+    return;
+  }
 
   const existing = cart.find(i => i.name === prod.name);
   if (existing) existing.qty += qty;
@@ -56,64 +110,17 @@ addBtn?.addEventListener("click", () => {
   qtyInput.value = 1;
 });
 
+/* ===== Clear Cart ===== */
 clearBtn?.addEventListener("click", () => {
   cart.length = 0;
   renderCart();
 });
 
-/* ===== Service Worker Registration ===== */
+/* ===== Disable Old Service Worker (Cleanup) ===== */
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").then(reg => {
-    console.log("🧩 Service Worker registered:", reg.scope);
-
-    // Force new SW to take control immediately
-    if (reg.waiting) {
-      reg.waiting.postMessage({ action: "reloadNow" });
-    }
-
-    reg.addEventListener("updatefound", () => {
-      const newWorker = reg.installing;
-      newWorker?.addEventListener("statechange", () => {
-        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-          newWorker.postMessage({ action: "reloadNow" });
-        }
-      });
-    });
-  });
-
-  // Reload when controller changes (new SW activated)
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    console.log("🔄 New service worker activated — reloading...");
-    window.location.reload(true);
-  });
-
-  // Handle reload messages from SW
-  navigator.serviceWorker.addEventListener("message", event => {
-    if (event.data?.action === "reloadNow") {
-      const version = event.data.version || "";
-      const toast = document.createElement("div");
-      toast.textContent = `🔄 Updating Papadums POS ${version}...`;
-      toast.style.cssText = `
-        position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-        background:#0b74ff; color:#fff; font-weight:600;
-        padding:10px 20px; border-radius:20px;
-        box-shadow:0 3px 10px #0003; z-index:9999;
-        animation:fadeInOut 2s ease forwards;
-      `;
-      document.body.appendChild(toast);
-
-      setTimeout(() => window.location.reload(true), 1200);
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    for (let reg of regs) {
+      reg.unregister().then(() => console.log("🗑️ Old service worker removed:", reg.scope));
     }
   });
-
-  // Small fade animation for reload toast
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes fadeInOut {
-      0% { opacity: 0; transform:translate(-50%, 20px); }
-      10%, 90% { opacity: 1; transform:translate(-50%, 0); }
-      100% { opacity: 0; transform:translate(-50%, -10px); }
-    }
-  `;
-  document.head.appendChild(style);
-}
+                         }
