@@ -29,7 +29,8 @@
     background:var(--bg);
     color:#111;
     -webkit-font-smoothing:antialiased;
-    overflow:hidden;
+    overflow-x:hidden;      /* ✅ allow dropdowns to show */
+    overflow-y:auto;        /* ✅ allow scrolling when needed */
   }
   header{
     margin:10px;
@@ -64,8 +65,9 @@
     flex-direction:column;
     gap:10px;
     padding:8px;
-    height:calc(100% - 84px);
+    min-height:calc(100% - 84px);
     box-sizing:border-box;
+    padding-bottom:90px; /* ✅ space above footer */
   }
   .table-panel{
     background:var(--card);
@@ -111,6 +113,7 @@
     gap:8px;
     align-items:center;
     box-shadow:var(--shadow);
+    flex-wrap:wrap;
   }
   .controls-panel input[type="text"],
   .controls-panel input[type="number"]{
@@ -151,7 +154,8 @@
   .preview-header h3{ margin:0;color:var(--blue2);font-size:16px;font-weight:800; }
   .preview-body{
     padding:10px;
-    overflow:auto;
+    overflow-y:auto; /* ✅ make items scrollable */
+    max-height:50vh; /* ✅ prevent footer overlap */
   }
   .item-row{
     display:flex;
@@ -179,6 +183,7 @@
   }
   .controls-row{
     display:flex;gap:8px;padding:10px;justify-content:flex-end;
+    position:sticky;bottom:0;background:#fff; /* ✅ Clear button always visible */
   }
   .clear-btn{
     background:var(--danger);color:#fff;border:none;padding:10px 12px;border-radius:10px;font-weight:800;cursor:pointer;
