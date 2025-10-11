@@ -1,14 +1,14 @@
 {
-  "name": "Kitchenlabel",
-  "short_name": "Kitchenlabel",
+  "name": "Papadums POS",
+  "short_name": "PapadumsPOS",
   "lang": "en",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#ff7a00",
-  "description": "Kitchenlabel app — offline friendly and ready for direct kitchen order printing.",
+  "theme_color": "#0b74ff",
+  "description": "Papadums POS — offline-friendly restaurant billing system.",
   "icons": [
     { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
