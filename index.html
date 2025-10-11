@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.1</title>
 
-<header>
-  <span id="versionTag">V.7</span>
-  Papadums POS
-  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-</header>
-
-
-
   <!-- PWA meta -->
   <meta name="theme-color" content="#0b74ff" />
   <link rel="manifest" href="manifest.json" />
@@ -31,7 +23,7 @@
     --shadow:0 6px 18px rgba(3,20,66,0.06);
   }
 
-  /* ✅ Fixed scrolling behavior for Android keyboard */
+  /* ✅ Allow scroll when keyboard opens */
   html,body{
     height:100%;
     margin:0;
@@ -39,14 +31,8 @@
     background:var(--bg);
     color:#111;
     -webkit-font-smoothing:antialiased;
-    overflow:auto; /* allow scroll when keyboard appears */
+    overflow:auto;
     overscroll-behavior:contain;
-  }
-
-  @supports (height: 100dvh) {
-    .wrap {
-      height: calc(100dvh - 84px);
-    }
   }
 
   header{
@@ -90,14 +76,18 @@
   #syncStatus.offline{background:#e55353;}
   #syncStatus.syncing{background:#ffb400;}
 
+  /* ✅ Main container scrollable when keyboard opens */
   .wrap{
     display:flex;
     flex-direction:column;
     gap:10px;
     padding:8px;
-    height:calc(100% - 84px);
+    min-height:calc(100dvh - 84px);
     box-sizing:border-box;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
+
   .table-panel{
     background:var(--card);
     border-radius:12px;
@@ -276,6 +266,11 @@
 
 <body>
 
+<header>
+  <span id="versionTag">V. 1</span>
+  Papadums POS
+  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+</header>
 
 <div class="wrap">
   <div class="table-panel">
@@ -327,18 +322,12 @@
 <!-- ✅ ONLINE FIREBASE VERSION -->
 <script type="module" src="./index_function.online.js"></script>
 
+<!-- ✅ Auto-scroll active inputs/buttons into view -->
 <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js")
-    .then(()=>console.log("Service Worker registered ✅"))
-    .catch(err=>console.warn("SW registration failed:",err));
-}
-
-/* ✅ Auto-scroll inputs/buttons into view when keyboard opens */
 window.addEventListener('resize', () => {
   const active = document.activeElement;
   if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-    setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 300);
+    setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 200);
   }
 });
 </script>
