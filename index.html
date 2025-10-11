@@ -42,6 +42,19 @@
     font-size:18px;
     box-shadow:var(--shadow);
     position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #versionTag{
+    position:absolute;
+    left:14px;
+    background:#fff;
+    color:var(--blue2);
+    font-weight:800;
+    padding:2px 8px;
+    border-radius:8px;
+    font-size:13px;
   }
   #syncStatus{
     position:absolute;
@@ -103,26 +116,26 @@
     color:#fff;
     box-shadow:0 6px 18px rgba(11,116,255,0.14);
   }
+
   .controls-panel{
     background:var(--card);
     border-radius:12px;
     padding:10px;
-    display:flex;
-    gap:8px;
-    align-items:center;
     box-shadow:var(--shadow);
   }
-  .controls-panel input[type="text"],
-  .controls-panel input[type="number"]{
-    border:1px solid #e6eefc;
-    border-radius:10px;
-    padding:10px;
-    font-size:15px;
-    background:#fff;
+  .top-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
   }
-  #productSearch{ flex:1; min-width:140px; }
-  #qty{ width:78px; text-align:center; }
+  .bottom-row{
+    display:flex;
+    gap:8px;
+  }
+  #productSearch{ flex:0 0 70%; }
+  #qty{ flex:0 0 10%; text-align:center; }
   .btn-add{
+    flex:0 0 70%;
     background:linear-gradient(90deg,var(--blue1),var(--blue2));
     color:#fff;
     border:none;
@@ -132,6 +145,26 @@
     font-size:15px;
     cursor:pointer;
   }
+  .btn-clear{
+    flex:0 0 20%;
+    background:var(--danger);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px;
+    font-weight:800;
+    cursor:pointer;
+  }
+
+  .controls-panel input[type="text"],
+  .controls-panel input[type="number"]{
+    border:1px solid #e6eefc;
+    border-radius:10px;
+    padding:10px;
+    font-size:15px;
+    background:#fff;
+  }
+
   .preview-panel{
     background:var(--card);
     border-radius:12px;
@@ -151,8 +184,8 @@
   .preview-header h3{ margin:0;color:var(--blue2);font-size:16px;font-weight:800; }
   .preview-body{
     padding:10px;
-    overflow-y:auto; /* ✅ Scroll only items area */
-    flex:1 1 auto;
+    overflow-y:auto;
+    flex:1;
   }
   .item-row{
     display:flex;
@@ -178,15 +211,10 @@
     display:flex;justify-content:space-between;align-items:center;
     padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;
   }
-  .controls-row{
-    display:flex;gap:8px;padding:10px;justify-content:flex-end;
-  }
-  .clear-btn{
-    background:var(--danger);color:#fff;border:none;padding:10px 12px;border-radius:10px;font-weight:800;cursor:pointer;
-  }
+
   .footer-fixed{
     position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);
-    z-index:999;display:flex;flex-direction:column;align-items:center;
+    z-index:999;display:flex;justify-content:center;
   }
   .footer-inner{
     width:100%;max-width:980px;background:var(--card);border-radius:12px;
@@ -198,12 +226,6 @@
   .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}
   .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}
   .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}
-  #appVersion {
-    font-size:13px;
-    color:#fff;
-    opacity:0.9;
-    margin-top:4px;
-  }
   @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
   </style>
 </head>
@@ -211,6 +233,7 @@
 <body>
 
 <header>
+  <span id="versionTag">V. 1</span>
   Papadums POS
   <div id="syncStatus" class="syncing">🔄 Syncing...</div>
 </header>
@@ -228,10 +251,15 @@
   </div>
 
   <div class="controls-panel">
-    <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
-    <datalist id="productList"></datalist>
-    <input id="qty" type="number" min="1" value="1" />
-    <button id="addBtn" class="btn-add">Add Item</button>
+    <div class="top-row">
+      <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
+      <datalist id="productList"></datalist>
+      <input id="qty" type="number" min="1" value="1" />
+    </div>
+    <div class="bottom-row">
+      <button id="clearBtn" class="btn-clear">Clear Items</button>
+      <button id="addBtn" class="btn-add">Add Item</button>
+    </div>
   </div>
 
   <div class="preview-panel">
@@ -246,9 +274,6 @@
       <div>Total</div>
       <div id="totalDisplay">0₫</div>
     </div>
-    <div class="controls-row">
-      <button id="clearBtn" class="clear-btn">Clear Items</button>
-    </div>
   </div>
 </div>
 
@@ -258,7 +283,6 @@
     <button id="printInv" class="footer-btn inv">Print Invoice</button>
     <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>
   </div>
-  <div id="appVersion">Loading version...</div>
 </div>
 
 <!-- ✅ ONLINE FIREBASE VERSION -->
@@ -269,69 +293,6 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js")
     .then(()=>console.log("Service Worker registered ✅"))
     .catch(err=>console.warn("SW registration failed:",err));
-
-  navigator.serviceWorker.addEventListener("message", e=>{
-    if(e.data?.version){
-      document.getElementById("appVersion").textContent = e.data.version;
-    }
-  });
-
-  setTimeout(()=>{
-    if(navigator.serviceWorker.controller){
-      navigator.serviceWorker.controller.postMessage("getVersion");
-    }
-  },1000);
-}
-</script>
-
-<!-- Version display -->
-<div id="appVersion" style="text-align:center;font-size:12px;margin-top:8px;color:#888;">
-  Loading version...
-</div>
-
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("sw.js")
-    .then(reg => {
-      console.log("✅ Service Worker registered:", reg.scope);
-
-      // If there's already a controller, ask it right away
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage("getVersion");
-      }
-
-      // If new SW becomes active later, also ask it
-      reg.addEventListener("updatefound", () => {
-        const newWorker = reg.installing;
-        newWorker?.addEventListener("statechange", () => {
-          if (newWorker.state === "activated") {
-            newWorker.postMessage("getVersion");
-          }
-        });
-      });
-    })
-    .catch(err => console.warn("❌ SW registration failed:", err));
-
-  // Listen for version reply
-  navigator.serviceWorker.addEventListener("message", event => {
-    if (event.data?.version) {
-      document.getElementById("appVersion").textContent = event.data.version;
-      console.log("💡 SW version:", event.data.version);
-    }
-  });
-
-  // Fallback — ask again after short delay
-  setTimeout(() => {
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage("getVersion");
-    } else {
-      console.warn("⏳ No SW controller yet, retrying...");
-      setTimeout(() => {
-        navigator.serviceWorker.controller?.postMessage("getVersion");
-      }, 2000);
-    }
-  }, 1000);
 }
 </script>
 
