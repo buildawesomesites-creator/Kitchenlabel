@@ -29,8 +29,7 @@
     background:var(--bg);
     color:#111;
     -webkit-font-smoothing:antialiased;
-    overflow-x:hidden;      /* ✅ allow dropdowns to show */
-    overflow-y:auto;        /* ✅ allow scrolling when needed */
+    overflow:hidden;
   }
   header{
     margin:10px;
@@ -65,9 +64,9 @@
     flex-direction:column;
     gap:10px;
     padding:8px;
-    min-height:calc(100% - 84px);
+    height:calc(100% - 120px); /* adjust to prevent footer overlap */
     box-sizing:border-box;
-    padding-bottom:90px; /* ✅ space above footer */
+    overflow-y:auto;
   }
   .table-panel{
     background:var(--card);
@@ -113,7 +112,6 @@
     gap:8px;
     align-items:center;
     box-shadow:var(--shadow);
-    flex-wrap:wrap;
   }
   .controls-panel input[type="text"],
   .controls-panel input[type="number"]{
@@ -154,8 +152,8 @@
   .preview-header h3{ margin:0;color:var(--blue2);font-size:16px;font-weight:800; }
   .preview-body{
     padding:10px;
-    overflow-y:auto; /* ✅ make items scrollable */
-    max-height:50vh; /* ✅ prevent footer overlap */
+    overflow:auto;
+    flex:1;
   }
   .item-row{
     display:flex;
@@ -182,15 +180,15 @@
     padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;
   }
   .controls-row{
-    display:flex;gap:8px;padding:10px;justify-content:flex-end;
-    position:sticky;bottom:0;background:#fff; /* ✅ Clear button always visible */
+    display:flex;gap:8px;padding:10px;justify-content:flex-end;flex-shrink:0;
   }
   .clear-btn{
     background:var(--danger);color:#fff;border:none;padding:10px 12px;border-radius:10px;font-weight:800;cursor:pointer;
   }
   .footer-fixed{
     position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);
-    z-index:999;display:flex;justify-content:center;
+    z-index:999;display:flex;flex-direction:column;align-items:center;
+    gap:4px;
   }
   .footer-inner{
     width:100%;max-width:980px;background:var(--card);border-radius:12px;
@@ -202,7 +200,20 @@
   .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}
   .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}
   .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}
-  @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
+  .version-label{
+    text-align:center;
+    font-size:13px;
+    font-weight:700;
+    color:#666;
+    background:#fff;
+    padding:3px 10px;
+    border-radius:8px;
+    box-shadow:var(--shadow);
+  }
+  @media(max-width:600px){
+    .tables{grid-template-columns:repeat(3,1fr);}
+    #qty{width:64px;}
+  }
   </style>
 </head>
 
@@ -256,6 +267,7 @@
     <button id="printInv" class="footer-btn inv">Print Invoice</button>
     <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>
   </div>
+  <div class="version-label" id="appVersion">Kitchen.POS.V.1.0.3</div>
 </div>
 
 <!-- ✅ ONLINE FIREBASE VERSION -->
