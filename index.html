@@ -3,7 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS — Blue Layout V.1</title>
+  <title>Papadums POS — Blue Layout 7</title>
+
+<header>
+  <span id="versionTag">V. 1</span>
+  Papadums POS
+  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+</header>
+
+
+
+
+
+
+
+
+
 
   <!-- PWA meta -->
   <meta name="theme-color" content="#0b74ff" />
@@ -22,6 +37,8 @@
     --danger:#e55353;
     --shadow:0 6px 18px rgba(3,20,66,0.06);
   }
+
+  /* ✅ Fixed scrolling behavior for Android keyboard */
   html,body{
     height:100%;
     margin:0;
@@ -29,8 +46,16 @@
     background:var(--bg);
     color:#111;
     -webkit-font-smoothing:antialiased;
-    overflow:hidden;
+    overflow:auto; /* allow scroll when keyboard appears */
+    overscroll-behavior:contain;
   }
+
+  @supports (height: 100dvh) {
+    .wrap {
+      height: calc(100dvh - 84px);
+    }
+  }
+
   header{
     margin:10px;
     border-radius:10px;
@@ -229,19 +254,14 @@
   @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
   </style>
 
-  <!-- ✅ Only fix for overlapping datalist dropdown -->
+  <!-- ✅ Keep datalist dropdown above footer -->
   <style>
-  input[list] {
-    position: relative;
-    z-index: 1000;
-  }
-
-  /* ✅ Fixed position so dropdown never covers footer */
+  input[list] { position: relative; z-index: 1000; }
   datalist {
     position: fixed;
     left: 8px;
     right: 8px;
-    bottom: 120px; /* keep above footer buttons */
+    bottom: 120px;
     max-height: 200px;
     overflow-y: auto;
     background: #333;
@@ -251,13 +271,9 @@
     scrollbar-width: thin;
     z-index: 3000;
   }
-
   @media (max-height: 700px) {
-    datalist {
-      bottom: 160px;
-    }
+    datalist { bottom: 160px; }
   }
-
   datalist option {
     padding: 8px;
     font-size: 15px;
@@ -267,11 +283,6 @@
 
 <body>
 
-<header>
-  <span id="versionTag">V. 1</span>
-  Papadums POS
-  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-</header>
 
 <div class="wrap">
   <div class="table-panel">
@@ -329,6 +340,14 @@ if ("serviceWorker" in navigator) {
     .then(()=>console.log("Service Worker registered ✅"))
     .catch(err=>console.warn("SW registration failed:",err));
 }
+
+/* ✅ Auto-scroll inputs/buttons into view when keyboard opens */
+window.addEventListener('resize', () => {
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+    setTimeout(() => active.scrollIntoView({behavior:'smooth', block:'center'}), 300);
+  }
+});
 </script>
 
 </body>
