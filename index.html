@@ -3,19 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS V.7</title>
+  <title>Papadums POS V.9</title>
 
-<body>
-  <header>
-    <spanconst id="versionTag">V. 9</span>
-    Papadums POS
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
-
-  <!-- PWA META -->
+  <!-- ✅ PWA META -->
   <meta name="theme-color" content="#0b74ff" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon-192.png" type="image/png" />
+  <link rel="manifest" href="/Kitchenlabel/manifest.json" />
+  <link rel="icon" href="/Kitchenlabel/icon-192.png" type="image/png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PapadumsPOS" />
@@ -145,6 +138,12 @@
   </style>
 </head>
 
+<body>
+  <header>
+    <span id="versionTag">V. 1</span>
+    Papadums POS
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
 
   <div class="wrap">
     <!-- ✅ TABLES -->
@@ -205,8 +204,9 @@
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", async () => {
         try {
-           const reg = await navigator.serviceWorker.register("/Kitchenlabel/service-worker.js", { scope: "/Kitchenlabel/" });
-
+          const reg = await navigator.serviceWorker.register("/Kitchenlabel/service-worker.js", {
+            scope: "/Kitchenlabel/"
+          });
           console.log("✅ Service Worker registered:", reg.scope);
 
           reg.addEventListener("updatefound", () => {
@@ -225,51 +225,48 @@
     }
   </script>
 
-<!-- ✅ PWA Install Prompt -->
-<button id="installBtn" style="
-  position:fixed;
-  bottom:80px;
-  right:14px;
-  background:#ff7a00;
-  color:#fff;
-  border:none;
-  border-radius:12px;
-  padding:12px 18px;
-  font-weight:800;
-  box-shadow:0 4px 12px rgba(0,0,0,0.15);
-  z-index:9999;
-  display:none;
-">📲 Install App</button>
+  <!-- ✅ PWA Install Prompt -->
+  <button id="installBtn" style="
+    position:fixed;
+    bottom:80px;
+    right:14px;
+    background:#ff7a00;
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    padding:12px 18px;
+    font-weight:800;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    z-index:9999;
+    display:none;
+  ">📲 Install App</button>
 
-<script>
-  let deferredPrompt;
-  const installBtn = document.getElementById("installBtn");
+  <script>
+    let deferredPrompt;
+    const installBtn = document.getElementById("installBtn");
 
-  // Listen for install prompt event
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = "block"; // show install button
-  });
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = "block";
+    });
 
-  // Handle button click
-  installBtn.addEventListener("click", async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response: ${outcome}`);
-    if (outcome === "accepted") {
-      installBtn.textContent = "✅ Installed";
-      setTimeout(() => installBtn.style.display = "none", 1500);
-    }
-    deferredPrompt = null;
-  });
+    installBtn.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response: ${outcome}`);
+      if (outcome === "accepted") {
+        installBtn.textContent = "✅ Installed";
+        setTimeout(() => installBtn.style.display = "none", 1500);
+      }
+      deferredPrompt = null;
+    });
 
-  // Hide if already installed
-  window.addEventListener("appinstalled", () => {
-    console.log("✅ App installed");
-    installBtn.style.display = "none";
-  });
-</script>
+    window.addEventListener("appinstalled", () => {
+      console.log("✅ App installed");
+      installBtn.style.display = "none";
+    });
+  </script>
 </body>
-  </html>
+</html>
