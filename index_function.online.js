@@ -19,6 +19,33 @@ const previewInfo = document.getElementById("previewInfo");
 const syncStatus = document.getElementById("syncStatus");
 const tables = document.querySelectorAll(".table-card");
 
+/* ===== 🟢 Printer IP Input (Footer) ===== */
+const printerIpInput = document.getElementById("printerIp");
+if (printerIpInput) {
+  printerIpInput.value = localStorage.getItem("printerIp") || "";
+  printerIpInput.addEventListener("input", (e) => {
+    localStorage.setItem("printerIp", e.target.value.trim());
+  });
+}
+function getPrinterIP() {
+  return localStorage.getItem("printerIp") || "";
+}
+
+/* ===== 💰 Format Number (Indian Style) ===== */
+function formatNumber(x) {
+  if (isNaN(x) || x === null) return x;
+  x = x.toString();
+  let afterPoint = "";
+  if (x.indexOf(".") > 0)
+    afterPoint = x.substring(x.indexOf("."));
+  x = Math.floor(x).toString();
+  let lastThree = x.substring(x.length - 3);
+  const otherNumbers = x.substring(0, x.length - 3);
+  if (otherNumbers !== "")
+    lastThree = "," + lastThree;
+  return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree + afterPoint;
+}
+
 /* ===== State ===== */
 let currentTable = "table1";
 let products = [];
@@ -27,6 +54,7 @@ let isSyncing = false;
 
 /* ===== Sync Indicator ===== */
 function setSyncState(state) {
+  if (!syncStatus) return;
   syncStatus.className = state;
   if (state === "online") syncStatus.textContent = "✅ Online";
   else if (state === "offline") syncStatus.textContent = "⚠️ Offline";
@@ -59,6 +87,7 @@ async function loadProducts() {
 }
 
 function populateProductList() {
+  if (!datalist) return;
   datalist.innerHTML = "";
   products.forEach(p => {
     const opt = document.createElement("option");
@@ -82,14 +111,14 @@ function renderCart() {
           <button class="qty-btn" data-i="${i}" data-type="minus">−</button>
           <span>${item.qty}</span>
           <button class="qty-btn" data-i="${i}" data-type="plus">+</button>
-          <strong class="price-amount">${(item.qty * item.price).toFixed(0)}₫</strong>
+          <strong class="price-amount">${formatNumber((item.qty * item.price).toFixed(0))}₫</strong>
           <button class="remove-btn" data-i="${i}">x</button>
         </div>`;
       previewBody.appendChild(div);
     });
   }
   const total = cart.reduce((t, i) => t + i.price * i.qty, 0);
-  totalDisplay.textContent = total.toFixed(0) + "₫";
+  totalDisplay.textContent = formatNumber(total.toFixed(0)) + "₫";
   localStorage.setItem("cart_" + currentTable, JSON.stringify(cart));
 }
 
@@ -170,7 +199,6 @@ function subscribeToFirestore() {
     if (!snap.exists()) return;
     const data = snap.data();
     if (!data.items) return;
-    const localData = JSON.parse(localStorage.getItem("cart_" + currentTable) || "[]");
 
     const localUpdated = localStorage.getItem("updatedAt_" + currentTable);
     if (!localUpdated || data.updatedAt > localUpdated) {
@@ -209,21 +237,12 @@ function saveOrderDataForPrint() {
   console.log("💾 Order data saved for print:", orderData);
 }
 
-/* ===== Improved Scroll Fix for Android Keyboard ===== */
-function ensureButtonsVisible() {
-  const footer = document.querySelector("footer, .footer-buttons, .footer");
-  if (!footer) return;
-  footer.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-["focus", "input"].forEach(evt => {
-  productSearch.addEventListener(evt, ensureButtonsVisible);
-  qtyInput.addEventListener(evt, ensureButtonsVisible);
+/* ===== Scroll Fix for Mobile Keyboard ===== */
+productSearch.addEventListener("focus", () => {
+  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
 });
-
-window.addEventListener("resize", () => {
-  // When keyboard opens/closes, auto-keep footer in view
-  setTimeout(ensureButtonsVisible, 200);
+qtyInput.addEventListener("focus", () => {
+  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
 });
 
 /* ===== Start ===== */
@@ -233,29 +252,78 @@ subscribeToFirestore();
 setSyncState("online");
 console.log("🚀 Papadums POS ready");
 
+/* ===== Auto-add when selecting from datalist ===== */
+let _autoAddTimer;
+function tryAutoAddFromDatalist() {
+  clearTimeout(_autoAddTimer);
+  _autoAddTimer = setTimeout(() => {
+    const name = productSearch.value.trim();
+    if (!name) return;
+    const prod = products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (!prod) return;
+    const options = Array.from(datalist ? datalist.querySelectorAll("option") : []);
+    const isOption = options.some(o => o.value.toLowerCase() === name.toLowerCase());
+    if (!isOption) return;
+
+    const qty = parseInt(qtyInput.value || "1");
+    const existing = cart.find(i => i.name === prod.name);
+    if (existing) existing.qty += qty;
+    else cart.push({ ...prod, qty });
+
+    renderCart();
+    queueSync();
+    productSearch.value = "";
+    qtyInput.value = 1;
+  }, 120);
+}
+productSearch.addEventListener("change", tryAutoAddFromDatalist);
+productSearch.addEventListener("input", tryAutoAddFromDatalist);
+
 /* ===== Footer Buttons ===== */
-document.getElementById("printKOT")?.addEventListener("click", () => {
+document.getElementById("printKOT")?.addEventListener("click", async () => {
   saveOrderDataForPrint();
+
+  // 🟢 Send print to Wi-Fi printer if IP is set
+  const ip = getPrinterIP();
+  if (ip) {
+    try {
+      const order = JSON.parse(localStorage.getItem("papadumsInvoiceData"));
+      const html = JSON.stringify(order);
+      await fetch(`http://${ip}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: html
+      });
+      console.log("🖨️ Sent KOT to printer:", ip);
+    } catch (err) {
+      console.warn("⚠️ KOT print failed:", err);
+    }
+  }
+
   const w = window.open("kot_browser.html", "_blank", "width=400,height=600");
   w?.focus();
 });
 
-document.getElementById("printInv")?.addEventListener("click", () => {
+document.getElementById("printInv")?.addEventListener("click", async () => {
   saveOrderDataForPrint();
+
+  // 🟢 Send print to Wi-Fi printer if IP is set
+  const ip = getPrinterIP();
+  if (ip) {
+    try {
+      const order = JSON.parse(localStorage.getItem("papadumsInvoiceData"));
+      const html = JSON.stringify(order);
+      await fetch(`http://${ip}/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: html
+      });
+      console.log("🖨️ Sent Invoice to printer:", ip);
+    } catch (err) {
+      console.warn("⚠️ Invoice print failed:", err);
+    }
+  }
+
   const w = window.open("invoice_browser.html", "_blank", "width=400,height=600");
   w?.focus();
-});
-
-document.getElementById("downloadInv")?.addEventListener("click", async () => {
-  saveOrderDataForPrint();
-  const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "Papadums_Invoice.html";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  console.log("✅ Invoice downloaded");
 });
