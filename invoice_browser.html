@@ -95,7 +95,7 @@ button:hover{background:#0056b3;}
 
   <!-- ✅ Buttons -->
   <div id="buttonsArea">
-    <button onclick="window.print()">🖨️ Print Invoice</button>
+    <button onclick="sendToWifiPrinter()">🖨️ Print Invoice</button>
     <button onclick="downloadPDF()">📥 Download Invoice (58mm PDF)</button>
   </div>
 
@@ -193,6 +193,34 @@ async function downloadPDF() {
   buttons.style.display = 'block';
   message.style.display = 'block';
   setTimeout(() => message.style.display = 'none', 3000);
+}
+
+// ✅ Silent Wi-Fi printing (Zywell)
+async function sendToWifiPrinter() {
+  const printerIp = localStorage.getItem("printerIp");
+  if (!printerIp) {
+    console.log("⚠️ No printer IP found, using normal print.");
+    window.print();
+    return;
+  }
+
+  try {
+    const order = JSON.parse(localStorage.getItem("papadumsInvoiceData")) || {};
+    const response = await fetch(`http://${printerIp}/print`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(order)
+    });
+    console.log("✅ Sent invoice to printer:", printerIp, response.status);
+  } catch (err) {
+    console.error("❌ Printer connection failed:", err);
+    window.print(); // fallback
+  }
+}
+
+// ✅ Auto silent print when inside native app
+if (navigator.userAgent.includes("PapadumsPOSApp")) {
+  sendToWifiPrinter();
 }
 </script>
 </body>
