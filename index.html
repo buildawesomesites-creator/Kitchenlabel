@@ -3,8 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS V.7</title>
+  <title>Papadums POS V.1</title>
 
+<body>
+  <header>
+    <span id="versionTag">V. 1</span>
+    Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
+  
   <style>
   :root {
     --blue1:#0b74ff;
@@ -91,14 +99,17 @@
 
   .preview-panel{
     background:var(--card);border-radius:12px;box-shadow:var(--shadow);
-    display:flex;flex-direction:column;flex:1 1 auto;overflow:hidden;
+    display:flex;flex-direction:column;cursor:pointer;
   }
+  .preview-panel:hover{box-shadow:0 0 0 2px var(--blue1) inset;}
   .preview-header{
     display:flex;justify-content:space-between;align-items:center;
-    padding:12px;border-bottom:1px solid #f0f4ff;
+    padding:12px;border-bottom:1px solid #f0f4ff;flex-shrink:0;
   }
   .preview-header h3{margin:0;color:var(--blue2);font-size:16px;font-weight:800;}
-  .preview-body{padding:10px;overflow-y:auto;flex:1;}
+  .preview-body{
+    padding:10px;overflow-y:auto;max-height:60vh;flex:1 1 auto;
+  }
   .item-row{
     display:flex;justify-content:space-between;align-items:center;
     background:#f9fbff;border:1px solid #f0f6ff;border-radius:8px;
@@ -116,6 +127,9 @@
   .totals-row{
     display:flex;justify-content:space-between;align-items:center;
     padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;
+    flex-shrink:0;background:#fff;
+    position:sticky;bottom:0;z-index:5;
+    box-shadow:0 -3px 8px rgba(0,0,0,0.04);
   }
 
   .footer-fixed{
@@ -133,19 +147,27 @@
   }
   .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}
   .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}
+
+  #fullPreviewModal {
+    position:fixed;inset:0;background:rgba(0,0,0,0.6);
+    display:none;align-items:center;justify-content:center;z-index:2000;
+  }
+  #fullPreviewBox {
+    background:#fff;width:95%;max-width:450px;max-height:90vh;
+    overflow-y:auto;border-radius:12px;padding:16px;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:scale(0.95);} to{opacity:1;transform:scale(1);} }
+  #closePreview {
+    position:absolute;top:12px;right:18px;font-size:26px;
+    font-weight:bold;color:#555;cursor:pointer;
+  }
   </style>
 </head>
 
-<body>
-  <header>
-    <span id="versionTag">V. 1</span>
-    Papadums POS
-    <span id="printerDot"></span>
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
 
   <div class="wrap">
-    <!-- TABLES -->
     <div class="table-panel">
       <h3>Tables</h3>
       <div class="tables" id="tablesContainer">
@@ -157,7 +179,6 @@
       </div>
     </div>
 
-    <!-- SEARCH -->
     <div class="controls-panel">
       <div class="top-row">
         <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
@@ -170,8 +191,7 @@
       </div>
     </div>
 
-    <!-- PREVIEW -->
-    <div class="preview-panel">
+    <div class="preview-panel" id="previewPanel">
       <div class="preview-header">
         <h3>Order Preview</h3>
         <small id="previewInfo">Table 1</small>
@@ -186,7 +206,6 @@
     </div>
   </div>
 
-  <!-- FOOTER -->
   <div class="footer-fixed">
     <div class="footer-inner">
       <button id="printKOT" class="footer-btn kot">Print KOT</button>
@@ -202,40 +221,54 @@
     </div>
   </div>
 
+  <div id="fullPreviewModal">
+    <div id="fullPreviewBox">
+      <span id="closePreview">&times;</span>
+      <div id="fullPreviewContent"></div>
+    </div>
+  </div>
+
   <script type="module" src="./index_function.online.js"></script>
 
-  <!-- PRINTER CONNECTION DOT -->
   <script>
+    // === Format Number (Indian style: 1,23,456) ===
+    function formatNumber(num) {
+      if (isNaN(num)) return num;
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        .replace(/(\d+)(?=(\d\d)+\d$)/, function(x){ return x.replace(/\B(?=(\d{2})+(?!\d))/g, ","); });
+    }
+
+    // Example: totalDisplay.textContent = formatNumber(total) + "₫";
+
+    // === Printer Connection ===
     const ipInput = document.getElementById("printerIp");
     const savedIp = localStorage.getItem("printerIp");
     if (savedIp) ipInput.value = savedIp;
-
-    ipInput.addEventListener("input", () => {
-      localStorage.setItem("printerIp", ipInput.value);
-      checkPrinterConnection();
-    });
-
     const dot = document.getElementById("printerDot");
 
     async function checkPrinterConnection() {
       const ip = localStorage.getItem("printerIp");
-      if (!ip) { dot.style.background = "gray"; dot.classList.remove("blinking"); return; }
-
-      dot.style.background = "yellow";
-      dot.classList.add("blinking"); // blink while checking
-
-      try {
-        await fetch(`http://${ip}:9100`, { mode: "no-cors" });
-        dot.style.background = "limegreen";
-        dot.classList.remove("blinking");
-      } catch {
-        dot.style.background = "red";
-        dot.classList.remove("blinking");
-      }
+      if (!ip) { dot.style.background="gray"; dot.classList.remove("blinking"); return; }
+      dot.style.background="yellow"; dot.classList.add("blinking");
+      try { await fetch(`http://${ip}:9100`,{mode:"no-cors"}); dot.style.background="limegreen"; }
+      catch { dot.style.background="red"; }
+      finally { dot.classList.remove("blinking"); }
     }
+    ipInput.addEventListener("input",()=>{localStorage.setItem("printerIp",ipInput.value);checkPrinterConnection();});
+    checkPrinterConnection(); setInterval(checkPrinterConnection,10000);
 
-    checkPrinterConnection();
-    setInterval(checkPrinterConnection, 10000); // refresh every 10s
+    // === Clickable Order Preview ===
+    const previewPanel = document.getElementById("previewPanel");
+    const fullModal = document.getElementById("fullPreviewModal");
+    const fullContent = document.getElementById("fullPreviewContent");
+    const closeBtn = document.getElementById("closePreview");
+    previewPanel.addEventListener("click",()=>{
+      fullContent.innerHTML = document.getElementById("previewBody").innerHTML +
+        `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
+      fullModal.style.display="flex";
+    });
+    closeBtn.onclick = ()=> fullModal.style.display="none";
+    fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
   </script>
 </body>
 </html>
