@@ -148,8 +148,36 @@
       });
     }
 
-    // === Print ===
-    document.getElementById("kotPrintBtn").addEventListener("click", () => window.print());
+    // === Wi-Fi KOT Print ===
+    async function sendKOTToWifiPrinter() {
+      const printerIp = localStorage.getItem("printerIp_kitchen") || localStorage.getItem("printerIp");
+      if (!printerIp) {
+        console.log("⚠️ No kitchen printer IP found, printing normally.");
+        window.print();
+        return;
+      }
+
+      try {
+        const order = { table, items, time, date, type: "KOT" };
+        const response = await fetch(`http://${printerIp}/print`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(order)
+        });
+        console.log("✅ Sent KOT to printer:", printerIp, response.status);
+      } catch (err) {
+        console.error("❌ Kitchen printer failed:", err);
+        window.print(); // fallback
+      }
+    }
+
+    // === Print Button ===
+    document.getElementById("kotPrintBtn").addEventListener("click", sendKOTToWifiPrinter);
+
+    // === Auto silent print inside native app ===
+    if (navigator.userAgent.includes("PapadumsPOSApp")) {
+      sendKOTToWifiPrinter();
+    }
   </script>
 </body>
 </html>
