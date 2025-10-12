@@ -27,7 +27,6 @@ let isSyncing = false;
 
 /* ===== Sync Indicator ===== */
 function setSyncState(state) {
-  if (!syncStatus) return;
   syncStatus.className = state;
   if (state === "online") syncStatus.textContent = "✅ Online";
   else if (state === "offline") syncStatus.textContent = "⚠️ Offline";
@@ -60,7 +59,6 @@ async function loadProducts() {
 }
 
 function populateProductList() {
-  if (!datalist) return;
   datalist.innerHTML = "";
   products.forEach(p => {
     const opt = document.createElement("option");
@@ -172,6 +170,7 @@ function subscribeToFirestore() {
     if (!snap.exists()) return;
     const data = snap.data();
     if (!data.items) return;
+    const localData = JSON.parse(localStorage.getItem("cart_" + currentTable) || "[]");
 
     const localUpdated = localStorage.getItem("updatedAt_" + currentTable);
     if (!localUpdated || data.updatedAt > localUpdated) {
@@ -210,12 +209,21 @@ function saveOrderDataForPrint() {
   console.log("💾 Order data saved for print:", orderData);
 }
 
-/* ===== Scroll Fix for Mobile Keyboard ===== */
-productSearch.addEventListener("focus", () => {
-  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
+/* ===== Improved Scroll Fix for Android Keyboard ===== */
+function ensureButtonsVisible() {
+  const footer = document.querySelector("footer, .footer-buttons, .footer");
+  if (!footer) return;
+  footer.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+["focus", "input"].forEach(evt => {
+  productSearch.addEventListener(evt, ensureButtonsVisible);
+  qtyInput.addEventListener(evt, ensureButtonsVisible);
 });
-qtyInput.addEventListener("focus", () => {
-  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
+
+window.addEventListener("resize", () => {
+  // When keyboard opens/closes, auto-keep footer in view
+  setTimeout(ensureButtonsVisible, 200);
 });
 
 /* ===== Start ===== */
@@ -224,38 +232,6 @@ renderCart();
 subscribeToFirestore();
 setSyncState("online");
 console.log("🚀 Papadums POS ready");
-
-/* ===== Auto-add when selecting from datalist (minimal, safe) ===== */
-/* This only adds when the product name in the input exactly matches a datalist option/product name. */
-let _autoAddTimer;
-function tryAutoAddFromDatalist() {
-  clearTimeout(_autoAddTimer);
-  _autoAddTimer = setTimeout(() => {
-    const name = productSearch.value.trim();
-    if (!name) return;
-    // only proceed if name exactly matches a known product
-    const prod = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-    if (!prod) return;
-    // ensure this value exists in the datalist options (so we only auto-add when user selected from list)
-    const options = Array.from(datalist ? datalist.querySelectorAll("option") : []);
-    const isOption = options.some(o => o.value.toLowerCase() === name.toLowerCase());
-    if (!isOption) return;
-
-    const qty = parseInt(qtyInput.value || "1");
-    const existing = cart.find(i => i.name === prod.name);
-    if (existing) existing.qty += qty;
-    else cart.push({ ...prod, qty });
-
-    renderCart();
-    queueSync();
-
-    // reset inputs
-    productSearch.value = "";
-    qtyInput.value = 1;
-  }, 120); // short debounce to avoid accidental adds while typing
-}
-productSearch.addEventListener("change", tryAutoAddFromDatalist);
-productSearch.addEventListener("input", tryAutoAddFromDatalist);
 
 /* ===== Footer Buttons ===== */
 document.getElementById("printKOT")?.addEventListener("click", () => {
