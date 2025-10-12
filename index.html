@@ -5,20 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.7</title>
 
-  <header>
-    <span id="versionTag">V. 2</span>
-    Papadums POS
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
-
-  <!-- PWA meta -->
-  <meta name="theme-color" content="#0b74ff" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon-192.png" type="image/png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="PapadumsPOS" />
-
   <style>
   :root {
     --blue1:#0b74ff;
@@ -35,13 +21,12 @@
     -webkit-font-smoothing:antialiased;
     overflow:auto;overscroll-behavior:contain;
   }
-  @supports (height:100dvh) {.wrap{height:calc(100dvh - 84px);}}
   header {
     margin:10px;border-radius:10px;
     background:linear-gradient(90deg,var(--blue1),var(--blue2));
     color:#fff;text-align:center;padding:12px;
     font-weight:800;font-size:18px;box-shadow:var(--shadow);
-    position:relative;display:flex;align-items:center;justify-content:center;
+    position:relative;display:flex;align-items:center;justify-content:center;gap:6px;
   }
   #versionTag {
     position:absolute;left:14px;background:#fff;color:var(--blue2);
@@ -56,8 +41,21 @@
   #syncStatus.online{background:#00b86b;}
   #syncStatus.offline{background:#e55353;}
   #syncStatus.syncing{background:#ffb400;}
+  #printerDot {
+    width:10px;height:10px;border-radius:50%;
+    background:red;display:inline-block;margin-left:6px;
+    box-shadow:0 0 4px #0003;
+  }
+  @keyframes blink {
+    0% { opacity:1; }
+    50% { opacity:0.3; }
+    100% { opacity:1; }
+  }
+  .blinking {
+    animation: blink 1s infinite;
+  }
 
-  .wrap{display:flex;flex-direction:column;gap:10px;padding:8px;height:calc(100% - 84px);box-sizing:border-box;}
+  .wrap{display:flex;flex-direction:column;gap:10px;padding:8px;box-sizing:border-box;}
   .table-panel{background:var(--card);border-radius:12px;padding:8px;box-shadow:var(--shadow);}
   .table-panel h3{margin:6px 0;text-align:center;color:var(--blue2);font-size:15px;font-weight:700;}
   .tables{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
@@ -91,21 +89,15 @@
     border:1px solid #e6eefc;border-radius:10px;padding:10px;font-size:15px;background:#fff;
   }
 
-  /* ✅ FIXED: make preview scrollable */
   .preview-panel{
     background:var(--card);border-radius:12px;box-shadow:var(--shadow);
-    display:flex;flex-direction:column;flex:1 1 auto;
-    overflow:auto; /* allow scroll */
-    -webkit-overflow-scrolling:touch;
+    display:flex;flex-direction:column;flex:1 1 auto;overflow:hidden;
   }
   .preview-header{
     display:flex;justify-content:space-between;align-items:center;
     padding:12px;border-bottom:1px solid #f0f4ff;
   }
-  .preview-header h3{
-    margin:0;color:var(--blue2);font-size:16px;font-weight:800;
-    cursor:pointer;text-decoration:underline;
-  }
+  .preview-header h3{margin:0;color:var(--blue2);font-size:16px;font-weight:800;}
   .preview-body{padding:10px;overflow-y:auto;flex:1;}
   .item-row{
     display:flex;justify-content:space-between;align-items:center;
@@ -126,34 +118,34 @@
     padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;
   }
 
-  .footer-fixed{position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);z-index:999;display:flex;justify-content:center;}
+  .footer-fixed{
+    position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);
+    z-index:999;display:flex;justify-content:center;
+  }
   .footer-inner{
     width:100%;max-width:980px;background:var(--card);border-radius:12px;
-    box-shadow:var(--shadow);display:flex;gap:8px;padding:10px;box-sizing:border-box;
+    box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:8px;
+    padding:10px;box-sizing:border-box;justify-content:center;
   }
   .footer-btn{
-    flex:1;border:none;padding:12px;border-radius:10px;
-    font-weight:900;font-size:15px;color:#fff;cursor:pointer;
+    flex:1 1 40%;border:none;padding:12px;border-radius:10px;
+    font-weight:900;font-size:15px;color:#fff;cursor:pointer;min-width:120px;
   }
   .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}
   .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}
-  .footer-btn.pdf{background:linear-gradient(90deg,#00b86b,#00a158);}
-  @media(max-width:600px){.tables{grid-template-columns:repeat(3,1fr);}#qty{width:64px;}}
-  input[list]{position:relative;z-index:1000;}
-  datalist{
-    position:fixed;left:8px;right:8px;bottom:120px;
-    max-height:200px;overflow-y:auto;background:#333;color:#fff;
-    border-radius:6px;border:1px solid #555;scrollbar-width:thin;z-index:3000;
-  }
-  @media(max-height:700px){datalist{bottom:160px;}}
-  datalist option{padding:8px;font-size:15px;}
   </style>
 </head>
 
 <body>
-  <div class="wrap">
+  <header>
+    <span id="versionTag">V. 1</span>
+    Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
 
-    <!-- ✅ TABLES -->
+  <div class="wrap">
+    <!-- TABLES -->
     <div class="table-panel">
       <h3>Tables</h3>
       <div class="tables" id="tablesContainer">
@@ -165,7 +157,7 @@
       </div>
     </div>
 
-    <!-- ✅ SEARCH + BUTTONS -->
+    <!-- SEARCH -->
     <div class="controls-panel">
       <div class="top-row">
         <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
@@ -178,10 +170,10 @@
       </div>
     </div>
 
-    <!-- ✅ PREVIEW PANEL -->
+    <!-- PREVIEW -->
     <div class="preview-panel">
       <div class="preview-header">
-        <h3 id="openFullPreview">Order Preview</h3>
+        <h3>Order Preview</h3>
         <small id="previewInfo">Table 1</small>
       </div>
       <div class="preview-body" id="previewBody">
@@ -192,96 +184,58 @@
         <div id="totalDisplay">0₫</div>
       </div>
     </div>
-
   </div>
 
-  <!-- ✅ FOOTER -->
+  <!-- FOOTER -->
   <div class="footer-fixed">
     <div class="footer-inner">
       <button id="printKOT" class="footer-btn kot">Print KOT</button>
       <button id="printInv" class="footer-btn inv">Print Invoice</button>
-      <button id="downloadInv" class="footer-btn pdf">Download Invoice</button>
+      <input id="printerIp" type="text" placeholder="Printer IP" style="
+        flex:0 0 180px;
+        border:1px solid #e6eefc;
+        border-radius:10px;
+        padding:0 10px;
+        font-size:15px;
+        outline:none;
+      " />
     </div>
   </div>
 
-  <!-- ✅ FIREBASE FUNCTION -->
   <script type="module" src="./index_function.online.js"></script>
 
-  <!-- ✅ Fullscreen Preview Modal -->
-  <div id="fullPreviewOverlay">
-    <div id="fullPreviewContent">
-      <button id="closeFullPreview">×</button>
-      <h2>Order Preview (Full View)</h2>
-      <div id="fullPreviewBody"></div>
-    </div>
-  </div>
-
-  <style>
-  #fullPreviewOverlay {
-    display:none;position:fixed;inset:0;
-    background:rgba(0,0,0,0.6);
-    z-index:2000;
-    justify-content:center;align-items:flex-end;
-    opacity:0;transition:opacity .3s ease;
-  }
-  #fullPreviewOverlay.show {
-    display:flex;opacity:1;
-  }
-  #fullPreviewContent {
-    background:#fff;
-    width:100%;max-width:520px;height:85%;
-    border-radius:18px 18px 0 0;
-    box-shadow:0 -4px 24px rgba(0,0,0,0.25);
-    display:flex;flex-direction:column;
-    overflow:hidden;position:relative;
-    transform:translateY(100%);
-    transition:transform .35s ease;
-  }
-  #fullPreviewOverlay.show #fullPreviewContent {
-    transform:translateY(0);
-  }
-  #closeFullPreview {
-    position:absolute;top:10px;right:10px;
-    border:none;background:#e55353;color:#fff;
-    font-size:22px;font-weight:900;
-    border-radius:50%;width:36px;height:36px;
-    cursor:pointer;
-    box-shadow:0 2px 6px rgba(0,0,0,0.2);
-  }
-  #fullPreviewBody {
-    flex:1;overflow-y:auto;padding:16px;
-    background:#f9fbff;
-  }
-  #fullPreviewContent h2 {
-    margin:16px;text-align:center;color:#0b74ff;
-    font-size:18px;font-weight:800;
-  }
-  </style>
-
+  <!-- PRINTER CONNECTION DOT -->
   <script>
-  const openFull = document.getElementById('openFullPreview');
-  const overlay = document.getElementById('fullPreviewOverlay');
-  const closeFull = document.getElementById('closeFullPreview');
-  const fullBody = document.getElementById('fullPreviewBody');
-  const previewBodyCloneSource = document.getElementById('previewBody');
+    const ipInput = document.getElementById("printerIp");
+    const savedIp = localStorage.getItem("printerIp");
+    if (savedIp) ipInput.value = savedIp;
 
-  openFull.addEventListener('click', () => {
-    fullBody.innerHTML = previewBodyCloneSource.innerHTML || "<div style='text-align:center;color:#777;padding:20px'>No items</div>";
-    overlay.style.display='flex';
-    setTimeout(()=>overlay.classList.add('show'),10);
-  });
+    ipInput.addEventListener("input", () => {
+      localStorage.setItem("printerIp", ipInput.value);
+      checkPrinterConnection();
+    });
 
-  closeFull.addEventListener('click', () => {
-    overlay.classList.remove('show');
-    setTimeout(()=>overlay.style.display='none',350);
-  });
+    const dot = document.getElementById("printerDot");
 
-  const syncObserver = new MutationObserver(() => {
-    if (overlay.classList.contains('show')) {
-      fullBody.innerHTML = previewBodyCloneSource.innerHTML;
+    async function checkPrinterConnection() {
+      const ip = localStorage.getItem("printerIp");
+      if (!ip) { dot.style.background = "gray"; dot.classList.remove("blinking"); return; }
+
+      dot.style.background = "yellow";
+      dot.classList.add("blinking"); // blink while checking
+
+      try {
+        await fetch(`http://${ip}:9100`, { mode: "no-cors" });
+        dot.style.background = "limegreen";
+        dot.classList.remove("blinking");
+      } catch {
+        dot.style.background = "red";
+        dot.classList.remove("blinking");
+      }
     }
-  });
-  syncObserver.observe(previewBodyCloneSource, { childList:true, subtree:true });
+
+    checkPrinterConnection();
+    setInterval(checkPrinterConnection, 10000); // refresh every 10s
   </script>
 </body>
 </html>
