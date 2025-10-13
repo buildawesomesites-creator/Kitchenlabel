@@ -6,9 +6,8 @@
 <meta name="google" content="notranslate">
 <title>Papadums Invoice</title>
 
-<!-- ✅ jsPDF + html2canvas -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
 <style>
 *{box-sizing:border-box;}
@@ -25,51 +24,56 @@ body{font-family:Arial, sans-serif;background:#fff;margin:0;padding:0;}
 .totals .line{display:flex;justify-content:space-between;padding:2px 0;}
 .header-title{font-weight:700;font-size:13px;}
 .roundbox{border:1px solid #000;padding:4px 8px;border-radius:10px;font-size:12px;font-weight:700;display:inline-block;}
+
+/* Buttons */
 button{width:100%;padding:10px;margin-top:10px;background:#007bff;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;}
 button:hover{background:#0056b3;}
 #message{display:none;text-align:center;margin-top:8px;font-size:13px;color:green;font-weight:bold;}
+
+/* Hide in print */
 @media print {
-  body {margin:0;padding:0;}
-  button {display:none;}
-  #message {display:none;}
-  .receipt {box-shadow:none;border-radius:0;margin:0;width:58mm;}
+  html, body {width:58mm !important;height:auto !important;margin:0;padding:0;background:#fff;overflow:hidden;}
+  #currentDateTime,#invoiceTitle,#previewModal,button,#message{display:none !important;}
+  .receipt{width:58mm !important;margin:2mm auto;padding:2mm 3mm;box-shadow:none;border-radius:0;}
+  *{page-break-before:avoid !important;page-break-after:avoid !important;page-break-inside:avoid !important;}
+  @page{size:58mm auto;margin:0;}
 }
+
+/* Modal overlay */
+#previewModal{display:none;position:fixed;z-index:1000;inset:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;overflow-y:auto;padding:20px;}
+#previewContent{background:#fff;padding:15px;border-radius:8px;max-width:400px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.3);margin:auto;}
+#previewImg{width:90%;border:1px solid #ddd;border-radius:6px;}
+#sendWifiBtn{background:#28a745;color:white;padding:8px 12px;margin-top:10px;border:none;border-radius:5px;cursor:pointer;font-weight:bold;}
+#sendWifiBtn:hover{background:#218838;}
+#closeModalBtn{background:#dc3545;margin-top:10px;}
+#closeModalBtn:hover{background:#b02a37;}
 </style>
 </head>
 <body>
-<div class="receipt" id="invoice">
 
-  <!-- ✅ Header -->
+<div id="currentDateTime" style="position:absolute;top:5px;left:5px;font-size:12px;color:#000;"></div>
+<div id="invoiceTitle" style="position:absolute;top:5px;right:5px;font-size:12px;font-weight:bold;">Papadums Invoice</div>
+
+<div class="receipt" id="invoice">
+  <!-- Header -->
   <div class="center" style="margin-bottom:6px;">
     <div class="header-title">PAPADUMS INDIAN CUISINE</div>
     <div class="small">35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
     <div class="small">Hotline: 0946 024 520</div>
   </div>
 
-  <!-- ✅ Info Row -->
+  <!-- Info Row -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:6px;">
-    <div>
-      <div class="roundbox" id="tableBox"></div>
-      <div class="small" style="margin-top:4px;">Time in: <span id="timeInLabel"></span></div>
-    </div>
-    <div style="text-align:right;">
-      <div class="bold">INVOICE</div>
-      <div class="small">Bill No: <span id="billLabel"></span></div>
-      <div class="small">Time out: <span id="timeOutLabel"></span></div>
-    </div>
+    <div><div class="roundbox" id="tableBox"></div><div class="small" style="margin-top:4px;">Time in: <span id="timeInLabel"></span></div></div>
+    <div style="text-align:right;"><div class="bold">INVOICE</div><div class="small">Bill No: <span id="billLabel"></span></div><div class="small">Time out: <span id="timeOutLabel"></span></div></div>
   </div>
 
-  <!-- ✅ Items List -->
+  <!-- Items List -->
   <div class="items" id="itemsList">
-    <div class="row header">
-      <div>Item</div>
-      <div class="right">Price</div>
-      <div class="right">Qty</div>
-      <div class="right">Amt</div>
-    </div>
+    <div class="row header"><div>Item</div><div class="right">Price</div><div class="right">Qty</div><div class="right">Amt</div></div>
   </div>
 
-  <!-- ✅ Totals -->
+  <!-- Totals -->
   <div style="border-top:1px solid #000;margin-top:6px;padding-top:6px">
     <div class="totals">
       <div class="line"><div>Total Price:</div><div id="totalPrice" class="right"></div></div>
@@ -79,7 +83,7 @@ button:hover{background:#0056b3;}
     </div>
   </div>
 
-  <!-- ✅ Footer -->
+  <!-- Footer -->
   <div class="center" style="margin-top:8px;">
     <div class="header-title">PAPADUMS INDIAN CUISINE</div>
     <div class="small">35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
@@ -93,134 +97,132 @@ button:hover{background:#0056b3;}
     <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
   </div>
 
-  <!-- ✅ Buttons -->
+  <!-- Buttons -->
   <div id="buttonsArea">
-    <button onclick="sendToWifiPrinter()">🖨️ Print Invoice</button>
-    <button onclick="downloadPDF()">📥 Download Invoice (58mm PDF)</button>
+    <button onclick="normalPrint()">🖨️ Normal Print</button>
+    <button onclick="showPreviewPNG()">🔍 Print Preview</button>
+    <button onclick="downloadPNG()">⬇️ Download PNG</button>
+    <button onclick="sendPreviewToPrinter()">📡 Wi-Fi Print</button>
   </div>
 
   <div id="message">✅ Invoice downloaded successfully!</div>
 </div>
 
-<!-- ✅ Script -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<!-- Preview Modal -->
+<div id="previewModal">
+  <div id="previewContent">
+    <h4>🖼️ Print Preview</h4>
+    <img id="previewImg" alt="Invoice Preview">
+    <br>
+    <button id="sendWifiBtn" onclick="sendPreviewToPrinter()">📡 Send to Wi-Fi Printer</button>
+    <button id="closeModalBtn" onclick="closeModal()">✖ Close</button>
+  </div>
+</div>
+
 <script>
-function formatDateTime() {
-  const now = new Date();
-  return now.toLocaleString('vi-VN', { hour12: false });
-}
+// Format date/time
+function formatDateTime(){ return new Date().toLocaleString('vi-VN',{hour12:false}); }
 
-// ✅ Load invoice data
-document.addEventListener('DOMContentLoaded', () => {
-  const order = JSON.parse(localStorage.getItem('papadumsInvoiceData')) || {};
+// Load invoice data
+document.addEventListener('DOMContentLoaded',async()=>{
+  document.getElementById('currentDateTime').textContent=formatDateTime();
+  const order=JSON.parse(localStorage.getItem('papadumsInvoiceData'))||{};
+  const tableBox=document.getElementById('tableBox');
+  if(order.table){ tableBox.textContent=`Bàn: ${order.table.replace("table","")}`;}
+  else if(order.type==="takeaway"){ tableBox.textContent="Take Away";}
+  else if(order.type==="online"){ tableBox.textContent="Online";}
+  else { tableBox.style.display="none";}
 
-  // Top info mapping
-  const tableBox = document.getElementById('tableBox');
-  if (order.table) {
-    tableBox.textContent = `Bàn: ${order.table.replace("table","")}`;
-  } else if (order.type === "takeaway") {
-    tableBox.textContent = "Take Away";
-  } else if (order.type === "online") {
-    tableBox.textContent = "Online";
-  } else {
-    tableBox.style.display = "none";
+  document.getElementById('billLabel').textContent=order.billNo||'';
+  document.getElementById('timeInLabel').textContent=order.time||formatDateTime();
+  document.getElementById('timeOutLabel').textContent=formatDateTime();
+
+  const itemsList=document.getElementById('itemsList');
+  if(Array.isArray(order.items)){ order.items.forEach(it=>{
+    const row=document.createElement('div');
+    row.className='row';
+    row.innerHTML=`<div>${it.name}</div><div class="right">${(it.price||0).toLocaleString()}</div><div class="right">${it.qty||1}</div><div class="right">${((it.price||0)*(it.qty||1)).toLocaleString()}</div>`;
+    itemsList.appendChild(row);
+  });}
+
+  const total=order.items?.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0)||0;
+  const discount=order.discount||0;
+  const vat=total*0.08;
+  const grandTotal=total+vat-discount;
+  document.getElementById('totalPrice').textContent=total.toLocaleString();
+  document.getElementById('discountLabel').textContent=discount.toLocaleString();
+  document.getElementById('vatAmount').textContent=vat.toLocaleString();
+  document.getElementById('grandTotal').textContent=grandTotal.toLocaleString();
+
+  new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - Bàn ${order.table||''} - ${formatDateTime()}`,size:80});
+
+  // Auto silent print for native app
+  if(navigator.userAgent.includes("PapadumsPOSApp")){
+    const dataUrl=await showPreviewPNG();
+    sendPreviewToPrinter(dataUrl);
   }
-
-  document.getElementById('billLabel').textContent = order.billNo || '';
-  document.getElementById('timeInLabel').textContent = order.time || formatDateTime();
-  document.getElementById('timeOutLabel').textContent = formatDateTime();
-
-  // Items
-  const itemsList = document.getElementById('itemsList');
-  if (Array.isArray(order.items)) {
-    order.items.forEach(it => {
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML = `
-        <div>${it.name}</div>
-        <div class="right">${(it.price || 0).toLocaleString()}</div>
-        <div class="right">${it.qty || 1}</div>
-        <div class="right">${((it.price || 0) * (it.qty || 1)).toLocaleString()}</div>
-      `;
-      itemsList.appendChild(row);
-    });
-  }
-
-  // Totals
-  const total = order.items?.reduce((sum, i) => sum + ((i.price || 0) * (i.qty || 1)), 0) || 0;
-  const discount = order.discount || 0;
-  const vat = total * 0.08;
-  const grandTotal = total + vat - discount;
-
-  document.getElementById('totalPrice').textContent = total.toLocaleString();
-  document.getElementById('discountLabel').textContent = discount.toLocaleString();
-  document.getElementById('vatAmount').textContent = vat.toLocaleString();
-  document.getElementById('grandTotal').textContent = grandTotal.toLocaleString();
-
-  // QR Code
-  new QRious({
-    element: document.getElementById("qrImg"),
-    value: `Papadums Invoice - Bàn ${order.table || ''} - ${formatDateTime()}`,
-    size: 80
-  });
 });
 
-// ✅ Download PDF without buttons, then show success message
-async function downloadPDF() {
-  const { jsPDF } = window.jspdf;
-  const invoice = document.getElementById('invoice');
-  const buttons = document.getElementById('buttonsArea');
-  const message = document.getElementById('message');
+// Normal Print
+function normalPrint(){ window.print(); }
 
-  // Temporarily hide buttons
-  buttons.style.display = 'none';
+// Generate PNG preview
+async function showPreviewPNG(){
+  const invoice=document.getElementById("invoice");
+  const buttons=document.getElementById('buttonsArea');
+  buttons.style.display='none';
 
-  const canvas = await html2canvas(invoice, { scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
-  
-  // 58mm = ~2.283 inches
-  const pdf = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: [58, (canvas.height * 58) / canvas.width]
-  });
+  // Wait for images and QR
+  const imgs=invoice.querySelectorAll("img,canvas");
+  await Promise.all(Array.from(imgs).map(el=>{
+    if(el.tagName==="CANVAS") return Promise.resolve();
+    if(el.complete) return Promise.resolve();
+    return new Promise(res=>{ el.onload=el.onerror=res; });
+  }));
 
-  pdf.addImage(imgData, 'PNG', 0, 0, 58, (canvas.height * 58) / canvas.width);
-  const filename = `Papadums_Invoice_${Date.now()}.pdf`;
-  pdf.save(filename);
-
-  // Restore buttons and show success message
-  buttons.style.display = 'block';
-  message.style.display = 'block';
-  setTimeout(() => message.style.display = 'none', 3000);
+  // Dynamic height scaling
+  const rect=invoice.getBoundingClientRect();
+  const canvas=await html2canvas(invoice,{scale:3,backgroundColor:"#ffffff",height:rect.height});
+  buttons.style.display='block';
+  const dataUrl=canvas.toDataURL("image/png");
+  localStorage.setItem("lastInvoicePNG",dataUrl);
+  document.getElementById("previewImg").src=dataUrl;
+  document.getElementById("previewModal").style.display="flex";
+  return dataUrl;
 }
 
-// ✅ Silent Wi-Fi printing (Zywell)
-async function sendToWifiPrinter() {
-  const printerIp = localStorage.getItem("printerIp");
-  if (!printerIp) {
-    console.log("⚠️ No printer IP found, using normal print.");
-    window.print();
-    return;
-  }
+// Download PNG
+async function downloadPNG(){
+  const dataUrl=await showPreviewPNG();
+  const a=document.createElement('a');
+  a.href=dataUrl;
+  a.download=`PapadumsInvoice_${Date.now()}.png`;
+  a.click();
+  document.getElementById('message').style.display='block';
+  setTimeout(()=>{document.getElementById('message').style.display='none';},2500);
+}
 
-  try {
-    const order = JSON.parse(localStorage.getItem("papadumsInvoiceData")) || {};
-    const response = await fetch(`http://${printerIp}/print`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order)
+// Close modal
+function closeModal(){ document.getElementById("previewModal").style.display="none"; }
+
+// Send PNG to Wi-Fi printer
+async function sendPreviewToPrinter(dataUrl){
+  dataUrl=dataUrl||localStorage.getItem("lastInvoicePNG");
+  if(!dataUrl){ alert("⚠️ Please generate preview first"); return; }
+
+  const printerIp=localStorage.getItem("printerIp_invoice")||localStorage.getItem("printerIp");
+  if(!printerIp){ console.log("⚠️ No printer IP, fallback to browser print."); window.print(); return; }
+
+  try{
+    const order=JSON.parse(localStorage.getItem('papadumsInvoiceData'))||{};
+    const payload={table:order.table,items:order.items,type:"Invoice",image:dataUrl};
+    const resp=await fetch(`http://${printerIp}/print`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
     });
-    console.log("✅ Sent invoice to printer:", printerIp, response.status);
-  } catch (err) {
-    console.error("❌ Printer connection failed:", err);
-    window.print(); // fallback
-  }
-}
-
-// ✅ Auto silent print when inside native app
-if (navigator.userAgent.includes("PapadumsPOSApp")) {
-  sendToWifiPrinter();
+    console.log("✅ Sent Invoice to Wi-Fi printer:",resp.status);
+  }catch(err){ console.error("❌ Wi-Fi printer failed:",err); window.print(); }
 }
 </script>
 </body>
