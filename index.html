@@ -258,5 +258,37 @@
       dropdown.style.display="none";
   });
 </script>
+
+
+  <script>
+  // ✅ Register Service Worker for Offline + Auto Update
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => {
+          console.log('✅ Service Worker registered:', reg.scope);
+
+          // Listen for updates
+          reg.addEventListener('updatefound', () => {
+            const newSW = reg.installing;
+            newSW.addEventListener('statechange', () => {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('🔄 New content available — refresh page to update');
+                // Optionally notify user and call skipWaiting
+                newSW.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          });
+        })
+        .catch(err => console.error('❌ Service Worker registration failed:', err));
+
+      // Reload page when new SW takes control
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('⚡ New Service Worker controlling page — reload now');
+        window.location.reload();
+      });
+    });
+  }
+  </script>
 </body>
 </html>
