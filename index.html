@@ -27,7 +27,7 @@
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     background:var(--bg);color:#111;
     -webkit-font-smoothing:antialiased;
-    overflow:hidden; /* disable vertical scroll */
+    overflow:hidden;
     overscroll-behavior:contain;
     touch-action: manipulation;
   }
@@ -84,15 +84,14 @@
   .top-row{display:flex;gap:8px;margin-bottom:8px;position:relative;}
   .bottom-row{display:flex;gap:8px;}
   #productSearch{flex:0 0 70%;}
-  
-  /* Updated qty input */
+
   #qty {
-    flex: 0 0 15%;       /* slightly wider to fit digits comfortably */
+    flex: 0 0 15%;
     text-align: center;
-    font-size: 14px;     /* smaller font */
-    padding: 6px 8px;    /* reduced padding */
+    font-size: 14px;
+    padding: 6px 8px;
     border-radius: 8px;  
-    box-sizing: border-box;
+    box-sizing:border-box;
   }
 
   .btn-add{
@@ -108,6 +107,11 @@
   .controls-panel input[type="number"]{
     border:1px solid #e6eefc;border-radius:10px;padding:6px 8px;font-size:14px;background:#fff;
     box-sizing:border-box;
+  }
+
+  /* Hide native datalist on mobile */
+  @media screen and (max-width: 768px) {
+    datalist { display: none; }
   }
 
   #productDropdown {
@@ -294,6 +298,7 @@
   closeBtn.onclick = ()=> fullModal.style.display="none";
   fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
 
+  // === Product Search with custom dropdown ===
   const searchInput = document.getElementById("productSearch");
   const dropdown = document.getElementById("productDropdown");
 
@@ -312,7 +317,7 @@
   });
 
   document.addEventListener("click", e => {
-    if (!searchInput.contains(e.target)) dropdown.style.display = "none";
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = "none";
   });
 </script>
 </body>
