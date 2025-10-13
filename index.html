@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.1</title>
 
-<body>
-  <header>
-    <span id="versionTag">V. 1</span>
-    Papadums POS
-    <span id="printerDot"></span>
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
-  
   <style>
   :root {
     --blue1:#0b74ff;
@@ -58,11 +50,7 @@
     background:red;display:inline-block;margin-left:6px;
     box-shadow:0 0 4px #0003;
   }
-  @keyframes blink {
-    0% { opacity:1; }
-    50% { opacity:0.3; }
-    100% { opacity:1; }
-  }
+  @keyframes blink {0%{opacity:1;}50%{opacity:0.3;}100%{opacity:1;}}
   .blinking { animation: blink 1s infinite; }
 
   .wrap{display:flex;flex-direction:column;gap:10px;padding:8px;box-sizing:border-box;}
@@ -85,14 +73,7 @@
   .bottom-row{display:flex;gap:8px;}
   #productSearch{flex:0 0 70%;}
 
-  #qty {
-    flex: 0 0 15%;
-    text-align: center;
-    font-size: 14px;
-    padding: 6px 8px;
-    border-radius: 8px;  
-    box-sizing:border-box;
-  }
+  #qty {flex:0 0 15%;text-align:center;font-size:14px;padding:6px 8px;border-radius:8px;box-sizing:border-box;}
 
   .btn-add{
     flex:0 0 70%;background:linear-gradient(90deg,var(--blue1),var(--blue2));
@@ -110,15 +91,12 @@
   }
 
   /* Hide native datalist on mobile */
-  @media screen and (max-width: 768px) {
-    datalist { display: none; }
-  }
+  @media screen and (max-width: 768px) { datalist { display: none; } }
 
   #productDropdown {
-    position:absolute;
-    top:38px; left:0; right:0;
-    background:#fff; border:1px solid #e6eefc; border-radius:10px;
-    max-height:180px; overflow-y:auto; display:none; z-index:1000;
+    position:absolute;top:38px;left:0;right:0;
+    background:#fff;border:1px solid #e6eefc;border-radius:10px;
+    max-height:180px;overflow-y:auto;display:none;z-index:1000;
   }
   #productDropdown div { padding:10px; cursor:pointer; }
   #productDropdown div:hover { background:var(--blue1); color:#fff; }
@@ -128,74 +106,31 @@
     display:flex;flex-direction:column;cursor:pointer;
   }
   .preview-panel:hover{box-shadow:0 0 0 2px var(--blue1) inset;}
-  .preview-header{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:12px;border-bottom:1px solid #f0f4ff;flex-shrink:0;
-  }
+  .preview-header{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #f0f4ff;flex-shrink:0;}
   .preview-header h3{margin:0;color:var(--blue2);font-size:16px;font-weight:800;}
-  .preview-body{
-    padding:10px;
-    overflow-y:auto;
-    max-height:60vh;
-    -webkit-overflow-scrolling: touch;
-    flex:1 1 auto;
-  }
-  .item-row{
-    display:flex;justify-content:space-between;align-items:center;
-    background:#f9fbff;border:1px solid #f0f6ff;border-radius:8px;
-    padding:10px;margin-bottom:8px;
-  }
+  .preview-body{padding:10px;overflow-y:auto;max-height:60vh;-webkit-overflow-scrolling:touch;flex:1 1 auto;}
+  .item-row{display:flex;justify-content:space-between;align-items:center;background:#f9fbff;border:1px solid #f0f6ff;border-radius:8px;padding:10px;margin-bottom:8px;}
   .item-left{font-size:15px;font-weight:700;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .item-right{display:flex;align-items:center;gap:8px;font-size:14px;}
-  .qty-btn{
-    background:linear-gradient(90deg,var(--blue1),var(--blue2));
-    color:#fff;border:none;border-radius:8px;padding:8px 10px;
-    font-weight:800;cursor:pointer;min-width:36px;
-  }
+  .qty-btn{background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;min-width:36px;}
   .remove-btn{background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;}
   .price-amount{font-weight:800;min-width:72px;text-align:right;}
-  .totals-row{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;
-    flex-shrink:0;background:#fff;
-    position:sticky;bottom:0;z-index:5;
-    box-shadow:0 -3px 8px rgba(0,0,0,0.04);
-  }
+  .totals-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-top:1px dashed #eee;font-weight:800;font-size:16px;flex-shrink:0;background:#fff;position:sticky;bottom:0;z-index:5;box-shadow:0 -3px 8px rgba(0,0,0,0.04);}
 
-  .footer-fixed{
-    position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);
-    z-index:999;display:flex;justify-content:center;
-  }
-  .footer-inner{
-    width:100%;max-width:980px;background:var(--card);border-radius:12px;
-    box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:8px;
-    padding:10px;box-sizing:border-box;justify-content:center;
-  }
-  .footer-btn{
-    flex:1 1 40%;border:none;padding:12px;border-radius:10px;
-    font-weight:900;font-size:15px;color:#fff;cursor:pointer;min-width:120px;
-  }
+  .footer-fixed{position:fixed;left:8px;right:8px;bottom:env(safe-area-inset-bottom,10px);z-index:999;display:flex;justify-content:center;}
+  .footer-inner{width:100%;max-width:980px;background:var(--card);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:8px;padding:10px;box-sizing:border-box;justify-content:center;}
+  .footer-btn{flex:1 1 40%;border:none;padding:12px;border-radius:10px;font-weight:900;font-size:15px;color:#fff;cursor:pointer;min-width:120px;}
   .footer-btn.kot{background:linear-gradient(90deg,var(--blue1),var(--blue2));}
   .footer-btn.inv{background:linear-gradient(90deg,#ff8a3d,#ff6a00);}
 
-  #fullPreviewModal {
-    position:fixed;inset:0;background:rgba(0,0,0,0.6);
-    display:none;align-items:center;justify-content:center;z-index:2000;
-  }
-  #fullPreviewBox {
-    background:#fff;width:95%;max-width:450px;max-height:90vh;
-    overflow-y:auto;border-radius:12px;padding:16px;
-    box-shadow:0 10px 24px rgba(0,0,0,0.25);
-    animation: fadeIn 0.2s ease;
-  }
+  #fullPreviewModal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:2000;}
+  #fullPreviewBox{background:#fff;width:95%;max-width:450px;max-height:90vh;overflow-y:auto;border-radius:12px;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,0.25);animation: fadeIn 0.2s ease;}
   @keyframes fadeIn { from{opacity:0;transform:scale(0.95);} to{opacity:1;transform:scale(1);} }
-  #closePreview {
-    position:absolute;top:12px;right:18px;font-size:26px;
-    font-weight:bold;color:#555;cursor:pointer;
-  }
+  #closePreview{position:absolute;top:12px;right:18px;font-size:26px;font-weight:bold;color:#555;cursor:pointer;}
   </style>
 </head>
 
+<body>
 <div class="wrap">
   <div class="table-panel">
     <h3>Tables</h3>
@@ -240,14 +175,7 @@
   <div class="footer-inner">
     <button id="printKOT" class="footer-btn kot">Print KOT</button>
     <button id="printInv" class="footer-btn inv">Print Invoice</button>
-    <input id="printerIp" type="text" placeholder="Printer IP" style="
-      flex:0 0 180px;
-      border:1px solid #e6eefc;
-      border-radius:10px;
-      padding:0 10px;
-      font-size:15px;
-      outline:none;
-    " />
+    <input id="printerIp" type="text" placeholder="Printer IP" style="flex:0 0 180px;border:1px solid #e6eefc;border-radius:10px;padding:0 10px;font-size:15px;outline:none;" />
   </div>
 </div>
 
@@ -259,30 +187,28 @@
 </div>
 
 <script type="module" src="./index_function.online.js"></script>
-
 <script>
   // === Format Number ===
-  function formatNumber(num) {
-    if (isNaN(num)) return num;
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      .replace(/(\d+)(?=(\d\d)+\d$)/, function(x){ return x.replace(/\B(?=(\d{2})+(?!\d))/g, ","); });
+  function formatNumber(num){
+    if(isNaN(num)) return num;
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,",");
   }
 
   // === Printer Connection ===
   const ipInput = document.getElementById("printerIp");
   const savedIp = localStorage.getItem("printerIp");
-  if (savedIp) ipInput.value = savedIp;
+  if(savedIp) ipInput.value = savedIp;
   const dot = document.getElementById("printerDot");
 
-  async function checkPrinterConnection() {
+  async function checkPrinterConnection(){
     const ip = localStorage.getItem("printerIp");
-    if (!ip) { dot.style.background="gray"; dot.classList.remove("blinking"); return; }
+    if(!ip){ dot.style.background="gray"; dot.classList.remove("blinking"); return; }
     dot.style.background="yellow"; dot.classList.add("blinking");
-    try { await fetch(`http://${ip}:9100`,{mode:"no-cors"}); dot.style.background="limegreen"; }
-    catch { dot.style.background="red"; }
-    finally { dot.classList.remove("blinking"); }
+    try{ await fetch(`http://${ip}:9100`,{mode:"no-cors"}); dot.style.background="limegreen"; }
+    catch{ dot.style.background="red"; }
+    finally{ dot.classList.remove("blinking"); }
   }
-  ipInput.addEventListener("input",()=>{localStorage.setItem("printerIp",ipInput.value);checkPrinterConnection();});
+  ipInput.addEventListener("input",()=>{ localStorage.setItem("printerIp",ipInput.value); checkPrinterConnection(); });
   checkPrinterConnection(); setInterval(checkPrinterConnection,10000);
 
   // === Clickable Order Preview ===
@@ -295,29 +221,41 @@
       `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
     fullModal.style.display="flex";
   });
-  closeBtn.onclick = ()=> fullModal.style.display="none";
+  closeBtn.onclick=()=>fullModal.style.display="none";
   fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
 
-  // === Product Search with custom dropdown ===
+  // === Product Search + Custom Dropdown + Add to Cart + Clear Input ===
   const searchInput = document.getElementById("productSearch");
   const dropdown = document.getElementById("productDropdown");
 
-  searchInput.addEventListener("input", () => {
+  function addProductToCart(productName){
+    // === Your existing function to add the product to cart ===
+    console.log("Added to cart:", productName);
+    // Example: update previewBody and totalDisplay (implement your logic)
+  }
+
+  searchInput.addEventListener("input",()=>{
     const value = searchInput.value.toLowerCase();
     const options = Array.from(document.getElementById("productList").options);
     dropdown.innerHTML = "";
-    const filtered = options.filter(o => o.value.toLowerCase().includes(value));
-    filtered.forEach(o => {
+    const filtered = options.filter(o=>o.value.toLowerCase().includes(value));
+    filtered.forEach(o=>{
       const div = document.createElement("div");
       div.textContent = o.value;
-      div.onclick = () => { searchInput.value = o.value; dropdown.style.display = "none"; };
+      div.onclick=()=>{
+        addProductToCart(o.value);  // Add product to cart
+        searchInput.value="";        // Clear search box
+        document.getElementById("qty").value=1; // Reset qty
+        dropdown.style.display="none";
+      };
       dropdown.appendChild(div);
     });
-    dropdown.style.display = filtered.length ? "block" : "none";
+    dropdown.style.display = filtered.length ? "block":"none";
   });
 
-  document.addEventListener("click", e => {
-    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = "none";
+  document.addEventListener("click", e=>{
+    if(!searchInput.contains(e.target) && !dropdown.contains(e.target))
+      dropdown.style.display="none";
   });
 </script>
 </body>
