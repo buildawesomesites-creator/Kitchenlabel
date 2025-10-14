@@ -1,9 +1,9 @@
-// =================== Papadums POS — Online Sync & Print Script ===================
+// ===================
+// Papadums POS — Online Sync & Print
+// ===================
 console.log("✅ index_function.online.js loaded");
 
-// Import Firebase helper
 import {
-  db,
   saveOrderToFirestore,
   subscribeToTable,
   authState
@@ -79,7 +79,7 @@ function populateProductList() {
 /* ===== Render Cart ===== */
 function renderCart() {
   previewBody.innerHTML = "";
-  if (cart.length === 0) {
+  if (!cart.length) {
     previewBody.innerHTML = `<div style="text-align:center;color:#777;padding:18px">No items</div>`;
   } else {
     cart.forEach((item, i) => {
@@ -91,7 +91,7 @@ function renderCart() {
           <button class="qty-btn" data-i="${i}" data-type="minus">−</button>
           <span>${item.qty}</span>
           <button class="qty-btn" data-i="${i}" data-type="plus">+</button>
-          <strong class="price-amount">${(item.qty * item.price).toFixed(0)}₫</strong>
+          <strong>${(item.qty * item.price).toFixed(0)}₫</strong>
           <button class="remove-btn" data-i="${i}">x</button>
         </div>`;
       previewBody.appendChild(div);
@@ -102,7 +102,7 @@ function renderCart() {
   localStorage.setItem("cart_" + currentTable, JSON.stringify(cart));
 }
 
-/* ===== Modify Qty / Remove ===== */
+/* ===== Qty / Remove ===== */
 previewBody.addEventListener("click", (e) => {
   const i = e.target.dataset.i;
   if (i === undefined) return;
@@ -156,16 +156,16 @@ function queueSync() {
 }
 
 async function syncToFirestore() {
+  if (isSyncing) return;
+  isSyncing = true;
+  setSyncState("syncing");
   try {
-    if (isSyncing) return;
-    isSyncing = true;
-    setSyncState("syncing");
     await saveOrderToFirestore(currentTable, { table: currentTable, items: cart });
     setSyncState("online");
-    isSyncing = false;
   } catch (err) {
     console.warn("⚠️ Sync failed:", err);
     setSyncState("offline");
+  } finally {
     isSyncing = false;
   }
 }
@@ -174,11 +174,12 @@ function subscribeToFirestore() {
   if (unsubRealtime) unsubRealtime(); // stop old listener
   unsubRealtime = subscribeToTable(currentTable, (data) => {
     if (!data || !data.items) return;
-    const localUpdated = localStorage.getItem("updatedAt_" + currentTable);
-    if (!localUpdated || (data.lastModified?.seconds || 0) > (localUpdated || 0)) {
+    const lastLocal = parseInt(localStorage.getItem("updatedAt_" + currentTable) || 0);
+    const remoteTime = data.lastModified?.seconds || 0;
+    if (!lastLocal || remoteTime > lastLocal) {
       cart = data.items;
       localStorage.setItem("cart_" + currentTable, JSON.stringify(cart));
-      localStorage.setItem("updatedAt_" + currentTable, data.lastModified?.seconds || 0);
+      localStorage.setItem("updatedAt_" + currentTable, remoteTime);
       renderCart();
       console.log(`🔄 Updated from Firestore: ${currentTable}`);
     }
@@ -192,85 +193,8 @@ window.addEventListener("online", () => {
   syncToFirestore();
 });
 
-/* ===== Save Order for Print ===== */
-function saveOrderDataForPrint() {
-  const orderData = {
-    table: currentTable,
-    time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: cart.map(i => ({
-      name: i.name,
-      price: i.price,
-      qty: i.qty,
-      unit: i.unit || ""
-    })),
-    discount: 0,
-    billNo: "INV" + Date.now(),
-    type: "dinein"
-  };
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
-  console.log("💾 Order data saved for print:", orderData);
-}
-
-/* ===== Scroll Fix for Native Keyboard ===== */
-productSearch.addEventListener("focus", () => {
-  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
-});
-qtyInput.addEventListener("focus", () => {
-  setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
-});
-
-/* ===== Auto Add from Datalist ===== */
-let _autoAddTimer;
-function tryAutoAddFromDatalist() {
-  clearTimeout(_autoAddTimer);
-  _autoAddTimer = setTimeout(() => {
-    const name = productSearch.value.trim();
-    if (!name) return;
-    const prod = products.find(p => p.name.toLowerCase() === name.toLowerCase());
-    if (!prod) return;
-    const options = Array.from(datalist?.querySelectorAll("option") || []);
-    const isOption = options.some(o => o.value.toLowerCase() === name.toLowerCase());
-    if (!isOption) return;
-
-    const qty = parseInt(qtyInput.value || "1");
-    const existing = cart.find(i => i.name === prod.name);
-    if (existing) existing.qty += qty;
-    else cart.push({ ...prod, qty });
-
-    renderCart();
-    queueSync();
-
-    productSearch.value = "";
-    qtyInput.value = 1;
-  }, 120);
-}
-productSearch.addEventListener("change", tryAutoAddFromDatalist);
-productSearch.addEventListener("input", tryAutoAddFromDatalist);
-
-/* ===== Footer Buttons ===== */
-document.getElementById("printKOT")?.addEventListener("click", () => {
-  saveOrderDataForPrint();
-  window.open("kot_browser.html", "_blank", "width=400,height=600");
-});
-document.getElementById("printInv")?.addEventListener("click", () => {
-  saveOrderDataForPrint();
-  window.open("invoice_browser.html", "_blank", "width=400,height=600");
-});
-document.getElementById("downloadInv")?.addEventListener("click", async () => {
-  saveOrderDataForPrint();
-  const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "Papadums_Invoice.html";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-/* ===== Init App ===== */
-await authState(); // wait for Firebase ready
+/* ===== Init ===== */
+await authState(); // wait Firebase ready
 await loadProducts();
 renderCart();
 subscribeToFirestore();
