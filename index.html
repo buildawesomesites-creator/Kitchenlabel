@@ -8,7 +8,7 @@
 
 <body>
   <header>
-    <span id="versionTag">V.7</span>
+    <span id="versionTag">V.3</span>
     Papadums POS
     <span id="printerDot"></span>
     <div id="syncStatus" class="syncing">🔄 Syncing...</div>
@@ -135,9 +135,15 @@
   <!-- ===== JS SCRIPTS BELOW ==== -->
   <!-- ========================== -->
 
-  <script type="module" src="./index_function_work.js"></script>
-  <script type="module" src="./firebase_client.js"></script>
-  <script type="module" src="./index_function_online.js"></script>
+ <!-- ✅ Firebase first -->
+<script type="module" src="./firebase_client.js"></script>
+
+<!-- ✅ Then core app logic -->
+<script type="module" src="./index_function_work.js"></script>
+
+<!-- ✅ Then online sync helper -->
+<script type="module" src="./index_function_online.js"></script>
+
 
   <script>
     // === Format Number (Indian style) ===
