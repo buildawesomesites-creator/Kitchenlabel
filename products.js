@@ -1,5 +1,5 @@
 // products.js — embedded products for offline & native app 
-const PRODUCTS = [ 
+window.PRODUCTS = [ 
   {
     "name": "Omelette",
     "price": 60000
