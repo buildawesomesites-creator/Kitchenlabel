@@ -42,8 +42,7 @@
   <!-- Controls -->
   <div class="controls-panel">
     <div class="top-row" style="position: relative;">
-      <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
-      <datalist id="productList"></datalist>
+      <input id="productSearch" type="text" placeholder="Search product..." autocomplete="off" />
       <div id="productDropdown"></div>
       <input id="qty" type="number" min="1" value="1" />
     </div>
@@ -88,7 +87,6 @@
 
 <!-- ========================== -->
 <!-- JS Scripts -->
-<!-- Load embedded products -->
 <script>
   const isOnline = navigator.onLine;
   const script = document.createElement("script");
@@ -103,7 +101,6 @@
 
   document.head.appendChild(script);
 </script>
-
 
 <!-- Sync status & printer -->
 <script>
