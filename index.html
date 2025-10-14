@@ -1,17 +1,9 @@
 <!doctype html>
-
 <html lang="en" translate="no">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Papadums POS V.1</title>
-<body>
-<header>
-  <span id="versionTag">V.2</span> Papadums POS
-  <span id="printerDot"></span>
-  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-</header>
-  
+<title>Papadums POS V.3</title>
 <link rel="stylesheet" href="style.css" />
 <style>
   /* === Dark Dropdown Styling === */
@@ -53,8 +45,12 @@
   @keyframes blink { 0%,50%,100% {opacity:1;} 25%,75% {opacity:0.4;} }
 </style>
 </head>
-
-
+<body>
+<header>
+  <span id="versionTag">V.2</span> Papadums POS
+  <span id="printerDot"></span>
+  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+</header>
 
 <div class="wrap">
   <!-- Tables -->
@@ -119,16 +115,14 @@
 <!-- ========================== -->
 <!-- ===== JS SCRIPTS BELOW ==== -->
 <!-- ========================== -->
-<!-- Load embedded products first -->
 <script src="products.js"></script>
 
 <script>
+  // === Online/Offline script loader ===
   const isOnline = navigator.onLine;
   const script = document.createElement("script");
   script.src = isOnline ? "./index_function.online.js" : "./index_function_work.js";
   document.body.appendChild(script);
-</script>
-
 
   // === Sync status updater ===
   const syncStatus = document.getElementById("syncStatus");
@@ -141,6 +135,7 @@
   }
   window.addEventListener("online", ()=>setSyncState("online"));
   window.addEventListener("offline", ()=>setSyncState("offline"));
+  setSyncState(isOnline ? "online" : "offline");
 
   // === Printer IP & Dot ===
   const ipInput = document.getElementById("printerIp");
@@ -155,6 +150,7 @@
     catch { dot.style.background="red"; }
     finally { dot.classList.remove("blinking"); }
   }
+
   ipInput.addEventListener("input", ()=>{ localStorage.setItem("printer_ip", ipInput.value); checkPrinter(); });
   checkPrinter();
   setInterval(checkPrinter,10000);
@@ -170,6 +166,7 @@
       `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
     fullModal.style.display="flex";
   });
+
   closeBtn.onclick=()=>fullModal.style.display="none";
   fullModal.addEventListener("click", e=>{ if(e.target===fullModal) fullModal.style.display="none"; });
 
@@ -180,5 +177,6 @@
     input.removeAttribute("list"); input.setAttribute("autocomplete","off");
   }
 </script>
+
 </body>
 </html>
