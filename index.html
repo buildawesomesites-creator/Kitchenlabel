@@ -115,14 +115,14 @@
 <!-- ========================== -->
 <!-- ===== JS SCRIPTS BELOW ==== -->
 <!-- ========================== -->
-<script src="products.js"></script>
-
 <script>
-  // === Online/Offline script loader ===
   const isOnline = navigator.onLine;
   const script = document.createElement("script");
   script.src = isOnline ? "./index_function.online.js" : "./index_function_work.js";
-  document.body.appendChild(script);
+  script.defer = true; // ensures DOM is ready
+  document.head.appendChild(script);
+</script>
+
 
   // === Sync status updater ===
   const syncStatus = document.getElementById("syncStatus");
