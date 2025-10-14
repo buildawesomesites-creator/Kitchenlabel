@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Papadums POS V.3</title>
+  <title>Papadums POS V.1</title>
 
 </head>
 <body>
   <header>
-    <span id="versionTag">V. 3</span>
+    <span id="versionTag">V. 1</span>
     Papadums POS
     <span id="printerDot"></span>
     <div id="syncStatus" class="syncing">🔄 Syncing...</div>
@@ -181,5 +181,17 @@
   <!-- Add these lines before the closing </body> tag -->
   <script type="module" src="./index_function_work.js"></script>
   <script type="module" src="./index_function.online.js"></script>
+<script>
+  // === Hide Android native dropdown to prevent white overlay ===
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('wv') || ua.includes('version/')) { // Android WebView detection
+    const input = document.getElementById('productSearch');
+    // Disable system datalist dropdown
+    input.removeAttribute('list');
+    input.setAttribute('autocomplete', 'off');
+  }
+</script>
+
+  
 </body>
 </html>
