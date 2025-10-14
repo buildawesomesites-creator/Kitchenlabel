@@ -1,8 +1,5 @@
-// =================== Papadums POS — Local Function Script (with Firestore Sync) ===================
-console.log("✅ index_function_work.js loaded");
-
-import { db } from "./firebase_config.js";
-import { collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// =================== Papadums POS — Local Function Script (Offline) ===================
+console.log("✅ index_function_work.js (offline) loaded");
 
 let cart = [];
 let currentTable = "table1";
@@ -21,7 +18,6 @@ const previewInfo = document.getElementById("previewInfo");
 const printKOT = document.getElementById("printKOT");
 const printInv = document.getElementById("printInv");
 const productDropdown = document.getElementById("productDropdown");
-const syncStatus = document.getElementById("syncStatus");
 
 // ---------- Product Load Logic ----------
 const GITHUB_RAW_URL =
@@ -80,6 +76,7 @@ searchInput.addEventListener("input", () => {
   });
   productDropdown.style.display = matches.length ? "block" : "none";
 });
+
 document.addEventListener("click", (e) => {
   if (!searchInput.contains(e.target)) productDropdown.style.display = "none";
 });
@@ -97,23 +94,19 @@ function autoAddProduct() {
 
   renderCart();
   saveTableCart();
-  syncToFirestore();
+
   searchInput.value = "";
   qtyInput.value = 1;
 }
 
-// ---------- Add Item ----------
-addBtn.addEventListener("click", () => {
-  autoAddProduct();
-});
+// ---------- Add / Clear Buttons ----------
+addBtn.addEventListener("click", () => autoAddProduct());
 
-// ---------- Clear All ----------
 clearBtn.addEventListener("click", () => {
   if (confirm("Clear all items?")) {
     cart = [];
     renderCart();
     saveTableCart();
-    syncToFirestore();
   }
 });
 
@@ -151,7 +144,6 @@ previewBody.addEventListener("click", (e) => {
   else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
   renderCart();
   saveTableCart();
-  syncToFirestore();
 });
 
 // ---------- Table Switching ----------
@@ -162,7 +154,6 @@ tableCards.forEach((card) => {
     currentTable = card.dataset.table;
     previewInfo.textContent = card.textContent.trim();
     loadTableCart();
-    syncToFirestore();
   });
 });
 
@@ -170,31 +161,10 @@ tableCards.forEach((card) => {
 function saveTableCart() {
   localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
 }
+
 function loadTableCart() {
   cart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
   renderCart();
-}
-
-// ---------- Firestore Sync ----------
-async function syncToFirestore() {
-  try {
-    if (!db) return;
-    const ref = doc(collection(db, "orders"), currentTable);
-    await setDoc(ref, {
-      items: cart,
-      updatedAt: new Date().toISOString(),
-    });
-    if (syncStatus) {
-      syncStatus.textContent = "✅ Online";
-      syncStatus.className = "online";
-    }
-  } catch (err) {
-    console.warn("⚠️ Firestore sync failed:", err);
-    if (syncStatus) {
-      syncStatus.textContent = "⚠️ Offline";
-      syncStatus.className = "offline";
-    }
-  }
 }
 
 // ---------- Save Order for Printing ----------
@@ -203,11 +173,7 @@ function saveOrderDataForPrint() {
   const orderData = {
     table: currentTable,
     time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: savedCart.map((i) => ({
-      name: i.name,
-      qty: i.qty,
-      price: i.price,
-    })),
+    items: savedCart.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
     total: savedCart.reduce((s, i) => s + i.qty * i.price, 0),
   };
   localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
@@ -219,6 +185,7 @@ printKOT.addEventListener("click", () => {
   saveOrderDataForPrint();
   window.open("kot_browser.html", "_blank");
 });
+
 printInv.addEventListener("click", () => {
   saveOrderDataForPrint();
   window.open("invoice_browser.html", "_blank");
@@ -236,28 +203,14 @@ previewPanel.addEventListener("click", () => {
     `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${totalDisplay.textContent}</div>`;
   fullPreviewModal.style.display = "flex";
 });
+
 closePreview.onclick = () => (fullPreviewModal.style.display = "none");
 fullPreviewModal.addEventListener("click", (e) => {
   if (e.target === fullPreviewModal) fullPreviewModal.style.display = "none";
 });
 
-// ---------- Printer IP ----------
-const printerIpInput = document.getElementById("printerIp");
-const savedPrinterIp = localStorage.getItem("printer_ip");
-if (savedPrinterIp && printerIpInput) {
-  printerIpInput.value = savedPrinterIp;
-}
-if (printerIpInput) {
-  printerIpInput.addEventListener("change", () => {
-    const ip = printerIpInput.value.trim();
-    localStorage.setItem("printer_ip", ip);
-    console.log("💾 Printer IP saved:", ip);
-  });
-}
-
 // ---------- Init ----------
 (async () => {
   await loadProducts();
   loadTableCart();
-  syncToFirestore();
 })();
