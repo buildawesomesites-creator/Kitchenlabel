@@ -5,18 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.1</title>
 
-</head>
-<body>
-  <header>
-    <span id="versionTag">V. 3</span>
-    Papadums POS
-    <span id="printerDot"></span>
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
+  <link rel="stylesheet" href="style.css" />
 
-
-  
-  <link rel="stylesheet" href="style.css">
   <style>
     /* === Dark Dropdown Styling === */
     #productDropdown {
@@ -49,6 +39,15 @@
       border-radius: 3px;
     }
   </style>
+</head>
+
+<body>
+  <header>
+    <span id="versionTag">V.3</span>
+    Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
 
   <div class="wrap">
     <div class="table-panel">
@@ -95,12 +94,12 @@
       <button id="printKOT" class="footer-btn kot">Print KOT</button>
       <button id="printInv" class="footer-btn inv">Print Invoice</button>
       <input id="printerIp" type="text" placeholder="Printer IP" style="
-        flex:0 0 180px;
-        border:1px solid #e6eefc;
-        border-radius:10px;
-        padding:0 10px;
-        font-size:15px;
-        outline:none;
+        flex: 0 0 180px;
+        border: 1px solid #e6eefc;
+        border-radius: 10px;
+        padding: 0 10px;
+        font-size: 15px;
+        outline: none;
       " />
     </div>
   </div>
@@ -112,14 +111,26 @@
     </div>
   </div>
 
-  <script type="module" src="./index_function.online.js"></script>
+  <!-- ========================== -->
+  <!-- ===== JS SCRIPTS BELOW ==== -->
+  <!-- ========================== -->
 
+  <!-- Core POS logic -->
+  <script type="module" src="./index_function_work.js"></script>
+
+  <!-- Firebase setup -->
+  <script type="module" src="./firebase_client.js"></script>
+
+  <!-- Online sync + status color (auto every 5s) -->
+  <script type="module" src="./index_function_online.js"></script>
+
+  <!-- Utility scripts -->
   <script>
     // === Format Number (Indian style) ===
     function formatNumber(num) {
       if (isNaN(num)) return num;
       return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        .replace(/(\d+)(?=(\d\d)+\d$)/, function(x){ return x.replace(/\B(?=(\d{2})+(?!\d))/g, ","); });
+        .replace(/(\d+)(?=(\d\d)+\d$)/, x => x.replace(/\B(?=(\d{2})+(?!\d))/g, ","));
     }
 
     // === Printer Connection ===
@@ -130,32 +141,37 @@
 
     async function checkPrinterConnection() {
       const ip = localStorage.getItem("printerIp");
-      if (!ip) { dot.style.background="gray"; dot.classList.remove("blinking"); return; }
-      dot.style.background="yellow"; dot.classList.add("blinking");
-      try { await fetch(`http://${ip}:9100`,{mode:"no-cors"}); dot.style.background="limegreen"; }
-      catch { dot.style.background="red"; }
+      if (!ip) { dot.style.background = "gray"; dot.classList.remove("blinking"); return; }
+      dot.style.background = "yellow"; dot.classList.add("blinking");
+      try { await fetch(`http://${ip}:9100`, { mode: "no-cors" }); dot.style.background = "limegreen"; }
+      catch { dot.style.background = "red"; }
       finally { dot.classList.remove("blinking"); }
     }
-    ipInput.addEventListener("input",()=>{localStorage.setItem("printerIp",ipInput.value);checkPrinterConnection();});
-    checkPrinterConnection(); setInterval(checkPrinterConnection,10000);
+    ipInput.addEventListener("input", () => {
+      localStorage.setItem("printerIp", ipInput.value);
+      checkPrinterConnection();
+    });
+    checkPrinterConnection();
+    setInterval(checkPrinterConnection, 10000);
 
     // === Clickable Order Preview ===
     const previewPanel = document.getElementById("previewPanel");
     const fullModal = document.getElementById("fullPreviewModal");
     const fullContent = document.getElementById("fullPreviewContent");
     const closeBtn = document.getElementById("closePreview");
-    previewPanel.addEventListener("click",()=>{
-      fullContent.innerHTML = document.getElementById("previewBody").innerHTML +
-        `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
-      fullModal.style.display="flex";
-    });
-    closeBtn.onclick = ()=> fullModal.style.display="none";
-    fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
 
-    // === Custom Scrollable Search Dropdown (Dark) ===
+    previewPanel.addEventListener("click", () => {
+      fullContent.innerHTML =
+        document.getElementById("previewBody").innerHTML +
+        `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
+      fullModal.style.display = "flex";
+    });
+    closeBtn.onclick = () => fullModal.style.display = "none";
+    fullModal.addEventListener("click", e => { if (e.target === fullModal) fullModal.style.display = "none"; });
+
+    // === Custom Dark Dropdown ===
     const searchInput = document.getElementById("productSearch");
     const dropdown = document.getElementById("productDropdown");
-
     searchInput.addEventListener("input", () => {
       const value = searchInput.value.toLowerCase();
       const options = Array.from(document.getElementById("productList").options);
@@ -172,26 +188,17 @@
       });
       dropdown.style.display = filtered.length ? "block" : "none";
     });
-
     document.addEventListener("click", e => {
       if (!searchInput.contains(e.target)) dropdown.style.display = "none";
     });
+
+    // === Android WebView Fix (disable system dropdown) ===
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("wv") || ua.includes("version/")) {
+      const input = document.getElementById("productSearch");
+      input.removeAttribute("list");
+      input.setAttribute("autocomplete", "off");
+    }
   </script>
-
-  <!-- Add these lines before the closing </body> tag -->
-  <script type="module" src="./index_function_work.js"></script>
-  <script type="module" src="./index_function.online.js"></script>
-<script>
-  // === Hide Android native dropdown to prevent white overlay ===
-  const ua = navigator.userAgent.toLowerCase();
-  if (ua.includes('wv') || ua.includes('version/')) { // Android WebView detection
-    const input = document.getElementById('productSearch');
-    // Disable system datalist dropdown
-    input.removeAttribute('list');
-    input.setAttribute('autocomplete', 'off');
-  }
-</script>
-
-  
 </body>
 </html>
