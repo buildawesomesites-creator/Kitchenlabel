@@ -7,7 +7,7 @@
 <title>Papadums POS V.1</title>
 <body>
 <header>
-  <span id="versionTag">V.1</span> Papadums POS
+  <span id="versionTag">V.2</span> Papadums POS
   <span id="printerDot"></span>
   <div id="syncStatus" class="syncing">🔄 Syncing...</div>
 </header>
@@ -121,14 +121,14 @@
 <!-- ========================== -->
 <!-- Load embedded products first -->
 <script src="products.js"></script>
-  
-<script type="module">
-  // === Online or Offline mode auto-detect ===
+
+<script>
   const isOnline = navigator.onLine;
-  const scriptModule = document.createElement("script");
-  scriptModule.type = "module";
-  scriptModule.src = isOnline ? "./index_function.online.js" : "./index_function_work.js";
-  document.body.appendChild(scriptModule);
+  const script = document.createElement("script");
+  script.src = isOnline ? "./index_function.online.js" : "./index_function_work.js";
+  document.body.appendChild(script);
+</script>
+
 
   // === Sync status updater ===
   const syncStatus = document.getElementById("syncStatus");
