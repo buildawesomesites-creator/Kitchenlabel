@@ -21,7 +21,7 @@ const productDropdown = document.getElementById("productDropdown");
 
 // ---------- Product Load Logic ----------
 const GITHUB_RAW_URL =
-  "https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json";
+  "https://buildawesomesites-creator.github.io/Kitchenlabel/products.json"; // GitHub Pages raw URL
 
 async function loadProducts() {
   console.log("⏳ Loading products...");
@@ -31,17 +31,10 @@ async function loadProducts() {
     products = await res.json();
     localStorage.setItem("offlineProducts", JSON.stringify(products));
     console.log("📦 Products from GitHub:", products.length);
-  } catch {
-    try {
-      const resLocal = await fetch("./products.json", { cache: "no-store" });
-      if (!resLocal.ok) throw new Error("Local fetch failed");
-      products = await resLocal.json();
-      localStorage.setItem("offlineProducts", JSON.stringify(products));
-      console.log("📦 Products from local file:", products.length);
-    } catch {
-      products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
-      console.log("📦 Products from cache:", products.length);
-    }
+  } catch (err) {
+    console.warn("⚠️ Product load failed, using cache:", err);
+    products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
+    console.log("📦 Products from cache:", products.length);
   }
   populateProductList();
 }
