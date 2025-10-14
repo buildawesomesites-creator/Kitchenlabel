@@ -4,54 +4,27 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Papadums POS V.1</title>
-  </head>
+<link rel="stylesheet" href="style.css" />
+<style>
+/* Dark dropdown */
+#productDropdown { position:absolute; background:#222; color:#f1f1f1; border:1px solid #333; border-radius:8px; max-height:220px; overflow-y:auto; width:calc(100% - 10px); z-index:1000; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.6); }
+#productDropdown div { padding:10px; cursor:pointer; border-bottom:1px solid #333; transition:background 0.2s ease; }
+#productDropdown div:hover{background:#333;}
+#productDropdown::-webkit-scrollbar{width:6px;}
+#productDropdown::-webkit-scrollbar-thumb{background:#555; border-radius:3px;}
+
+/* Sync Status */
+#syncStatus { color:#fff; padding:6px 10px; border-radius:6px; font-size:14px; font-weight:600; display:inline-block; margin-left:8px; transition:background 0.3s ease; }
+.blinking { animation:blink 1s infinite; }
+@keyframes blink{0%,50%,100%{opacity:1;}25%,75%{opacity:0.4;}}
+</style>
+</head>
 <body>
 <header>
   <span id="versionTag">V.1</span> Papadums POS
   <span id="printerDot"></span>
   <div id="syncStatus" class="syncing">🔄 Syncing...</div>
 </header>
-<link rel="stylesheet" href="style.css" />
-<style>
-  /* === Dark Dropdown Styling === */
-  #productDropdown {
-    position: absolute;
-    background: #222;
-    color: #f1f1f1;
-    border: 1px solid #333;
-    border-radius: 8px;
-    max-height: 220px;
-    overflow-y: auto;
-    width: calc(100% - 10px);
-    z-index: 1000;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  }
-  #productDropdown div {
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 1px solid #333;
-    transition: background 0.2s ease;
-  }
-  #productDropdown div:hover { background: #333; }
-  #productDropdown::-webkit-scrollbar { width: 6px; }
-  #productDropdown::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-
-  /* === Sync Status Style === */
-  #syncStatus {
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    display: inline-block;
-    margin-left: 8px;
-    transition: background 0.3s ease;
-  }
-  .blinking { animation: blink 1s infinite; }
-  @keyframes blink { 0%,50%,100% {opacity:1;} 25%,75% {opacity:0.4;} }
-</style>
-
 
 <div class="wrap">
   <!-- Tables -->
@@ -114,69 +87,48 @@
 </div>
 
 <!-- ========================== -->
-<!-- ===== JS SCRIPTS BELOW ==== -->
-<!-- ========================== -->
+<!-- JS Scripts -->
+<!-- Load embedded products -->
+<script src="products.js"></script>
+
+<!-- Offline/Online loader -->
 <script>
   const isOnline = navigator.onLine;
   const script = document.createElement("script");
   script.src = isOnline ? "./index_function.online.js" : "./index_function_work.js";
-  script.defer = true; // ensures DOM is ready
+  script.defer = true;
   document.head.appendChild(script);
 </script>
 
-
-  // === Sync status updater ===
+<!-- Sync status & printer -->
+<script>
   const syncStatus = document.getElementById("syncStatus");
-  function setSyncState(state) {
-    if (!syncStatus) return;
+  function setSyncState(state){
+    if(!syncStatus) return;
     syncStatus.className = state;
-    if (state === "syncing") { syncStatus.textContent = "🔄 Syncing…"; syncStatus.style.background="#FFD54F"; }
-    else if (state === "offline") { syncStatus.textContent="🔴 Offline"; syncStatus.style.background="#E57373"; }
-    else { syncStatus.textContent="🟢 Online"; syncStatus.style.background="#81C784"; }
+    if(state==="syncing"){syncStatus.textContent="🔄 Syncing…"; syncStatus.style.background="#FFD54F";}
+    else if(state==="offline"){syncStatus.textContent="🔴 Offline"; syncStatus.style.background="#E57373";}
+    else{syncStatus.textContent="🟢 Online"; syncStatus.style.background="#81C784";}
   }
   window.addEventListener("online", ()=>setSyncState("online"));
   window.addEventListener("offline", ()=>setSyncState("offline"));
   setSyncState(isOnline ? "online" : "offline");
 
-  // === Printer IP & Dot ===
   const ipInput = document.getElementById("printerIp");
   const dot = document.getElementById("printerDot");
-  if (localStorage.getItem("printer_ip")) ipInput.value = localStorage.getItem("printer_ip");
+  if(localStorage.getItem("printer_ip")) ipInput.value = localStorage.getItem("printer_ip");
 
-  async function checkPrinter() {
+  async function checkPrinter(){
     const ip = localStorage.getItem("printer_ip");
-    if (!ip) { dot.style.background="gray"; dot.classList.remove("blinking"); return; }
+    if(!ip){dot.style.background="gray"; dot.classList.remove("blinking"); return;}
     dot.style.background="yellow"; dot.classList.add("blinking");
-    try { await fetch(`http://${ip}:9100`,{mode:"no-cors"}); dot.style.background="limegreen"; }
-    catch { dot.style.background="red"; }
-    finally { dot.classList.remove("blinking"); }
+    try{await fetch(`http://${ip}:9100`, {mode:"no-cors"}); dot.style.background="limegreen";}
+    catch{dot.style.background="red";}
+    finally{dot.classList.remove("blinking");}
   }
-
-  ipInput.addEventListener("input", ()=>{ localStorage.setItem("printer_ip", ipInput.value); checkPrinter(); });
+  ipInput.addEventListener("input", ()=>{localStorage.setItem("printer_ip", ipInput.value); checkPrinter();});
   checkPrinter();
   setInterval(checkPrinter,10000);
-
-  // === Full Order Preview ===
-  const previewPanel=document.getElementById("previewPanel");
-  const fullModal=document.getElementById("fullPreviewModal");
-  const fullContent=document.getElementById("fullPreviewContent");
-  const closeBtn=document.getElementById("closePreview");
-
-  previewPanel.addEventListener("click",()=>{
-    fullContent.innerHTML=document.getElementById("previewBody").innerHTML+
-      `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
-    fullModal.style.display="flex";
-  });
-
-  closeBtn.onclick=()=>fullModal.style.display="none";
-  fullModal.addEventListener("click", e=>{ if(e.target===fullModal) fullModal.style.display="none"; });
-
-  // === Android WebView fix ===
-  const ua=navigator.userAgent.toLowerCase();
-  if(ua.includes("wv")||ua.includes("version/")) {
-    const input=document.getElementById("productSearch");
-    input.removeAttribute("list"); input.setAttribute("autocomplete","off");
-  }
 </script>
 
 </body>
