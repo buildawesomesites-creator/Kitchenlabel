@@ -1,5 +1,5 @@
 // ===================
-// Papadums POS — Online Sync & Print
+// Papadums POS — Online Sync & Print (Web + Native)
 // ===================
 console.log("✅ index_function.online.js loaded");
 
@@ -45,23 +45,16 @@ function setSyncState(state) {
 }
 
 /* ===== Load Products ===== */
-const GITHUB_RAW_URL =
-  "https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json";
+const PRODUCTS_URL = "https://buildawesomesites-creator.github.io/Kitchenlabel/products.json";
 
 async function loadProducts() {
   try {
-    const res = await fetch(GITHUB_RAW_URL, { cache: "no-cache" });
+    const res = await fetch(PRODUCTS_URL, { cache: "no-cache" });
     if (!res.ok) throw new Error("GitHub fetch failed");
     products = await res.json();
     localStorage.setItem("offlineProducts", JSON.stringify(products));
   } catch {
-    try {
-      const resLocal = await fetch("./products.json");
-      products = await resLocal.json();
-      localStorage.setItem("offlineProducts", JSON.stringify(products));
-    } catch {
-      products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
-    }
+    products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
   }
   populateProductList();
 }
@@ -183,20 +176,23 @@ function subscribeToFirestore() {
       renderCart();
       console.log(`🔄 Updated from Firestore: ${currentTable}`);
     }
-    setSyncState("online");
+    // Only mark online if not currently syncing
+    if (!isSyncing) setSyncState("online");
   });
 }
 
 /* ===== Network Reconnect Auto-Sync ===== */
 window.addEventListener("online", () => {
   console.log("🌐 Back online, resyncing...");
-  syncToFirestore();
+  queueSync();
 });
 
 /* ===== Init ===== */
-await authState(); // wait Firebase ready
-await loadProducts();
-renderCart();
-subscribeToFirestore();
-setSyncState("online");
-console.log("🚀 Papadums POS ready & synced");
+(async () => {
+  await authState();          // wait Firebase ready
+  await loadProducts();       // fetch products.json
+  renderCart();               // render cart from localStorage
+  subscribeToFirestore();     // listen to Firestore changes
+  setSyncState("online");     // initial state
+  console.log("🚀 Papadums POS ready & synced");
+})();
