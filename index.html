@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Papadums POS V.7</title>
+<title>Papadums POS V.71</title>
 <link rel="stylesheet" href="style.css" />
 <style>
 /* Dark dropdown */
@@ -87,8 +87,22 @@
 
 <!-- ========================== -->
 <!-- JS Scripts -->
-<script  src="./index_function.online.js" defer></script>
-<script src="./index_function_work.js" defer></script>
+<script defer>
+document.addEventListener("DOMContentLoaded", () => {
+  const kotBtn = document.getElementById("printKOT");
+  const invBtn = document.getElementById("printInv");
+
+  kotBtn?.addEventListener("click", () => {
+    if (window.printKOT) window.printKOT();
+    else window.open("PapsdumskitchenUI7.html", "_blank");
+  });
+
+  invBtn?.addEventListener("click", () => {
+    if (window.printInvoice) window.printInvoice();
+    else window.open("PapadumsInvoiceLayout7.html", "_blank");
+  });
+});
+</script>
 
 <!-- Sync status & printer -->
 <script>
