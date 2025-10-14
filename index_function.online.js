@@ -3,16 +3,13 @@ console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
 import {
-  collection,
-  doc,
-  setDoc,
-  onSnapshot,
+  collection, doc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const syncStatus = document.getElementById("syncStatus");
 const printerIpInput = document.getElementById("printerIp");
 
-// ---------- Printer IP Save/Load ----------
+// ---------- Printer IP ----------
 if (printerIpInput) {
   printerIpInput.value = localStorage.getItem("printerIp") || "";
   printerIpInput.addEventListener("input", (e) => {
@@ -23,7 +20,7 @@ function getPrinterIP() {
   return localStorage.getItem("printerIp") || "";
 }
 
-// ---------- Sync Status Display ----------
+// ---------- Sync Indicator ----------
 function setSyncState(state) {
   if (!syncStatus) return;
   syncStatus.className = state;
@@ -32,7 +29,7 @@ function setSyncState(state) {
   else syncStatus.textContent = "🔄 Syncing...";
 }
 
-// ---------- Push Local Cart to Firestore ----------
+// ---------- Push local data to Firestore ----------
 window.syncToFirestore = async function () {
   try {
     const cart = window.cart || [];
@@ -41,7 +38,6 @@ window.syncToFirestore = async function () {
       items: cart,
       updatedAt: new Date().toISOString(),
     });
-    console.log(`☁️ Synced to Firestore (${table})`, cart);
     setSyncState("online");
   } catch (err) {
     console.warn("⚠️ Sync failed:", err);
@@ -49,39 +45,43 @@ window.syncToFirestore = async function () {
   }
 };
 
-// ---------- Real-time Firestore Listener ----------
-function startRealtimeListener() {
-  const table = window.currentTable || "table1";
-  const ref = doc(collection(db, "orders"), table);
-
-  onSnapshot(ref, (snap) => {
-    if (!snap.exists()) return;
-    const data = snap.data();
-    const remote = data.items || [];
-
-    // Compare remote vs local to avoid overwrite loop
-    const localJSON = JSON.stringify(window.cart || []);
-    const remoteJSON = JSON.stringify(remote);
-    if (localJSON === remoteJSON) return;
-
-    console.log(`🔄 Remote update for ${table}:`, remote);
-    window.cart = remote;
-    localStorage.setItem(`cart_${table}`, JSON.stringify(remote));
-    if (typeof renderCart === "function") renderCart();
-  });
+// ---------- Pull from Firestore (fetch latest cloud data) ----------
+async function syncFromFirestore() {
+  try {
+    const table = window.currentTable || "table1";
+    const ref = doc(collection(db, "orders"), table);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data();
+      const remote = JSON.stringify(data.items || []);
+      const local = JSON.stringify(window.cart || []);
+      if (remote !== local) {
+        console.log("⬇️ Firestore → Updating local cart");
+        window.cart = data.items || [];
+        localStorage.setItem(`cart_${table}`, remote);
+        if (typeof renderCart === "function") renderCart();
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ Pull failed:", err);
+    setSyncState("offline");
+  }
 }
 
-// ---------- Auto Resync on Network Recovery ----------
+// ---------- Combined Auto Sync (push + pull) ----------
+async function autoSync() {
+  await window.syncToFirestore();
+  await syncFromFirestore();
+}
+setInterval(autoSync, 5000); // 🔁 every 5 seconds
+
+// ---------- Network Recovery ----------
 window.addEventListener("online", () => {
-  console.log("🌐 Reconnected — syncing now...");
-  window.syncToFirestore();
+  console.log("🌐 Reconnected — immediate sync");
+  autoSync();
 });
 
-// ---------- Auto Start ----------
-startRealtimeListener();
-setSyncState("online");
-
-// ---------- Print Data ----------
+// ---------- Save order before print ----------
 window.saveOrderDataForPrint = function () {
   const cart = window.cart || [];
   const table = window.currentTable || "table1";
@@ -102,10 +102,12 @@ window.saveOrderDataForPrint = function () {
 
 // ---------- Print Buttons ----------
 document.getElementById("printKOT")?.addEventListener("click", () => {
-  const order = window.saveOrderDataForPrint();
+  window.saveOrderDataForPrint();
   window.open("kot_browser.html", "_blank");
 });
 document.getElementById("printInvoice")?.addEventListener("click", () => {
-  const order = window.saveOrderDataForPrint();
+  window.saveOrderDataForPrint();
   window.open("invoice_browser.html", "_blank");
 });
+
+setSyncState("online");
