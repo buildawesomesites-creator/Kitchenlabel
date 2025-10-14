@@ -1,140 +1,184 @@
 <!doctype html>
 <html lang="en" translate="no">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Papadums POS V.71</title>
-<link rel="stylesheet" href="style.css" />
-<style>
-/* Dark dropdown */
-#productDropdown { position:absolute; background:#222; color:#f1f1f1; border:1px solid #333; border-radius:8px; max-height:220px; overflow-y:auto; width:calc(100% - 10px); z-index:1000; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.6); }
-#productDropdown div { padding:10px; cursor:pointer; border-bottom:1px solid #333; transition:background 0.2s ease; }
-#productDropdown div:hover{background:#333;}
-#productDropdown::-webkit-scrollbar{width:6px;}
-#productDropdown::-webkit-scrollbar-thumb{background:#555; border-radius:3px;}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Papadums POS V.71</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+  /* Dark dropdown */
+  #productDropdown {
+    position: absolute;
+    background: #222;
+    color: #f1f1f1;
+    border: 1px solid #333;
+    border-radius: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    width: calc(100% - 10px);
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  }
+  #productDropdown div {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    transition: background 0.2s ease;
+  }
+  #productDropdown div:hover { background: #333; }
+  #productDropdown::-webkit-scrollbar { width: 6px; }
+  #productDropdown::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
 
-/* Sync Status */
-#syncStatus { color:#fff; padding:6px 10px; border-radius:6px; font-size:14px; font-weight:600; display:inline-block; margin-left:8px; transition:background 0.3s ease; }
-.blinking { animation:blink 1s infinite; }
-@keyframes blink{0%,50%,100%{opacity:1;}25%,75%{opacity:0.4;}}
-</style>
+  /* Sync Status */
+  #syncStatus {
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    margin-left: 8px;
+    transition: background 0.3s ease;
+  }
+  .blinking { animation: blink 1s infinite; }
+  @keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.4; }
+  }
+  </style>
 </head>
+
 <body>
-<header>
-  <span id="versionTag">V.1</span> Papadums POS
-  <span id="printerDot"></span>
-  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-</header>
+  <header>
+    <span id="versionTag">V.71</span> Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
 
-<div class="wrap">
-  <!-- Tables -->
-  <div class="table-panel">
-    <h3>Tables</h3>
-    <div class="tables" id="tablesContainer">
-      <div class="table-card active" data-table="table1"><strong>1</strong></div>
-      <div class="table-card" data-table="table2"><strong>2</strong></div>
-      <div class="table-card" data-table="table3"><strong>3</strong></div>
-      <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>
-      <div class="table-card" data-table="online"><strong>Online</strong></div>
+  <div class="wrap">
+    <!-- Tables -->
+    <div class="table-panel">
+      <h3>Tables</h3>
+      <div class="tables" id="tablesContainer">
+        <div class="table-card active" data-table="table1"><strong>1</strong></div>
+        <div class="table-card" data-table="table2"><strong>2</strong></div>
+        <div class="table-card" data-table="table3"><strong>3</strong></div>
+        <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>
+        <div class="table-card" data-table="online"><strong>Online</strong></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-panel">
+      <div class="top-row" style="position: relative;">
+        <input id="productSearch" type="text" placeholder="Search product..." autocomplete="off" />
+        <div id="productDropdown"></div>
+        <input id="qty" type="number" min="1" value="1" />
+      </div>
+      <div class="bottom-row">
+        <button id="clearBtn" class="btn-clear">Clear Items</button>
+        <button id="addBtn" class="btn-add">Add Item</button>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-panel" id="previewPanel">
+      <div class="preview-header">
+        <h3>Order Preview</h3>
+        <small id="previewInfo">Table 1</small>
+      </div>
+      <div class="preview-body" id="previewBody">
+        <div style="text-align:center;color:#777;padding:18px">No items</div>
+      </div>
+      <div class="totals-row">
+        <div>Total</div>
+        <div id="totalDisplay">0₫</div>
+      </div>
     </div>
   </div>
 
-  <!-- Controls -->
-  <div class="controls-panel">
-    <div class="top-row" style="position: relative;">
-      <input id="productSearch" type="text" placeholder="Search product..." autocomplete="off" />
-      <div id="productDropdown"></div>
-      <input id="qty" type="number" min="1" value="1" />
-    </div>
-    <div class="bottom-row">
-      <button id="clearBtn" class="btn-clear">Clear Items</button>
-      <button id="addBtn" class="btn-add">Add Item</button>
+  <!-- Footer -->
+  <div class="footer-fixed">
+    <div class="footer-inner">
+      <button id="printKOT" class="footer-btn kot">Print KOT</button>
+      <button id="printInv" class="footer-btn inv">Print Invoice</button>
+      <input id="printerIp" type="text" placeholder="Printer IP" style="flex:0 0 180px;border:1px solid #e6eefc;border-radius:10px;padding:0 10px;font-size:15px;outline:none;" />
     </div>
   </div>
 
-  <!-- Preview -->
-  <div class="preview-panel" id="previewPanel">
-    <div class="preview-header">
-      <h3>Order Preview</h3>
-      <small id="previewInfo">Table 1</small>
-    </div>
-    <div class="preview-body" id="previewBody">
-      <div style="text-align:center;color:#777;padding:18px">No items</div>
-    </div>
-    <div class="totals-row">
-      <div>Total</div>
-      <div id="totalDisplay">0₫</div>
+  <!-- Full Preview Modal -->
+  <div id="fullPreviewModal">
+    <div id="fullPreviewBox">
+      <span id="closePreview">&times;</span>
+      <div id="fullPreviewContent"></div>
     </div>
   </div>
-</div>
 
-<!-- Footer -->
-<div class="footer-fixed">
-  <div class="footer-inner">
-    <button id="printKOT" class="footer-btn kot">Print KOT</button>
-    <button id="printInv" class="footer-btn inv">Print Invoice</button>
-    <input id="printerIp" type="text" placeholder="Printer IP" style="flex:0 0 180px;border:1px solid #e6eefc;border-radius:10px;padding:0 10px;font-size:15px;outline:none;" />
-  </div>
-</div>
+  <!-- ========================== -->
+  <!-- JS Scripts -->
+  <!-- Load the online + offline modules -->
+  <script type="module" src="./index_function.online.js" defer></script>
+  <script type="module" src="./index_function_work.js" defer></script>
 
-<!-- Full Preview Modal -->
-<div id="fullPreviewModal">
-  <div id="fullPreviewBox">
-    <span id="closePreview">&times;</span>
-    <div id="fullPreviewContent"></div>
-  </div>
-</div>
+  <!-- Bridge for footer buttons -->
+  <script defer>
+  document.addEventListener("DOMContentLoaded", () => {
+    const kotBtn = document.getElementById("printKOT");
+    const invBtn = document.getElementById("printInv");
 
-<!-- ========================== -->
-<!-- JS Scripts -->
-<script defer>
-document.addEventListener("DOMContentLoaded", () => {
-  const kotBtn = document.getElementById("printKOT");
-  const invBtn = document.getElementById("printInv");
+    kotBtn?.addEventListener("click", () => {
+      if (window.printKOT) window.printKOT();
+      else window.open("./PapsdumskitchenUI7.html", "_blank");
+    });
 
-  kotBtn?.addEventListener("click", () => {
-    if (window.printKOT) window.printKOT();
-    else window.open("PapsdumskitchenUI7.html", "_blank");
+    invBtn?.addEventListener("click", () => {
+      if (window.printInvoice) window.printInvoice();
+      else window.open("./PapadumsInvoiceLayout7.html", "_blank");
+    });
   });
+  </script>
 
-  invBtn?.addEventListener("click", () => {
-    if (window.printInvoice) window.printInvoice();
-    else window.open("PapadumsInvoiceLayout7.html", "_blank");
-  });
-});
-</script>
+  <!-- Sync status & printer -->
+  <script>
+  const isOnline = navigator.onLine;
+  const syncStatus = document.getElementById("syncStatus");
+  function setSyncState(state){
+    if(!syncStatus) return;
+    syncStatus.className = state;
+    if(state==="syncing"){syncStatus.textContent="🔄 Syncing…"; syncStatus.style.background="#FFD54F";}
+    else if(state==="offline"){syncStatus.textContent="🔴 Offline"; syncStatus.style.background="#E57373";}
+    else{syncStatus.textContent="🟢 Online"; syncStatus.style.background="#81C784";}
+  }
+  window.addEventListener("online", ()=>setSyncState("online"));
+  window.addEventListener("offline", ()=>setSyncState("offline"));
+  setSyncState(isOnline ? "online" : "offline");
 
-<!-- Sync status & printer -->
-<script>
-const isOnline = navigator.onLine;
-const syncStatus = document.getElementById("syncStatus");
-function setSyncState(state){
-  if(!syncStatus) return;
-  syncStatus.className = state;
-  if(state==="syncing"){syncStatus.textContent="🔄 Syncing…"; syncStatus.style.background="#FFD54F";}
-  else if(state==="offline"){syncStatus.textContent="🔴 Offline"; syncStatus.style.background="#E57373";}
-  else{syncStatus.textContent="🟢 Online"; syncStatus.style.background="#81C784";}
-}
-window.addEventListener("online", ()=>setSyncState("online"));
-window.addEventListener("offline", ()=>setSyncState("offline"));
-setSyncState(isOnline ? "online" : "offline");
+  const ipInput = document.getElementById("printerIp");
+  const dot = document.getElementById("printerDot");
+  if(localStorage.getItem("printer_ip")) ipInput.value = localStorage.getItem("printer_ip");
 
-const ipInput = document.getElementById("printerIp");
-const dot = document.getElementById("printerDot");
-if(localStorage.getItem("printer_ip")) ipInput.value = localStorage.getItem("printer_ip");
+  async function checkPrinter(){
+    const ip = localStorage.getItem("printer_ip");
+    if(!ip){dot.style.background="gray"; dot.classList.remove("blinking"); return;}
+    dot.style.background="yellow"; dot.classList.add("blinking");
+    try{await fetch(`http://${ip}:9100`, {mode:"no-cors"}); dot.style.background="limegreen";}
+    catch{dot.style.background="red";}
+    finally{dot.classList.remove("blinking");}
+  }
+  ipInput.addEventListener("input", ()=>{localStorage.setItem("printer_ip", ipInput.value); checkPrinter();});
+  checkPrinter();
+  setInterval(checkPrinter,10000);
+  </script>
 
-async function checkPrinter(){
-  const ip = localStorage.getItem("printer_ip");
-  if(!ip){dot.style.background="gray"; dot.classList.remove("blinking"); return;}
-  dot.style.background="yellow"; dot.classList.add("blinking");
-  try{await fetch(`http://${ip}:9100`, {mode:"no-cors"}); dot.style.background="limegreen";}
-  catch{dot.style.background="red";}
-  finally{dot.classList.remove("blinking");}
-}
-ipInput.addEventListener("input", ()=>{localStorage.setItem("printer_ip", ipInput.value); checkPrinter();});
-checkPrinter();
-setInterval(checkPrinter,10000);
-</script>
+  <!-- Register service worker -->
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => console.log('✅ Service worker registered'))
+      .catch(err => console.warn('❌ SW registration failed', err));
+  }
+  </script>
 
 </body>
 </html>
