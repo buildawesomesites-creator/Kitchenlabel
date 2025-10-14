@@ -32,15 +32,20 @@ let unsubRealtime = null;
 function setSyncState(state) {
   if (!syncStatus) return;
   syncStatus.className = state;
+  syncStatus.style.transition = "background 0.3s ease";
   if (state === "syncing") {
     syncStatus.textContent = "🔄 Syncing…";
     syncStatus.style.background = "#FFD54F"; // Yellow
-  } else if (state === "offline") {
-    syncStatus.textContent = "🔴 Offline";
-    syncStatus.style.background = "#E57373"; // Red
+    syncStatus.classList.add("blinking");
   } else {
-    syncStatus.textContent = "🟢 Online";
-    syncStatus.style.background = "#81C784"; // Green
+    syncStatus.classList.remove("blinking");
+    if (state === "offline") {
+      syncStatus.textContent = "🔴 Offline";
+      syncStatus.style.background = "#E57373"; // Red
+    } else {
+      syncStatus.textContent = "🟢 Online";
+      syncStatus.style.background = "#81C784"; // Green
+    }
   }
 }
 
@@ -176,7 +181,6 @@ function subscribeToFirestore() {
       renderCart();
       console.log(`🔄 Updated from Firestore: ${currentTable}`);
     }
-    // Only mark online if not currently syncing
     if (!isSyncing) setSyncState("online");
   });
 }
@@ -189,10 +193,10 @@ window.addEventListener("online", () => {
 
 /* ===== Init ===== */
 (async () => {
-  await authState();          // wait Firebase ready
-  await loadProducts();       // fetch products.json
-  renderCart();               // render cart from localStorage
-  subscribeToFirestore();     // listen to Firestore changes
-  setSyncState("online");     // initial state
+  await authState();
+  await loadProducts();
+  renderCart();
+  subscribeToFirestore();
+  setSyncState("online");
   console.log("🚀 Papadums POS ready & synced");
 })();
