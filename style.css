@@ -81,15 +81,38 @@ header {
   border:1px solid #e6eefc;border-radius:10px;padding:10px;font-size:15px;background:#fff;
 }
 
-/* Product dropdown */
+/* === DARK PRODUCT DROPDOWN === */
 #productDropdown {
-  position:absolute;top:38px;left:0;right:0;
-  background:#fff;border:1px solid #e6eefc;
-  border-radius:10px;max-height:180px;overflow-y:auto;
-  display:none;z-index:1000;
+  position:absolute;
+  top:100%;
+  left:0;
+  width:100%;
+  background:#111;
+  color:#fff;
+  border:1px solid #333;
+  border-radius:10px;
+  overflow-y:auto;
+  max-height:180px;
+  display:none;
+  z-index:1000;
+  box-shadow:0 4px 12px rgba(0,0,0,0.6);
 }
-#productDropdown div{padding:10px;cursor:pointer;}
-#productDropdown div:hover{background:var(--blue1);color:#fff;}
+#productDropdown div {
+  padding:10px;
+  cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  transition:background 0.2s ease;
+}
+#productDropdown div:hover {
+  background:rgba(255,255,255,0.15);
+}
+#productDropdown::-webkit-scrollbar {
+  width:6px;
+}
+#productDropdown::-webkit-scrollbar-thumb {
+  background:#555;
+  border-radius:3px;
+}
 
 .preview-panel{
   background:var(--card);border-radius:12px;box-shadow:var(--shadow);
@@ -155,36 +178,10 @@ header {
   font-weight:bold;color:#555;cursor:pointer;
 }
 
-
 /* === Fix white overlay on Android native input focus === */
 #productSearch {
   background: transparent !important;
   position: relative;
   z-index: 20;
   caret-color: #000;
-}
-
-#productDropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  background: #111; /* dark background fixes white overlay */
-  color: #fff;
-  border-radius: 8px;
-  overflow-y: auto;
-  max-height: 180px;
-  z-index: 9999;
-  display: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-#productDropdown div {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  cursor: pointer;
-}
-
-#productDropdown div:hover {
-  background: rgba(255,255,255,0.15);
 }
