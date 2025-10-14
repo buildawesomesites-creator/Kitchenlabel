@@ -6,46 +6,38 @@
   <title>Papadums POS V.71</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-  /* Dark dropdown */
-  #productDropdown {
-    position: absolute;
-    background: #222;
-    color: #f1f1f1;
-    border: 1px solid #333;
-    border-radius: 8px;
-    max-height: 220px;
-    overflow-y: auto;
-    width: calc(100% - 10px);
-    z-index: 1000;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  }
-  #productDropdown div {
-    padding: 10px;
-    cursor: pointer;
-    border-bottom: 1px solid #333;
-    transition: background 0.2s ease;
-  }
-  #productDropdown div:hover { background: #333; }
-  #productDropdown::-webkit-scrollbar { width: 6px; }
-  #productDropdown::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+    /* Dark dropdown */
+    #productDropdown {
+      position: absolute;
+      background: #222;
+      color: #f1f1f1;
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      width: calc(100% - 10px);
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    #productDropdown div { padding: 10px; cursor: pointer; border-bottom: 1px solid #333; transition: background 0.2s ease; }
+    #productDropdown div:hover { background: #333; }
+    #productDropdown::-webkit-scrollbar { width: 6px; }
+    #productDropdown::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
 
-  /* Sync Status */
-  #syncStatus {
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    display: inline-block;
-    margin-left: 8px;
-    transition: background 0.3s ease;
-  }
-  .blinking { animation: blink 1s infinite; }
-  @keyframes blink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.4; }
-  }
+    /* Sync Status */
+    #syncStatus {
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-block;
+      margin-left: 8px;
+      transition: background 0.3s ease;
+    }
+    .blinking { animation: blink 1s infinite; }
+    @keyframes blink { 0%,50%,100%{opacity:1;} 25%,75%{opacity:.4;} }
   </style>
 </head>
 
@@ -103,7 +95,8 @@
     <div class="footer-inner">
       <button id="printKOT" class="footer-btn kot">Print KOT</button>
       <button id="printInv" class="footer-btn inv">Print Invoice</button>
-      <input id="printerIp" type="text" placeholder="Printer IP" style="flex:0 0 180px;border:1px solid #e6eefc;border-radius:10px;padding:0 10px;font-size:15px;outline:none;" />
+      <input id="printerIp" type="text" placeholder="Printer IP"
+        style="flex:0 0 180px;border:1px solid #e6eefc;border-radius:10px;padding:0 10px;font-size:15px;outline:none;" />
     </div>
   </div>
 
@@ -115,74 +108,9 @@
     </div>
   </div>
 
-  <!-- ========================== -->
-  <!-- JS Scripts -->
+  <!-- JS Files -->
   <script type="module" src="./index_function.online.js" defer></script>
   <script type="module" src="./index_function_work.js" defer></script>
-
-  <!-- Bridge for footer buttons -->
-  <script defer>
-  document.addEventListener("DOMContentLoaded", () => {
-    const kotBtn = document.getElementById("printKOT");
-    const invBtn = document.getElementById("printInv");
-
-    kotBtn?.addEventListener("click", () => {
-      try {
-        if (window.printKOT) window.printKOT();
-        else window.open("./PapsdumskitchenUI7.html", "_blank");
-      } catch {
-        window.open("./PapsdumskitchenUI7.html", "_blank");
-      }
-    });
-
-    invBtn?.addEventListener("click", () => {
-      try {
-        if (window.printInvoice) window.printInvoice();
-        else window.open("./PapadumsInvoiceLayout7.html", "_blank");
-      } catch {
-        window.open("./PapadumsInvoiceLayout7.html", "_blank");
-      }
-    });
-  });
-  </script>
-
-  <!-- Sync & Printer -->
-  <script>
-  const syncStatus = document.getElementById("syncStatus");
-  const dot = document.getElementById("printerDot");
-  const ipInput = document.getElementById("printerIp");
-
-  function setSyncState(state){
-    if(!syncStatus) return;
-    if(state==="syncing"){syncStatus.textContent="🔄 Syncing…"; syncStatus.style.background="#FFD54F";}
-    else if(state==="offline"){syncStatus.textContent="🔴 Offline"; syncStatus.style.background="#E57373";}
-    else{syncStatus.textContent="🟢 Online"; syncStatus.style.background="#81C784";}
-  }
-  window.addEventListener("online", ()=>setSyncState("online"));
-  window.addEventListener("offline", ()=>setSyncState("offline"));
-  setSyncState(navigator.onLine ? "online" : "offline");
-
-  if(localStorage.getItem("printer_ip")) ipInput.value = localStorage.getItem("printer_ip");
-  async function checkPrinter(){
-    const ip = localStorage.getItem("printer_ip");
-    if(!ip){dot.style.background="gray"; dot.classList.remove("blinking"); return;}
-    dot.style.background="yellow"; dot.classList.add("blinking");
-    try{await fetch(`http://${ip}:9100`, {mode:"no-cors"}); dot.style.background="limegreen";}
-    catch{dot.style.background="red";}
-    finally{dot.classList.remove("blinking");}
-  }
-  ipInput.addEventListener("input", ()=>{localStorage.setItem("printer_ip", ipInput.value); checkPrinter();});
-  checkPrinter();
-  setInterval(checkPrinter,10000);
-  </script>
-
-  <!-- Register SW -->
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(() => console.log('✅ Service worker registered'))
-      .catch(err => console.warn('❌ SW registration failed', err));
-  }
-  </script>
+  <script src="./index_bridge.js" defer></script>
 </body>
 </html>
