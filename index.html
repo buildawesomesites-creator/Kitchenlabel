@@ -89,16 +89,21 @@
 <!-- ========================== -->
 <!-- JS Scripts -->
 <!-- Load embedded products -->
-<script src="products.js"></script>
-
-<!-- Offline/Online loader -->
 <script>
   const isOnline = navigator.onLine;
   const script = document.createElement("script");
-  script.src = isOnline ? "./index_function.online.js" : "./index_function_work.js";
   script.defer = true;
+
+  if(isOnline){
+    script.type = "module"; // needed for import/export
+    script.src = "./index_function.online.js";
+  } else {
+    script.src = "./index_function_work.js";
+  }
+
   document.head.appendChild(script);
 </script>
+
 
 <!-- Sync status & printer -->
 <script>
