@@ -14,9 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
     kotBtn.addEventListener("click", () => {
       try {
         if (window.printKOT) window.printKOT();
-        else window.open("./PapsdumskitchenUI7.html", "_blank");
+        else window.open("./kot_browser.html", "_blank");
       } catch {
-        window.open("./PapsdumskitchenUI7.html", "_blank");
+        window.open("./kot_browser.html", "_blank");
       }
     });
   }
@@ -25,9 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
     invBtn.addEventListener("click", () => {
       try {
         if (window.printInvoice) window.printInvoice();
-        else window.open("./PapadumsInvoiceLayout7.html", "_blank");
+        else window.open("./invoice_browser.html", "_blank");
       } catch {
-        window.open("./PapadumsInvoiceLayout7.html", "_blank");
+        window.open("./invoice_browser.html", "_blank");
       }
     });
   }
