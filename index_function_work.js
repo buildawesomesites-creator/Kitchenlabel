@@ -4,6 +4,8 @@ console.log("✅ index_function_work.js (offline) loaded");
 let cart = [];
 let currentTable = "table1";
 let products = [];
+
+// Detect native WebView (Android/iOS)
 const isNative = /wv|Android.*Version/.test(navigator.userAgent) || window.AndroidInterface;
 
 // ---------- Elements ----------
@@ -19,7 +21,7 @@ const printKOT = document.getElementById("printKOT");
 const printInv = document.getElementById("printInv");
 const productDropdown = document.getElementById("productDropdown");
 
-// ---------- Product Load Logic ----------
+// ---------- Load Products ----------
 async function loadProducts() {
   console.log("⏳ Loading products from embedded file...");
   products = window.PRODUCTS || JSON.parse(localStorage.getItem("offlineProducts") || "[]");
@@ -59,8 +61,11 @@ searchInput.addEventListener("input", () => {
   productDropdown.style.display = matches.length ? "block" : "none";
 });
 
+// Hide dropdown on outside click
 document.addEventListener("click", (e) => {
-  if (!searchInput.contains(e.target)) productDropdown.style.display = "none";
+  if (!searchInput.contains(e.target) && !productDropdown.contains(e.target)) {
+    productDropdown.style.display = "none";
+  }
 });
 
 // ---------- Auto Add Product ----------
@@ -117,10 +122,10 @@ function renderCart() {
   totalDisplay.textContent = total.toLocaleString() + "₫";
 }
 
-// ---------- Qty / Remove ----------
+// ---------- Qty / Remove Buttons ----------
 previewBody.addEventListener("click", (e) => {
-  const i = e.target.dataset.i;
-  if (i === undefined) return;
+  const i = parseInt(e.target.dataset.i);
+  if (isNaN(i)) return;
   if (e.target.dataset.type === "plus") cart[i].qty++;
   else if (e.target.dataset.type === "minus" && cart[i].qty > 1) cart[i].qty--;
   else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
