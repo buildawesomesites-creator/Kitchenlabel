@@ -26,6 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const fullPreviewContent = document.getElementById("fullPreviewContent");
   const closePreview = document.getElementById("closePreview");
 
+  // Disable native datalist
+  const datalist = document.getElementById("productList");
+  searchInput.removeAttribute("list");
+  searchInput.setAttribute("autocomplete", "off");
+
   // ---------- Load Products ----------
   async function loadProducts() {
     console.log("⏳ Loading products from embedded file...");
@@ -36,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populateProductList() {
-    const datalist = document.getElementById("productList");
     datalist.innerHTML = "";
     products.forEach((p) => {
       const opt = document.createElement("option");
@@ -46,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("✅ Product list ready");
   }
 
-  // ---------- Search Dropdown ----------
+  // ---------- Dark Dropdown Only ----------
   searchInput.addEventListener("input", () => {
     const term = searchInput.value.toLowerCase().trim();
     productDropdown.innerHTML = "";
