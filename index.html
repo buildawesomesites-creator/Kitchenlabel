@@ -4,6 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.1</title>
+  </head>
+
+<body>
+  <header>
+    <span id="versionTag">V.7</span>
+    Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
 
   <link rel="stylesheet" href="style.css" />
 
@@ -38,16 +47,27 @@
       background: #555;
       border-radius: 3px;
     }
-  </style>
-</head>
 
-<body>
-  <header>
-    <span id="versionTag">V.3</span>
-    Papadums POS
-    <span id="printerDot"></span>
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
+    /* === Sync Status Style === */
+    #syncStatus {
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-block;
+      margin-left: 8px;
+      transition: background 0.3s ease;
+    }
+    .blinking {
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.4; }
+    }
+  </style>
+
 
   <div class="wrap">
     <div class="table-panel">
@@ -115,16 +135,10 @@
   <!-- ===== JS SCRIPTS BELOW ==== -->
   <!-- ========================== -->
 
-  <!-- Core POS logic -->
   <script type="module" src="./index_function_work.js"></script>
-
-  <!-- Firebase setup -->
   <script type="module" src="./firebase_client.js"></script>
-
-  <!-- Online sync + status color (auto every 5s) -->
   <script type="module" src="./index_function_online.js"></script>
 
-  <!-- Utility scripts -->
   <script>
     // === Format Number (Indian style) ===
     function formatNumber(num) {
@@ -147,14 +161,16 @@
       catch { dot.style.background = "red"; }
       finally { dot.classList.remove("blinking"); }
     }
+
     ipInput.addEventListener("input", () => {
       localStorage.setItem("printerIp", ipInput.value);
       checkPrinterConnection();
     });
+
     checkPrinterConnection();
     setInterval(checkPrinterConnection, 10000);
 
-    // === Clickable Order Preview ===
+    // === Full Order Preview Modal ===
     const previewPanel = document.getElementById("previewPanel");
     const fullModal = document.getElementById("fullPreviewModal");
     const fullContent = document.getElementById("fullPreviewContent");
@@ -192,7 +208,7 @@
       if (!searchInput.contains(e.target)) dropdown.style.display = "none";
     });
 
-    // === Android WebView Fix (disable system dropdown) ===
+    // === Android WebView Fix (disable native dropdown) ===
     const ua = navigator.userAgent.toLowerCase();
     if (ua.includes("wv") || ua.includes("version/")) {
       const input = document.getElementById("productSearch");
