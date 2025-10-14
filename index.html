@@ -117,7 +117,6 @@
 
   <!-- ========================== -->
   <!-- JS Scripts -->
-  <!-- Load the online + offline modules -->
   <script type="module" src="./index_function.online.js" defer></script>
   <script type="module" src="./index_function_work.js" defer></script>
 
@@ -128,36 +127,42 @@
     const invBtn = document.getElementById("printInv");
 
     kotBtn?.addEventListener("click", () => {
-      if (window.printKOT) window.printKOT();
-      else window.open("./PapsdumskitchenUI7.html", "_blank");
+      try {
+        if (window.printKOT) window.printKOT();
+        else window.open("./PapsdumskitchenUI7.html", "_blank");
+      } catch {
+        window.open("./PapsdumskitchenUI7.html", "_blank");
+      }
     });
 
     invBtn?.addEventListener("click", () => {
-      if (window.printInvoice) window.printInvoice();
-      else window.open("./PapadumsInvoiceLayout7.html", "_blank");
+      try {
+        if (window.printInvoice) window.printInvoice();
+        else window.open("./PapadumsInvoiceLayout7.html", "_blank");
+      } catch {
+        window.open("./PapadumsInvoiceLayout7.html", "_blank");
+      }
     });
   });
   </script>
 
-  <!-- Sync status & printer -->
+  <!-- Sync & Printer -->
   <script>
-  const isOnline = navigator.onLine;
   const syncStatus = document.getElementById("syncStatus");
+  const dot = document.getElementById("printerDot");
+  const ipInput = document.getElementById("printerIp");
+
   function setSyncState(state){
     if(!syncStatus) return;
-    syncStatus.className = state;
     if(state==="syncing"){syncStatus.textContent="🔄 Syncing…"; syncStatus.style.background="#FFD54F";}
     else if(state==="offline"){syncStatus.textContent="🔴 Offline"; syncStatus.style.background="#E57373";}
     else{syncStatus.textContent="🟢 Online"; syncStatus.style.background="#81C784";}
   }
   window.addEventListener("online", ()=>setSyncState("online"));
   window.addEventListener("offline", ()=>setSyncState("offline"));
-  setSyncState(isOnline ? "online" : "offline");
+  setSyncState(navigator.onLine ? "online" : "offline");
 
-  const ipInput = document.getElementById("printerIp");
-  const dot = document.getElementById("printerDot");
   if(localStorage.getItem("printer_ip")) ipInput.value = localStorage.getItem("printer_ip");
-
   async function checkPrinter(){
     const ip = localStorage.getItem("printer_ip");
     if(!ip){dot.style.background="gray"; dot.classList.remove("blinking"); return;}
@@ -171,7 +176,7 @@
   setInterval(checkPrinter,10000);
   </script>
 
-  <!-- Register service worker -->
+  <!-- Register SW -->
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./service-worker.js')
@@ -179,6 +184,5 @@
       .catch(err => console.warn('❌ SW registration failed', err));
   }
   </script>
-
 </body>
 </html>
