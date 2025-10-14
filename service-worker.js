@@ -1,7 +1,7 @@
 // ✅ Papadums POS — Service Worker (Offline + Auto Update)
 
 // Versioning
-const VERSION = "V.0";
+const VERSION = "V.1";
 const CACHE_NAME = `papadums-pos-${VERSION}`;
 const APP_SHELL = [
   "./",
