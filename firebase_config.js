@@ -1,7 +1,12 @@
-// firebase_config.js
+// ==========================
+// 🔹 Firebase Configuration
+// 🔹 Papadums POS — invoiceapp-8026d
+// ==========================
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
+// Firebase project config
 const firebaseConfig = {
   apiKey: "AIzaSyDRc3dNn-OIidR2Qv6o9wvlpJ3Yx5vJzI4",
   authDomain: "invoiceapp-8026d.firebaseapp.com",
@@ -12,5 +17,8 @@ const firebaseConfig = {
   measurementId: "G-4QMSJQKX8R"
 };
 
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
+
+// Export Firestore database instance
 export const db = getFirestore(app);
