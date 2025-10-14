@@ -8,7 +8,7 @@
 
 <body>
   <header>
-    <span id="versionTag">V.1</span>
+    <span id="versionTag">V.3</span>
     Papadums POS
     <span id="printerDot"></span>
     <div id="syncStatus" class="syncing">🔄 Syncing...</div>
@@ -134,15 +134,6 @@
  <!-- ========================== -->
 <!-- ===== JS SCRIPTS BELOW ==== -->
 <!-- ========================== -->
-
-<!-- ✅ 1. Firebase configuration (must load first) -->
-<script type="module" src="./firebase_config.js"></script>
-
-<!-- ✅ 2. Firebase client handler (connects Firestore / Storage) -->
-<script type="module" src="./firebase_client.js"></script>
-
-<!-- ✅ 3. Local/offline core app logic -->
-<script type="module" src="./index_function_work.js"></script>
 
 <!-- ✅ 4. Online sync + GitHub product loader -->
 <script type="module" src="./index_function.online.js"></script>
