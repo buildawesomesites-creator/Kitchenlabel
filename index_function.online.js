@@ -127,14 +127,6 @@ addBtn.addEventListener("click", () => {
   qtyInput.value = 1;
 });
 
-clearBtn.addEventListener("click", () => {
-  if (confirm("Clear all items?")) {
-    cart = [];
-    renderCart();
-    queueSync();
-  }
-});
-
 /* ===== Table Switch ===== */
 tables.forEach(t => t.addEventListener("click", () => {
   tables.forEach(el => el.classList.remove("active"));
@@ -189,6 +181,41 @@ function subscribeToFirestore() {
 window.addEventListener("online", () => {
   console.log("🌐 Back online, resyncing...");
   queueSync();
+});
+
+/* ===== Dark Dropdown Only (No Native Datalist) ===== */
+const productDropdown = document.getElementById("productDropdown");
+
+// Disable native datalist
+productSearch.removeAttribute("list");
+productSearch.setAttribute("autocomplete", "off");
+
+// Show matching products in dark dropdown
+productSearch.addEventListener("input", () => {
+  const term = productSearch.value.toLowerCase().trim();
+  productDropdown.innerHTML = "";
+  if (!term) return (productDropdown.style.display = "none");
+
+  const matches = products.filter(p => p.name.toLowerCase().includes(term));
+  matches.forEach(p => {
+    const div = document.createElement("div");
+    div.textContent = p.name;
+    div.addEventListener("click", () => {
+      productSearch.value = p.name;
+      productDropdown.style.display = "none";
+      addBtn.click(); // triggers existing add button logic
+    });
+    productDropdown.appendChild(div);
+  });
+
+  productDropdown.style.display = matches.length ? "block" : "none";
+});
+
+// Hide dropdown when clicking outside
+document.addEventListener("click", e => {
+  if (!productSearch.contains(e.target) && !productDropdown.contains(e.target)) {
+    productDropdown.style.display = "none";
+  }
 });
 
 /* ===== Init ===== */
