@@ -1,5 +1,8 @@
-// =================== Papadums POS — Local Function Script ===================
+// =================== Papadums POS — Local Function Script (with Firestore Sync) ===================
 console.log("✅ index_function_work.js loaded");
+
+import { db } from "./firebase_config.js";
+import { collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 let cart = [];
 let currentTable = "table1";
@@ -18,6 +21,7 @@ const previewInfo = document.getElementById("previewInfo");
 const printKOT = document.getElementById("printKOT");
 const printInv = document.getElementById("printInv");
 const productDropdown = document.getElementById("productDropdown");
+const syncStatus = document.getElementById("syncStatus");
 
 // ---------- Product Load Logic ----------
 const GITHUB_RAW_URL =
@@ -70,7 +74,7 @@ searchInput.addEventListener("input", () => {
     div.addEventListener("click", () => {
       searchInput.value = p.name;
       productDropdown.style.display = "none";
-      autoAddProduct(); // 👈 auto add product directly
+      autoAddProduct();
     });
     productDropdown.appendChild(div);
   });
@@ -84,9 +88,7 @@ document.addEventListener("click", (e) => {
 function autoAddProduct() {
   const name = searchInput.value.trim();
   const qty = parseInt(qtyInput.value || "1");
-  const prod = products.find(
-    (p) => p.name.toLowerCase() === name.toLowerCase()
-  );
+  const prod = products.find((p) => p.name.toLowerCase() === name.toLowerCase());
   if (!prod) return;
 
   const existing = cart.find((i) => i.name === prod.name);
@@ -95,11 +97,12 @@ function autoAddProduct() {
 
   renderCart();
   saveTableCart();
+  syncToFirestore();
   searchInput.value = "";
   qtyInput.value = 1;
 }
 
-// ---------- Add Item (Manual) ----------
+// ---------- Add Item ----------
 addBtn.addEventListener("click", () => {
   autoAddProduct();
 });
@@ -110,6 +113,7 @@ clearBtn.addEventListener("click", () => {
     cart = [];
     renderCart();
     saveTableCart();
+    syncToFirestore();
   }
 });
 
@@ -117,8 +121,7 @@ clearBtn.addEventListener("click", () => {
 function renderCart() {
   previewBody.innerHTML = "";
   if (!cart.length) {
-    previewBody.innerHTML =
-      '<div style="text-align:center;color:#777;padding:16px">No items</div>';
+    previewBody.innerHTML = `<div style="text-align:center;color:#777;padding:16px">No items</div>`;
   } else {
     cart.forEach((item, i) => {
       const row = document.createElement("div");
@@ -148,6 +151,7 @@ previewBody.addEventListener("click", (e) => {
   else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
   renderCart();
   saveTableCart();
+  syncToFirestore();
 });
 
 // ---------- Table Switching ----------
@@ -158,16 +162,39 @@ tableCards.forEach((card) => {
     currentTable = card.dataset.table;
     previewInfo.textContent = card.textContent.trim();
     loadTableCart();
+    syncToFirestore();
   });
 });
 
-// ---------- Table Cart Storage ----------
+// ---------- Local Storage ----------
 function saveTableCart() {
   localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
 }
 function loadTableCart() {
   cart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
   renderCart();
+}
+
+// ---------- Firestore Sync ----------
+async function syncToFirestore() {
+  try {
+    if (!db) return;
+    const ref = doc(collection(db, "orders"), currentTable);
+    await setDoc(ref, {
+      items: cart,
+      updatedAt: new Date().toISOString(),
+    });
+    if (syncStatus) {
+      syncStatus.textContent = "✅ Online";
+      syncStatus.className = "online";
+    }
+  } catch (err) {
+    console.warn("⚠️ Firestore sync failed:", err);
+    if (syncStatus) {
+      syncStatus.textContent = "⚠️ Offline";
+      syncStatus.className = "offline";
+    }
+  }
 }
 
 // ---------- Save Order for Printing ----------
@@ -214,22 +241,12 @@ fullPreviewModal.addEventListener("click", (e) => {
   if (e.target === fullPreviewModal) fullPreviewModal.style.display = "none";
 });
 
-// ---------- Init ----------
-(async () => {
-  await loadProducts();
-  loadTableCart();
-
-
-// ---------- Printer IP Save / Load ----------
+// ---------- Printer IP ----------
 const printerIpInput = document.getElementById("printerIp");
-
-// Load saved printer IP on startup
 const savedPrinterIp = localStorage.getItem("printer_ip");
 if (savedPrinterIp && printerIpInput) {
   printerIpInput.value = savedPrinterIp;
 }
-
-// Save printer IP when changed
 if (printerIpInput) {
   printerIpInput.addEventListener("change", () => {
     const ip = printerIpInput.value.trim();
@@ -238,7 +255,9 @@ if (printerIpInput) {
   });
 }
 
-
-
-
+// ---------- Init ----------
+(async () => {
+  await loadProducts();
+  loadTableCart();
+  syncToFirestore();
 })();
