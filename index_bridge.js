@@ -1,93 +1,99 @@
-// =================== Papadums POS — Bridge Script ===================
-console.log("✅ index_bridge.js loaded");
+// =================== POS Bridge Fix Script ===================
+console.log("✅ index_bridge.js loaded (Bridge active)");
 
-// Wait for DOM ready
+// Wait until DOM and other scripts are ready
 document.addEventListener("DOMContentLoaded", () => {
-  const kotBtn = document.getElementById("printKOT");
-  const invBtn = document.getElementById("printInv");
-  const ipInput = document.getElementById("printerIp");
-  const dot = document.getElementById("printerDot");
-  const syncStatus = document.getElementById("syncStatus");
 
-  // ---------- 1️⃣ Footer Buttons ----------
-  if (kotBtn) {
-    kotBtn.addEventListener("click", () => {
-      try {
-        if (window.printKOT) window.printKOT();
-        else window.open("./kot_browser.html", "_blank");
-      } catch {
-        window.open("./kot_browser.html", "_blank");
-      }
-    });
-  }
+  // ========== ELEMENTS ==========
+  const addBtn = document.getElementById("addBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const previewModal = document.getElementById("fullPreview");
+  const closePreview = document.getElementById("closePreview");
+  const previewBody = document.getElementById("fullPreviewContent");
+  const printKOT = document.getElementById("printKOT");
+  const printInvoice = document.getElementById("printInvoice");
 
-  if (invBtn) {
-    invBtn.addEventListener("click", () => {
-      try {
-        if (window.printInvoice) window.printInvoice();
-        else window.open("./invoice_browser.html", "_blank");
-      } catch {
-        window.open("./invoice_browser.html", "_blank");
-      }
-    });
-  }
+  // Load or create cart
+  let cart = JSON.parse(localStorage.getItem("pos_cart") || "[]");
 
-  // ---------- 2️⃣ Printer IP & Status ----------
-  if (localStorage.getItem("printer_ip")) {
-    ipInput.value = localStorage.getItem("printer_ip");
-  }
-
-  async function checkPrinter() {
-    const ip = localStorage.getItem("printer_ip");
-    if (!ip) {
-      dot.style.background = "gray";
-      dot.classList.remove("blinking");
-      return;
-    }
-    dot.style.background = "yellow";
-    dot.classList.add("blinking");
+  // ========== ADD ITEM ==========
+  addBtn?.addEventListener("click", () => {
     try {
-      await fetch(`http://${ip}:9100`, { mode: "no-cors" });
-      dot.style.background = "limegreen";
-    } catch {
-      dot.style.background = "red";
-    } finally {
-      dot.classList.remove("blinking");
-    }
-  }
+      const name = document.getElementById("productSearch").value.trim();
+      const qty = parseInt(document.getElementById("qty").value) || 1;
 
-  ipInput.addEventListener("input", () => {
-    localStorage.setItem("printer_ip", ipInput.value);
-    checkPrinter();
+      if (!name) return alert("Please select a product first!");
+
+      // Read from product cache (unchanged)
+      const products = JSON.parse(localStorage.getItem("products_cache") || "[]");
+      const found = products.find(p => p.name === name);
+      if (!found) return alert("Product not found!");
+
+      // Add or update
+      const existing = cart.find(i => i.name === name);
+      if (existing) existing.qty += qty;
+      else cart.push({ name, price: found.price, qty });
+
+      localStorage.setItem("pos_cart", JSON.stringify(cart));
+      document.getElementById("productSearch").value = "";
+      document.getElementById("qty").value = 1;
+      console.log("🛒 Cart updated:", cart);
+
+      alert("✅ Item added to order");
+    } catch (err) {
+      console.error("Add item error:", err);
+    }
   });
 
-  checkPrinter();
-  setInterval(checkPrinter, 10000);
+  // ========== CLEAR ITEMS ==========
+  clearBtn?.addEventListener("click", () => {
+    if (!confirm("Clear all items from this order?")) return;
+    cart = [];
+    localStorage.setItem("pos_cart", "[]");
+    console.log("🧹 Cart cleared");
+    alert("🧹 All items cleared");
+  });
 
-  // ---------- 3️⃣ Sync Status ----------
-  function setSyncState(state) {
-    if (!syncStatus) return;
-    if (state === "syncing") {
-      syncStatus.textContent = "🔄 Syncing…";
-      syncStatus.style.background = "#FFD54F";
-    } else if (state === "offline") {
-      syncStatus.textContent = "🔴 Offline";
-      syncStatus.style.background = "#E57373";
-    } else {
-      syncStatus.textContent = "🟢 Online";
-      syncStatus.style.background = "#81C784";
+  // ========== ORDER PREVIEW ==========
+  const orderPreview = document.getElementById("orderPreview");
+  orderPreview?.addEventListener("click", () => {
+    cart = JSON.parse(localStorage.getItem("pos_cart") || "[]");
+    if (cart.length === 0) {
+      alert("No items in order!");
+      return;
     }
-  }
 
-  window.addEventListener("online", () => setSyncState("online"));
-  window.addEventListener("offline", () => setSyncState("offline"));
-  setSyncState(navigator.onLine ? "online" : "offline");
+    let html = `
+      <h3 style="text-align:center;margin-bottom:10px;">ORDER PREVIEW</h3>
+      <div style="padding:6px 12px;">${cart.map(
+        i => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:4px 0;">
+          <span>${i.name}</span>
+          <span>x${i.qty}</span>
+          <span>${(i.qty * i.price).toLocaleString()}₫</span>
+        </div>`
+      ).join("")}</div>
+      <div style="text-align:right;font-weight:bold;padding:8px 12px;">
+        Total: ${(cart.reduce((s,i)=>s+i.price*i.qty,0)).toLocaleString()}₫
+      </div>
+    `;
+    previewBody.innerHTML = html;
+    previewModal.style.display = "flex";
+  });
 
-  // ---------- 4️⃣ Service Worker ----------
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .then(() => console.log("✅ Service worker registered"))
-      .catch((err) => console.warn("❌ SW registration failed", err));
-  }
+  closePreview?.addEventListener("click", () => {
+    previewModal.style.display = "none";
+  });
+
+  // ========== PRINT KOT ==========
+  printKOT?.addEventListener("click", () => {
+    localStorage.setItem("kot_data", localStorage.getItem("pos_cart"));
+    window.open("kot_browser.html", "_blank");
+  });
+
+  // ========== PRINT INVOICE ==========
+  printInvoice?.addEventListener("click", () => {
+    localStorage.setItem("invoice_data", localStorage.getItem("pos_cart"));
+    window.open("invoice_browser.html", "_blank");
+  });
+
 });
