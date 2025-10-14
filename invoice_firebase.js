@@ -1,4 +1,3 @@
-// invoice_firebase.js
 // --------------------------------------------
 // 🔹 Papadums Invoice Firebase Integration
 // 🔹 Developer: ChatGPT (for Papadums Indian Cuisine)
@@ -14,19 +13,19 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// === AUTO LOAD INVOICE ===
+// === AUTO LOAD INVOICE ON PAGE OPEN ===
 document.addEventListener("DOMContentLoaded", async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const invoiceId = urlParams.get("id");
+  const params = new URLSearchParams(window.location.search);
+  const invoiceId = params.get("id");
 
   if (invoiceId) {
     await loadInvoice(invoiceId);
   } else {
-    console.log("🔸 No invoice ID found — showing empty layout.");
+    console.log("🟡 No invoice ID found — showing empty layout.");
   }
 });
 
-// === LOAD EXISTING INVOICE ===
+// === LOAD EXISTING INVOICE FROM FIRESTORE ===
 async function loadInvoice(invoiceId) {
   try {
     const docRef = doc(db, "invoices", invoiceId);
@@ -34,24 +33,26 @@ async function loadInvoice(invoiceId) {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log("✅ Invoice data loaded:", data);
+      console.log("✅ Invoice loaded:", data);
       renderInvoice(data, invoiceId);
     } else {
-      alert("Invoice not found in Firebase!");
+      alert("⚠️ Invoice not found in Firebase!");
     }
   } catch (error) {
     console.error("❌ Error loading invoice:", error);
   }
 }
 
-// === RENDER INVOICE ===
+// === RENDER INVOICE DATA INTO THE PAGE ===
 function renderInvoice(data, invoiceId) {
-  document.getElementById("tableLabel").textContent = data.table || "-";
-  document.getElementById("billLabel").textContent = invoiceId || "-";
-  document.getElementById("timeInLabel").textContent = data.timeIn || "-";
-  document.getElementById("timeOutLabel").textContent = data.timeOut || "-";
+  const $ = id => document.getElementById(id);
 
-  const itemsList = document.getElementById("itemsList");
+  $("#tableLabel").textContent = data.table || "-";
+  $("#billLabel").textContent = invoiceId || "-";
+  $("#timeInLabel").textContent = data.timeIn || "-";
+  $("#timeOutLabel").textContent = data.timeOut || "-";
+
+  const itemsList = $("#itemsList");
   itemsList.innerHTML = `
     <div class="row header">
       <div>Item Name</div>
@@ -62,8 +63,8 @@ function renderInvoice(data, invoiceId) {
   `;
 
   let total = 0;
-  if (data.items && Array.isArray(data.items)) {
-    data.items.forEach(item => {
+  if (Array.isArray(data.items)) {
+    for (const item of data.items) {
       const price = parseFloat(item.price) || 0;
       const qty = parseFloat(item.qty) || 0;
       const amount = price * qty;
@@ -75,46 +76,51 @@ function renderInvoice(data, invoiceId) {
           <div class="right">${price.toLocaleString()}</div>
           <div class="right">${qty}</div>
           <div class="right">${amount.toLocaleString()}</div>
-        </div>`;
-    });
+        </div>
+      `;
+    }
   }
 
   const vat = total * 0.08;
   const discount = parseFloat(data.discount || 0);
   const grandTotal = total - discount + vat;
 
-  document.getElementById("totalPrice").textContent = total.toLocaleString();
-  document.getElementById("discountLabel").textContent = discount.toLocaleString();
-  document.getElementById("vatAmount").textContent = vat.toLocaleString();
-  document.getElementById("grandTotal").textContent = grandTotal.toLocaleString();
+  $("#totalPrice").textContent = total.toLocaleString();
+  $("#discountLabel").textContent = discount.toLocaleString();
+  $("#vatAmount").textContent = vat.toLocaleString();
+  $("#grandTotal").textContent = grandTotal.toLocaleString();
 
-  // === Generate QR ===
-  new QRious({
-    element: document.getElementById("qrImg"),
-    value: `https://invoiceapp-8026d.web.app/invoice_browser.html?id=${invoiceId}`,
-    size: 80
-  });
+  // === QR Code ===
+  if (typeof QRious !== "undefined") {
+    new QRious({
+      element: $("#qrImg"),
+      value: `https://invoiceapp-8026d.web.app/invoice_browser.html?id=${invoiceId}`,
+      size: 80
+    });
+  }
 }
 
-// === SAVE NEW INVOICE ===
+// === SAVE NEW INVOICE TO FIRESTORE ===
 export async function saveInvoice() {
   try {
+    const $ = id => document.getElementById(id);
+
     const invoiceData = {
-      table: document.getElementById("tableLabel").textContent,
-      timeIn: document.getElementById("timeInLabel").textContent,
-      timeOut: document.getElementById("timeOutLabel").textContent,
+      table: $("#tableLabel").textContent,
+      timeIn: $("#timeInLabel").textContent,
+      timeOut: $("#timeOutLabel").textContent,
       items: [],
       discount: 0,
       createdAt: serverTimestamp()
     };
 
-    const itemsRows = document.querySelectorAll("#itemsList .row:not(.header)");
-    itemsRows.forEach(row => {
+    const rows = document.querySelectorAll("#itemsList .row:not(.header)");
+    rows.forEach(row => {
       const cols = row.querySelectorAll("div");
       invoiceData.items.push({
-        name: cols[0].textContent,
+        name: cols[0].textContent.trim(),
         price: cols[1].textContent.replace(/,/g, ""),
-        qty: cols[2].textContent,
+        qty: cols[2].textContent.trim(),
         amount: cols[3].textContent.replace(/,/g, "")
       });
     });
