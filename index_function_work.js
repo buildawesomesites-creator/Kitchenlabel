@@ -20,22 +20,11 @@ const printInv = document.getElementById("printInv");
 const productDropdown = document.getElementById("productDropdown");
 
 // ---------- Product Load Logic ----------
-const GITHUB_RAW_URL =
-  "https://buildawesomesites-creator.github.io/Kitchenlabel/products.json"; // GitHub Pages raw URL
-
 async function loadProducts() {
-  console.log("⏳ Loading products...");
-  try {
-    const res = await fetch(GITHUB_RAW_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("GitHub fetch failed");
-    products = await res.json();
-    localStorage.setItem("offlineProducts", JSON.stringify(products));
-    console.log("📦 Products from GitHub:", products.length);
-  } catch (err) {
-    console.warn("⚠️ Product load failed, using cache:", err);
-    products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
-    console.log("📦 Products from cache:", products.length);
-  }
+  console.log("⏳ Loading products from embedded file...");
+  products = window.PRODUCTS || JSON.parse(localStorage.getItem("offlineProducts") || "[]");
+  localStorage.setItem("offlineProducts", JSON.stringify(products));
+  console.log("📦 Products loaded:", products.length);
   populateProductList();
 }
 
