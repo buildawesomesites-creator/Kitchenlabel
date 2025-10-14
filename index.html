@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.1</title>
-  <link rel="stylesheet" href="style.css">
+
 </head>
 <body>
   <header>
@@ -13,6 +13,42 @@
     <span id="printerDot"></span>
     <div id="syncStatus" class="syncing">🔄 Syncing...</div>
   </header>
+
+
+  
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* === Dark Dropdown Styling === */
+    #productDropdown {
+      position: absolute;
+      background: #222;
+      color: #f1f1f1;
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      width: calc(100% - 10px);
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    #productDropdown div {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+      transition: background 0.2s ease;
+    }
+    #productDropdown div:hover {
+      background: #333;
+    }
+    #productDropdown::-webkit-scrollbar {
+      width: 6px;
+    }
+    #productDropdown::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 3px;
+    }
+  </style>
 
   <div class="wrap">
     <div class="table-panel">
@@ -27,7 +63,7 @@
     </div>
 
     <div class="controls-panel">
-      <div class="top-row">
+      <div class="top-row" style="position: relative;">
         <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
         <datalist id="productList"></datalist>
         <div id="productDropdown"></div>
@@ -116,7 +152,7 @@
     closeBtn.onclick = ()=> fullModal.style.display="none";
     fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
 
-    // === Custom Scrollable Search Dropdown ===
+    // === Custom Scrollable Search Dropdown (Dark) ===
     const searchInput = document.getElementById("productSearch");
     const dropdown = document.getElementById("productDropdown");
 
@@ -142,8 +178,8 @@
     });
   </script>
 
-<!-- Add these lines before the closing </body> tag -->
-<script type="module" src="./index_function_work.js"></script>
-<script type="module" src="./index_function.online.js"></script>
+  <!-- Add these lines before the closing </body> tag -->
+  <script type="module" src="./index_function_work.js"></script>
+  <script type="module" src="./index_function.online.js"></script>
 </body>
 </html>
