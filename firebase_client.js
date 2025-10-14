@@ -1,5 +1,5 @@
 // firebase_client.js
-// Modular Firebase helper: anonymous auth + Firestore realtime + offline persistence
+// Modular Firebase: Auth + Firestore + Offline + Realtime support
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -12,7 +12,7 @@ import {
   enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-/* ---------- CONFIG: paste your Firebase config here (or use the one you already have) ---------- */
+/* ---------- Papadums Invoice Firebase Config ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyDRc3dNn-OIidR2Qv6o9wvlpJ3Yx5vJzI4",
   authDomain: "invoiceapp-8026d.firebaseapp.com",
@@ -22,58 +22,52 @@ const firebaseConfig = {
   appId: "1:871292464773:web:abf324b83a14f21ce2cd2f",
   measurementId: "G-4QMSJQKX8R"
 };
-/* ---------------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------ */
 
+// Initialize
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Try offline persistence
-enableIndexedDbPersistence(db).catch((err) => {
-  // common reasons: multiple tabs, browser not supported
-  console.warn("IndexedDB persistence not enabled:", err && err.code);
+// Enable local caching (for offline POS use)
+enableIndexedDbPersistence(db).catch(err => {
+  console.warn("⚠️ Offline persistence not enabled:", err.code);
 });
 
-// auto anonymous sign-in
-signInAnonymously(auth).catch(err => console.warn("Anonymous sign-in failed:", err));
+// Anonymous login (no prompt)
+signInAnonymously(auth).catch(err => {
+  console.error("❌ Firebase Auth failed:", err.message);
+});
 
-/** Wait until an auth state exists (resolve user or null) */
+/** Wait for Firebase auth to complete */
 export function authState() {
   return new Promise((resolve, reject) => {
     const unsub = onAuthStateChanged(auth, user => {
       unsub();
       resolve(user);
-    }, err => reject(err));
+    }, reject);
   });
 }
 
-/**
- * Save order to Firestore under collection 'orders' with docId = tableId
- * payload: { table, items }
- */
+/** Save a table’s order to Firestore */
 export async function saveOrderToFirestore(tableId, payload) {
   const ref = doc(db, "orders", tableId);
   const u = auth.currentUser;
-  const docData = {
+  const data = {
     table: payload.table || tableId,
     items: payload.items || [],
     modifiedBy: u ? u.uid : null,
     lastModified: serverTimestamp()
   };
-  return setDoc(ref, docData, { merge: true });
+  await setDoc(ref, data, { merge: true });
 }
 
-/**
- * Subscribe to realtime updates for a table doc.
- * onUpdate receives null (no doc) or the doc data.
- * Returns unsubscribe function.
- */
+/** Subscribe to table changes (live updates) */
 export function subscribeToTable(tableId, onUpdate) {
   const ref = doc(db, "orders", tableId);
-  const unsub = onSnapshot(ref, snap => {
+  return onSnapshot(ref, snap => {
     onUpdate(snap.exists() ? snap.data() : null);
-  }, err => {
-    console.error("Firestore onSnapshot error:", err);
-  });
-  return unsub;
+  }, err => console.error("onSnapshot error:", err));
 }
+
+export { db };
