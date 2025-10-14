@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Papadums POS V.3</title>
+<title>Papadums POS V.1</title>
+  </head>
+<body>
+<header>
+  <span id="versionTag">V.1</span> Papadums POS
+  <span id="printerDot"></span>
+  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+</header>
 <link rel="stylesheet" href="style.css" />
 <style>
   /* === Dark Dropdown Styling === */
@@ -44,13 +51,7 @@
   .blinking { animation: blink 1s infinite; }
   @keyframes blink { 0%,50%,100% {opacity:1;} 25%,75% {opacity:0.4;} }
 </style>
-</head>
-<body>
-<header>
-  <span id="versionTag">V.2</span> Papadums POS
-  <span id="printerDot"></span>
-  <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-</header>
+
 
 <div class="wrap">
   <!-- Tables -->
