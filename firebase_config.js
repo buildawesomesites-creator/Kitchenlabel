@@ -2,7 +2,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// ✅ FINAL Papadums Invoice Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDRc3dNn-OIidR2Qv6o9wvlpJ3Yx5vJzI4",
   authDomain: "invoiceapp-8026d.firebaseapp.com",
@@ -13,8 +12,5 @@ const firebaseConfig = {
   measurementId: "G-4QMSJQKX8R"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Export Firestore for use across modules
 export const db = getFirestore(app);
