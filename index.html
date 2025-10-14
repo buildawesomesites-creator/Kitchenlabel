@@ -87,20 +87,8 @@
 
 <!-- ========================== -->
 <!-- JS Scripts -->
-<script>
-  const isOnline = navigator.onLine;
-  const script = document.createElement("script");
-  script.defer = true;
-
-  if(isOnline){
-    script.type = "module"; // needed for import/export
-    script.src = "./index_function.online.js";
-  } else {
-    script.src = "./index_function_work.js";
-  }
-
-  document.head.appendChild(script);
-</script>
+<script type="module" src="./index_function.online.js"></script>
+<script nomodule src="./index_function_work.js"></script>
 
 <!-- Sync status & printer -->
 <script>
