@@ -1,4 +1,4 @@
-// =================== Papadums POS — Online Sync & Print Script (Final Stable) ===================
+// =================== Papadums POS — Online Sync & Print Script (Final Ultra-Stable) ===================
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
@@ -6,7 +6,7 @@ import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/fir
 
 const syncStatus = document.getElementById("syncStatus");
 let syncTimer = null;
-let refreshTimer = null;
+let listeners = {}; // active table listeners
 
 // ---------- Sync Indicator ----------
 function setSyncState(state, msg = "") {
@@ -21,9 +21,9 @@ function setSyncState(state, msg = "") {
 // ---------- Subtle Glow Effect ----------
 function glowSyncBar() {
   if (!syncStatus) return;
-  syncStatus.style.transition = "box-shadow 0.5s ease";
-  syncStatus.style.boxShadow = "0 0 10px 2px rgba(0,255,0,0.6)";
-  setTimeout(() => (syncStatus.style.boxShadow = "none"), 800);
+  syncStatus.style.transition = "box-shadow 0.6s ease";
+  syncStatus.style.boxShadow = "0 0 8px 2px rgba(0,255,0,0.5)";
+  setTimeout(() => (syncStatus.style.boxShadow = "none"), 1000);
 }
 
 // ---------- Remember last active table ----------
@@ -52,15 +52,6 @@ window.syncToFirestore = async function (tableName) {
   }
 };
 
-// ---------- Sync all tables ----------
-function syncAllTables() {
-  const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
-  keys.forEach(k => {
-    const table = k.replace("cart_", "");
-    window.syncToFirestore(table);
-  });
-}
-
 // ---------- Local change watcher ----------
 window.addEventListener("storage", (e) => {
   if (!e.key || !e.key.startsWith("cart_")) return;
@@ -69,58 +60,67 @@ window.addEventListener("storage", (e) => {
   syncTimer = setTimeout(() => {
     const table = e.key.replace("cart_", "");
     window.syncToFirestore(table);
-  }, 800);
+  }, 700);
 });
 
-// ---------- Real-time Firestore Listener ----------
-function initRealtimeListener() {
-  const ordersRef = collection(db, "orders");
+// ---------- Instant Table Switch Loader ----------
+window.switchTable = function (tableName) {
+  if (!tableName) return;
+  window.currentTable = tableName;
+  localStorage.setItem("last_table", tableName);
+  console.log("🪑 Switched to", tableName);
 
-  onSnapshot(ordersRef, (snapshot) => {
-    let updatedTables = [];
+  // Always load local first
+  if (typeof window.loadOfflineCart === "function") window.loadOfflineCart();
 
-    snapshot.docChanges().forEach((change) => {
-      const tableId = change.doc.id;
-      const data = change.doc.data();
-      if (!data || !data.items) return;
+  // Reattach listener for this table
+  attachTableListener(tableName);
+};
 
-      const remoteJSON = JSON.stringify(data.items);
-      const localJSON = localStorage.getItem(`cart_${tableId}`) || "[]";
+// ---------- Real-time Listener per Table ----------
+function attachTableListener(tableName) {
+  if (listeners[tableName]) return; // already listening
 
-      // Compare to local; update only if changed
-      if (remoteJSON !== localJSON) {
-        localStorage.setItem(`cart_${tableId}`, remoteJSON);
-        console.log(`🔄 Remote update synced locally: ${tableId}`);
-        updatedTables.push(tableId);
+  const ref = doc(collection(db, "orders"), tableName);
+  listeners[tableName] = onSnapshot(ref, (docSnap) => {
+    if (!docSnap.exists()) return;
+    const data = docSnap.data();
+    if (!data || !data.items) return;
+
+    const remoteJSON = JSON.stringify(data.items);
+    const localJSON = localStorage.getItem(`cart_${tableName}`) || "[]";
+
+    if (remoteJSON !== localJSON) {
+      localStorage.setItem(`cart_${tableName}`, remoteJSON);
+      console.log(`🔄 Remote synced locally: ${tableName}`);
+      if (tableName === window.currentTable && typeof window.loadOfflineCart === "function") {
+        window.loadOfflineCart();
+        glowSyncBar();
       }
-    });
-
-    // Refresh if active table changed
-    if (updatedTables.includes(window.currentTable)) {
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => {
-        if (typeof window.loadOfflineCart === "function") {
-          window.loadOfflineCart();
-          glowSyncBar();
-        }
-      }, 400);
     }
-
     setSyncState("online");
   }, (err) => {
-    console.warn("⚠️ Firestore listener error:", err);
+    console.warn("⚠️ Listener error for", tableName, err);
     setSyncState("offline");
   });
 }
-initRealtimeListener();
 
-// ---------- Re-Sync on reconnect ----------
+// ---------- Initialize All Listeners ----------
+function initAllListeners() {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
+  if (keys.length === 0) keys.push("cart_table1");
+  keys.forEach(k => attachTableListener(k.replace("cart_", "")));
+}
+initAllListeners();
+
+// ---------- Auto Re-Sync ----------
 window.addEventListener("online", () => {
   console.log("🌐 Connection restored — syncing all tables");
-  syncAllTables();
+  const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
+  keys.forEach(k => window.syncToFirestore(k.replace("cart_", "")));
 });
 
-// ---------- Save order data for print ----------
+// ---------- Save Order for Print ----------
 window.saveOrderDataForPrint = function (tableOverride) {
   const table = tableOverride || window.currentTable || "table1";
   const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
@@ -141,7 +141,7 @@ window.saveOrderDataForPrint = function (tableOverride) {
   return orderData;
 };
 
-// ---------- Print buttons ----------
+// ---------- Print Buttons ----------
 document.getElementById("printKOT")?.addEventListener("click", () => {
   window.saveOrderDataForPrint(window.currentTable);
   window.open("kot_browser.html", "_blank");
@@ -153,4 +153,5 @@ document.getElementById("printInv")?.addEventListener("click", () => {
 
 // ---------- Init ----------
 setSyncState("online");
-console.log("🔥 Firestore multi-table sync initialized successfully");
+attachTableListener(window.currentTable);
+console.log("🔥 Firestore real-time sync initialized per-table (vFinal Ultra-Stable)");
