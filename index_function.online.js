@@ -7,7 +7,7 @@ import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/fir
 const syncStatus = document.getElementById("syncStatus");
 const printerIpInput = document.getElementById("printerIp");
 let syncTimer = null;
-let autoSyncDebounce = null;
+let refreshTimer = null;
 
 // ---------- Printer IP ----------
 if (printerIpInput) {
@@ -34,21 +34,22 @@ function setSyncState(state, msg = "") {
 function glowSyncBar() {
   if (!syncStatus) return;
   syncStatus.style.transition = "box-shadow 0.5s ease";
-  syncStatus.style.boxShadow = "0 0 12px 3px rgba(0,255,0,0.45)";
-  setTimeout(() => {
-    if (syncStatus) syncStatus.style.boxShadow = "none";
-  }, 800);
+  syncStatus.style.boxShadow = "0 0 12px 3px rgba(0,255,0,0.6)";
+  setTimeout(() => (syncStatus.style.boxShadow = "none"), 800);
 }
 
-// ---------- Core: push current table cart to Firestore ----------
+// ---------- Remember Last Active Table ----------
+window.addEventListener("beforeunload", () => {
+  if (window.currentTable) localStorage.setItem("last_table", window.currentTable);
+});
+window.currentTable = localStorage.getItem("last_table") || "table1";
+
+// ---------- Offline-First Sync ----------
 window.syncToFirestore = async function (tableName) {
   try {
     const table = tableName || window.currentTable || "table1";
     const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-    if (!cart.length) {
-      // If empty cart, we still update Firestore to keep devices consistent (optional)
-      // return;
-    }
+    if (!cart.length) return;
 
     setSyncState("updating");
 
@@ -66,37 +67,15 @@ window.syncToFirestore = async function (tableName) {
   }
 };
 
-// ---------- Provide autoSyncToFirestore (debounced) so UI can call it ----------
-window.autoSyncToFirestore = function (tableName) {
-  // prefer explicit tableName, otherwise use currentTable
-  const table = tableName || window.currentTable || "table1";
-
-  // If offline, set status and skip scheduling push
-  if (!navigator.onLine) {
-    setSyncState("offline");
-    return;
-  }
-
-  // debounce consecutive calls (2 seconds)
-  if (autoSyncDebounce) clearTimeout(autoSyncDebounce);
-  setSyncState("updating");
-  autoSyncDebounce = setTimeout(() => {
-    window.syncToFirestore(table);
-    autoSyncDebounce = null;
-  }, 2000); // 2s debounce
-};
-
-// ---------- Auto Sync when other tabs/windows modify localStorage ----------
+// ---------- Auto Sync on Local Cart Change ----------
 window.addEventListener("storage", (e) => {
   if (e.key && e.key.startsWith("cart_")) {
-    // schedule immediate sync for that table (debounced)
-    const table = e.key.replace("cart_", "");
-    if (autoSyncDebounce) clearTimeout(autoSyncDebounce);
+    clearTimeout(syncTimer);
     setSyncState("updating");
-    autoSyncDebounce = setTimeout(() => {
+    syncTimer = setTimeout(() => {
+      const table = e.key.replace("cart_", "");
       window.syncToFirestore(table);
-      autoSyncDebounce = null;
-    }, 1000);
+    }, 2000);
   }
 });
 
@@ -108,10 +87,7 @@ window.addEventListener("online", () => {
     keys.forEach(k => {
       const table = k.replace("cart_", "");
       const cart = JSON.parse(localStorage.getItem(k) || "[]");
-      if (cart.length) {
-        // call sync with slight stagger to avoid bursts
-        setTimeout(() => window.syncToFirestore(table), 200);
-      }
+      if (cart.length) window.syncToFirestore(table);
     });
   } catch (err) {
     console.error("Sync on reconnect failed:", err);
@@ -123,37 +99,42 @@ function initRealtimeListener() {
   const ordersRef = collection(db, "orders");
 
   onSnapshot(ordersRef, (snapshot) => {
+    let updatedTables = [];
     snapshot.docChanges().forEach((change) => {
       const tableId = change.doc.id;
       const data = change.doc.data();
 
-      if (!data) return;
-      const remoteItems = data.items || [];
+      if (!data || !data.items) return;
 
-      // Read local and compare
-      const localRaw = localStorage.getItem(`cart_${tableId}`);
-      const localItems = localRaw ? JSON.parse(localRaw) : [];
+      if (change.type === "added" || change.type === "modified") {
+        const localData = localStorage.getItem(`cart_${tableId}`);
+        const localJSON = localData ? JSON.parse(localData) : [];
 
-      const localHash = JSON.stringify(localItems);
-      const remoteHash = JSON.stringify(remoteItems);
+        // Only update local if remote data differs
+        const localHash = JSON.stringify(localJSON);
+        const remoteHash = JSON.stringify(data.items);
 
-      // If they differ, write remote -> local (remote wins)
-      if (localHash !== remoteHash) {
-        localStorage.setItem(`cart_${tableId}`, remoteHash);
-        console.log(`🔁 Firestore -> localStorage updated for ${tableId}`);
-
-        // visual cue
-        glowSyncBar();
-
-        // If user is viewing that table, reload UI cart
-        if (window.currentTable === tableId && typeof window.loadOfflineCart === "function") {
-          // small timeout to ensure storage is written
-          setTimeout(() => window.loadOfflineCart(), 50);
+        if (localHash !== remoteHash) {
+          localStorage.setItem(`cart_${tableId}`, remoteHash);
+          console.log(`🔄 Updated from Firestore: ${tableId}`);
+          updatedTables.push(tableId);
         }
       }
     });
 
-    setSyncState("online");
+    // If the active table is one of the updated ones, refresh it
+    if (updatedTables.includes(window.currentTable)) {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        if (typeof window.loadOfflineCart === "function") {
+          window.loadOfflineCart();
+          glowSyncBar();
+          setSyncState("online");
+        }
+      }, 500);
+    } else {
+      setSyncState("online");
+    }
   }, (err) => {
     console.warn("⚠️ Firestore listener error:", err);
     setSyncState("offline");
@@ -183,20 +164,13 @@ window.saveOrderDataForPrint = function () {
 
 // ---------- Print Buttons ----------
 document.getElementById("printKOT")?.addEventListener("click", () => {
-  const order = window.saveOrderDataForPrint();
+  window.saveOrderDataForPrint();
   window.open("kot_browser.html", "_blank");
 });
 document.getElementById("printInvoice")?.addEventListener("click", () => {
-  const order = window.saveOrderDataForPrint();
+  window.saveOrderDataForPrint();
   window.open("invoice_browser.html", "_blank");
 });
 
 // ---------- Init ----------
 setSyncState("online");
-
-// Optional: attempt an initial sync for current table when script loads & online
-if (navigator.onLine) {
-  setTimeout(() => {
-    try { window.autoSyncToFirestore(); } catch (e) {}
-  }, 500);
-}
