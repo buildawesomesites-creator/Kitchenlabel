@@ -1,8 +1,8 @@
-// =================== Papadums POS — Online Sync (Fixed Version) ===================
+// =================== Papadums POS — Online Sync (Clean Minimal) ===================
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
-import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const syncStatus = document.getElementById("syncStatus");
 
@@ -30,13 +30,13 @@ function loadTableCartSafe(table) {
   });
 }
 
-// ---------- Restore last active table on page load ----------
+// ---------- Restore last active table ----------
 (function restoreLastTable() {
   const lastTable = localStorage.getItem("last_table") || "table1";
   loadTableCartSafe(lastTable);
 })();
 
-// ---------- Sync current table to Firestore ----------
+// ---------- Sync current table to Firestore (mirror only) ----------
 window.syncToFirestore = async function () {
   if (!navigator.onLine) return setSyncState("offline");
   try {
@@ -55,38 +55,7 @@ window.syncToFirestore = async function () {
   }
 };
 
-// ---------- Firestore listener with safe merge ----------
-(function attachListener() {
-  const ordersRef = collection(db, "orders");
-  onSnapshot(ordersRef, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      const tableId = change.doc.id;
-      const data = change.doc.data();
-      if (!data || !data.items) return;
-
-      const localKey = `cart_${tableId}`;
-      const localJSON = localStorage.getItem(localKey) || "[]";
-      const remoteJSON = JSON.stringify(data.items);
-
-      // Only overwrite if remote has different content
-      if (localJSON !== remoteJSON) {
-        // If cleared locally, skip overwrite
-        if (localJSON === "[]") return;
-        localStorage.setItem(localKey, remoteJSON);
-        console.log(`🔄 Remote update synced locally: ${localKey}`);
-        if (window.currentTable === tableId && typeof window.loadTableCart === "function") {
-          window.loadTableCart();
-        }
-      }
-    });
-    setSyncState("online");
-  }, (err) => {
-    console.warn("Firestore listener error:", err);
-    setSyncState("offline");
-  });
-})();
-
-// ---------- Clear table sync helper ----------
+// ---------- Clear current table ----------
 window.clearCurrentTable = function () {
   window.cart = [];
   if (typeof window.renderCart === "function") window.renderCart();
@@ -96,6 +65,24 @@ window.clearCurrentTable = function () {
   window.syncToFirestore();
   console.log(`🗑️ Cleared table ${window.currentTable}`);
 };
+
+// ---------- Auto-sync on changes ----------
+function autoSync() {
+  // Only sync current table
+  if (window.cart) window.syncToFirestore();
+}
+
+// Hook into your existing add/remove/clear product functions
+// After adding/removing item or clearing table, call autoSync()
+
+// Example for table switching:
+document.querySelectorAll(".table-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    const newTable = card.dataset.table;
+    loadTableCartSafe(newTable);
+    autoSync();
+  });
+});
 
 // ---------- Re-sync on reconnect ----------
 window.addEventListener("online", () => {
@@ -111,3 +98,6 @@ if (printerIpInput) {
     localStorage.setItem("printerIp", e.target.value.trim());
   });
 }
+
+// ---------- Done ----------
+setSyncState("online");
