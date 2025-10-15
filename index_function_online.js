@@ -5,6 +5,7 @@ import { collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic
 
 const syncStatus = document.getElementById("syncStatus");
 
+// ---------- Sync status ----------
 function setSyncState(state) {
   if (!syncStatus) return;
   syncStatus.className = state;
@@ -13,7 +14,7 @@ function setSyncState(state) {
   else if (state === "syncing") syncStatus.textContent = "⏫ Syncing...";
 }
 
-// ---------- Sync single table with indicator ----------
+// ---------- Sync current table to Firebase ----------
 async function syncTable(table) {
   const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
   const card = document.querySelector(`.table-card[data-table="${table}"]`);
@@ -26,11 +27,13 @@ async function syncTable(table) {
       updatedAt: new Date().toISOString(),
     });
     setSyncState("online");
+
     if (card) {
       card.classList.remove("syncing");
       card.classList.add("sync-online");
       setTimeout(() => card.classList.remove("sync-online"), 1000);
     }
+
     console.log(`☁️ Synced table ${table} (${cart.length} items)`);
   } catch (err) {
     console.warn("⚠️ Sync failed:", err);
@@ -39,37 +42,37 @@ async function syncTable(table) {
   }
 }
 
-// ---------- Auto-sync current table ----------
+// ---------- Auto-sync current table (called from index_function_work.js) ----------
 window.autoSync = function() {
   if (!window.currentTable) return;
   syncTable(window.currentTable);
 };
 
-// ---------- Initial fetch all tables ----------
-async function fetchAllTables() {
+// ---------- Load only current table from Firebase ----------
+async function loadCurrentTableFromFirebase() {
+  if (!window.currentTable) return;
   if (!navigator.onLine) return setSyncState("offline");
 
+  const table = window.currentTable;
   setSyncState("syncing");
-  const tables = Array.from(document.querySelectorAll(".table-card")).map(c => c.dataset.table);
 
-  for (const table of tables) {
-    try {
-      const docSnap = await getDoc(doc(db, "orders", table));
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        localStorage.setItem(`cart_${table}`, JSON.stringify(data.items || []));
-        console.log(`🔄 Loaded table ${table} from Firebase`);
-      }
-    } catch (err) {
-      console.warn("⚠️ Fetch table failed:", table, err);
+  try {
+    const docSnap = await getDoc(doc(db, "orders", table));
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      localStorage.setItem(`cart_${table}`, JSON.stringify(data.items || []));
+      console.log(`🔄 Loaded table ${table} from Firebase`);
     }
-  }
-  setSyncState("online");
+    setSyncState("online");
 
-  if (typeof window.loadTableCart === "function") window.loadTableCart();
+    if (typeof window.loadTableCart === "function") window.loadTableCart();
+  } catch (err) {
+    console.warn("⚠️ Fetch table failed:", table, err);
+    setSyncState("offline");
+  }
 }
 
-// ---------- Real-time listener ----------
+// ---------- Realtime listener for all tables ----------
 function initRealtimeListener() {
   const ordersRef = collection(db, "orders");
   onSnapshot(ordersRef, (snapshot) => {
@@ -83,6 +86,8 @@ function initRealtimeListener() {
 
       if (localJSON !== remoteJSON) {
         localStorage.setItem(`cart_${tableId}`, remoteJSON);
+        console.log(`🔄 Remote update synced locally: cart_${tableId}`);
+
         if (window.currentTable === tableId && typeof window.loadTableCart === "function") {
           window.loadTableCart();
         }
@@ -92,22 +97,17 @@ function initRealtimeListener() {
           card.classList.add("sync-online");
           setTimeout(() => card.classList.remove("sync-online"), 1000);
         }
-        console.log(`🔄 Remote update synced locally: cart_${tableId}`);
       }
     });
-    setSyncState("online");
   }, (err) => {
     console.warn("Firestore listener error:", err);
-    setSyncState("offline");
   });
 }
 
-// ---------- Re-sync on reconnect ----------
+// ---------- Online reconnect ----------
 window.addEventListener("online", () => {
-  console.log("🌐 Connection restored — syncing all tables");
-  fetchAllTables().then(() => {
-    window.autoSync?.();
-  });
+  console.log("🌐 Online — syncing current table");
+  loadCurrentTableFromFirebase().then(() => window.autoSync?.());
 });
 
 // ---------- Printer IP ----------
@@ -120,5 +120,5 @@ if (printerIpInput) {
 }
 
 // ---------- INIT ----------
-fetchAllTables();
+loadCurrentTableFromFirebase(); // load only active table
 initRealtimeListener();
