@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en" translate="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Papadums POS V.1</title>
+
+</head>
+<body>
+  <header>
+    <span id="versionTag">V. 1</span>
+    Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
+
+
+  
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* === Dark Dropdown Styling === */
+    #productDropdown {
+      position: absolute;
+      background: #222;
+      color: #f1f1f1;
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      width: calc(100% - 10px);
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    #productDropdown div {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+      transition: background 0.2s ease;
+    }
+    #productDropdown div:hover {
+      background: #333;
+    }
+    #productDropdown::-webkit-scrollbar {
+      width: 6px;
+    }
+    #productDropdown::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 3px;
+    }
+  </style>
+
+  <div class="wrap">
+    <div class="table-panel">
+      <h3>Tables</h3>
+      <div class="tables" id="tablesContainer">
+        <div class="table-card active" data-table="table1"><strong>1</strong></div>
+        <div class="table-card" data-table="table2"><strong>2</strong></div>
+        <div class="table-card" data-table="table3"><strong>3</strong></div>
+        <div class="table-card" data-table="takeaway"><strong>Takeaway</strong></div>
+        <div class="table-card" data-table="online"><strong>Online</strong></div>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="top-row" style="position: relative;">
+        <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
+        <datalist id="productList"></datalist>
+        <div id="productDropdown"></div>
+        <input id="qty" type="number" min="1" value="1" />
+      </div>
+      <div class="bottom-row">
+        <button id="clearBtn" class="btn-clear">Clear Items</button>
+        <button id="addBtn" class="btn-add">Add Item</button>
+      </div>
+    </div>
+
+    <div class="preview-panel" id="previewPanel">
+      <div class="preview-header">
+        <h3>Order Preview</h3>
+        <small id="previewInfo">Table 1</small>
+      </div>
+      <div class="preview-body" id="previewBody">
+        <div style="text-align:center;color:#777;padding:18px">No items</div>
+      </div>
+      <div class="totals-row">
+        <div>Total</div>
+        <div id="totalDisplay">0₫</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-fixed">
+    <div class="footer-inner">
+      <button id="printKOT" class="footer-btn kot">Print KOT</button>
+      <button id="printInv" class="footer-btn inv">Print Invoice</button>
+      <input id="printerIp" type="text" placeholder="Printer IP" style="
+        flex:0 0 180px;
+        border:1px solid #e6eefc;
+        border-radius:10px;
+        padding:0 10px;
+        font-size:15px;
+        outline:none;
+      " />
+    </div>
+  </div>
+
+  <div id="fullPreviewModal">
+    <div id="fullPreviewBox">
+      <span id="closePreview">&times;</span>
+      <div id="fullPreviewContent"></div>
+    </div>
+  </div>
+
+  <script type="module" src="./index_function.online.js"></script>
+
+  <script>
+    // === Format Number (Indian style) ===
+    function formatNumber(num) {
+      if (isNaN(num)) return num;
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        .replace(/(\d+)(?=(\d\d)+\d$)/, function(x){ return x.replace(/\B(?=(\d{2})+(?!\d))/g, ","); });
+    }
+
+    // === Printer Connection ===
+    const ipInput = document.getElementById("printerIp");
+    const savedIp = localStorage.getItem("printerIp");
+    if (savedIp) ipInput.value = savedIp;
+    const dot = document.getElementById("printerDot");
+
+    async function checkPrinterConnection() {
+      const ip = localStorage.getItem("printerIp");
+      if (!ip) { dot.style.background="gray"; dot.classList.remove("blinking"); return; }
+      dot.style.background="yellow"; dot.classList.add("blinking");
+      try { await fetch(`http://${ip}:9100`,{mode:"no-cors"}); dot.style.background="limegreen"; }
+      catch { dot.style.background="red"; }
+      finally { dot.classList.remove("blinking"); }
+    }
+    ipInput.addEventListener("input",()=>{localStorage.setItem("printerIp",ipInput.value);checkPrinterConnection();});
+    checkPrinterConnection(); setInterval(checkPrinterConnection,10000);
+
+    // === Clickable Order Preview ===
+    const previewPanel = document.getElementById("previewPanel");
+    const fullModal = document.getElementById("fullPreviewModal");
+    const fullContent = document.getElementById("fullPreviewContent");
+    const closeBtn = document.getElementById("closePreview");
+    previewPanel.addEventListener("click",()=>{
+      fullContent.innerHTML = document.getElementById("previewBody").innerHTML +
+        `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${document.getElementById("totalDisplay").textContent}</div>`;
+      fullModal.style.display="flex";
+    });
+    closeBtn.onclick = ()=> fullModal.style.display="none";
+    fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
+
+    // === Custom Scrollable Search Dropdown (Dark) ===
+    const searchInput = document.getElementById("productSearch");
+    const dropdown = document.getElementById("productDropdown");
+
+    searchInput.addEventListener("input", () => {
+      const value = searchInput.value.toLowerCase();
+      const options = Array.from(document.getElementById("productList").options);
+      dropdown.innerHTML = "";
+      const filtered = options.filter(o => o.value.toLowerCase().includes(value));
+      filtered.forEach(o => {
+        const div = document.createElement("div");
+        div.textContent = o.value;
+        div.onclick = () => {
+          searchInput.value = o.value;
+          dropdown.style.display = "none";
+        };
+        dropdown.appendChild(div);
+      });
+      dropdown.style.display = filtered.length ? "block" : "none";
+    });
+
+    document.addEventListener("click", e => {
+      if (!searchInput.contains(e.target)) dropdown.style.display = "none";
+    });
+  </script>
+
+  <!-- Add these lines before the closing </body> tag -->
+  <script type="module" src="./index_function_work.js"></script>
+  <script type="module" src="./index_function.online.js"></script>
+<script>
+  // === Hide Android native dropdown to prevent white overlay ===
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('wv') || ua.includes('version/')) { // Android WebView detection
+    const input = document.getElementById('productSearch');
+    // Disable system datalist dropdown
+    input.removeAttribute('list');
+    input.setAttribute('autocomplete', 'off');
+  }
+</script>
+
+  
+</body>
+</html>
