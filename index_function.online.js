@@ -7,6 +7,7 @@ import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/fir
 const syncStatus = document.getElementById("syncStatus");
 const printerIpInput = document.getElementById("printerIp");
 let syncTimer = null;
+let autoSyncDebounce = null;
 
 // ---------- Printer IP ----------
 if (printerIpInput) {
@@ -33,18 +34,21 @@ function setSyncState(state, msg = "") {
 function glowSyncBar() {
   if (!syncStatus) return;
   syncStatus.style.transition = "box-shadow 0.5s ease";
-  syncStatus.style.boxShadow = "0 0 12px 3px rgba(0,255,0,0.6)";
+  syncStatus.style.boxShadow = "0 0 12px 3px rgba(0,255,0,0.45)";
   setTimeout(() => {
-    syncStatus.style.boxShadow = "none";
+    if (syncStatus) syncStatus.style.boxShadow = "none";
   }, 800);
 }
 
-// ---------- Offline-First Sync ----------
+// ---------- Core: push current table cart to Firestore ----------
 window.syncToFirestore = async function (tableName) {
   try {
     const table = tableName || window.currentTable || "table1";
     const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-    if (!cart.length) return;
+    if (!cart.length) {
+      // If empty cart, we still update Firestore to keep devices consistent (optional)
+      // return;
+    }
 
     setSyncState("updating");
 
@@ -62,15 +66,37 @@ window.syncToFirestore = async function (tableName) {
   }
 };
 
-// ---------- Auto Sync on Local Cart Change ----------
+// ---------- Provide autoSyncToFirestore (debounced) so UI can call it ----------
+window.autoSyncToFirestore = function (tableName) {
+  // prefer explicit tableName, otherwise use currentTable
+  const table = tableName || window.currentTable || "table1";
+
+  // If offline, set status and skip scheduling push
+  if (!navigator.onLine) {
+    setSyncState("offline");
+    return;
+  }
+
+  // debounce consecutive calls (2 seconds)
+  if (autoSyncDebounce) clearTimeout(autoSyncDebounce);
+  setSyncState("updating");
+  autoSyncDebounce = setTimeout(() => {
+    window.syncToFirestore(table);
+    autoSyncDebounce = null;
+  }, 2000); // 2s debounce
+};
+
+// ---------- Auto Sync when other tabs/windows modify localStorage ----------
 window.addEventListener("storage", (e) => {
   if (e.key && e.key.startsWith("cart_")) {
-    clearTimeout(syncTimer);
+    // schedule immediate sync for that table (debounced)
+    const table = e.key.replace("cart_", "");
+    if (autoSyncDebounce) clearTimeout(autoSyncDebounce);
     setSyncState("updating");
-    syncTimer = setTimeout(() => {
-      const table = e.key.replace("cart_", "");
+    autoSyncDebounce = setTimeout(() => {
       window.syncToFirestore(table);
-    }, 2000);
+      autoSyncDebounce = null;
+    }, 1000);
   }
 });
 
@@ -82,7 +108,10 @@ window.addEventListener("online", () => {
     keys.forEach(k => {
       const table = k.replace("cart_", "");
       const cart = JSON.parse(localStorage.getItem(k) || "[]");
-      if (cart.length) window.syncToFirestore(table);
+      if (cart.length) {
+        // call sync with slight stagger to avoid bursts
+        setTimeout(() => window.syncToFirestore(table), 200);
+      }
     });
   } catch (err) {
     console.error("Sync on reconnect failed:", err);
@@ -98,24 +127,28 @@ function initRealtimeListener() {
       const tableId = change.doc.id;
       const data = change.doc.data();
 
-      if (!data || !data.items) return;
+      if (!data) return;
+      const remoteItems = data.items || [];
 
-      if (change.type === "added" || change.type === "modified") {
-        const localData = localStorage.getItem(`cart_${tableId}`);
-        const localJSON = localData ? JSON.parse(localData) : [];
+      // Read local and compare
+      const localRaw = localStorage.getItem(`cart_${tableId}`);
+      const localItems = localRaw ? JSON.parse(localRaw) : [];
 
-        // Only update local if remote data differs
-        const localHash = JSON.stringify(localJSON);
-        const remoteHash = JSON.stringify(data.items);
+      const localHash = JSON.stringify(localItems);
+      const remoteHash = JSON.stringify(remoteItems);
 
-        if (localHash !== remoteHash) {
-          localStorage.setItem(`cart_${tableId}`, remoteHash);
-          console.log(`🔄 Updated from Firestore: ${tableId}`);
-          glowSyncBar();
+      // If they differ, write remote -> local (remote wins)
+      if (localHash !== remoteHash) {
+        localStorage.setItem(`cart_${tableId}`, remoteHash);
+        console.log(`🔁 Firestore -> localStorage updated for ${tableId}`);
 
-          if (window.currentTable === tableId && typeof window.loadOfflineCart === "function") {
-            window.loadOfflineCart();
-          }
+        // visual cue
+        glowSyncBar();
+
+        // If user is viewing that table, reload UI cart
+        if (window.currentTable === tableId && typeof window.loadOfflineCart === "function") {
+          // small timeout to ensure storage is written
+          setTimeout(() => window.loadOfflineCart(), 50);
         }
       }
     });
@@ -160,3 +193,10 @@ document.getElementById("printInvoice")?.addEventListener("click", () => {
 
 // ---------- Init ----------
 setSyncState("online");
+
+// Optional: attempt an initial sync for current table when script loads & online
+if (navigator.onLine) {
+  setTimeout(() => {
+    try { window.autoSyncToFirestore(); } catch (e) {}
+  }, 500);
+}
