@@ -1,218 +1,154 @@
-// =================== Papadums POS — Local Function Script ===================
-console.log("✅ index_function_work.js loaded");
+// =================== Papadums POS — Online Sync & Print Script (Stable Multi-Table) ===================
+console.log("✅ index_function_online.js loaded");
 
-let cart = [];
-let currentTable = "table1";
-let products = [];
-const isNative = /wv|Android.*Version/.test(navigator.userAgent) || window.AndroidInterface;
+import { db } from "./firebase_config.js";
+import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// ---------- Offline Cart Persistence ----------
-function saveOfflineCart() {
-  localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
+const syncStatus = document.getElementById("syncStatus");
+let refreshTimer = null;
+let syncDebounce = null;
+
+// ---------- Sync Indicator ----------
+function setSyncState(state, msg = "") {
+  if (!syncStatus) return;
+  syncStatus.className = state;
+  if (state === "online") syncStatus.textContent = "✅ Online";
+  else if (state === "offline") syncStatus.textContent = "⚠️ Offline";
+  else if (state === "updating") syncStatus.textContent = "⏫ Updating...";
+  else syncStatus.textContent = msg || "🔄 Syncing...";
 }
-function loadOfflineCart() {
-  const saved = localStorage.getItem(`cart_${currentTable}`);
-  cart = saved ? JSON.parse(saved) : [];
-  renderCart();
+
+// ---------- Subtle Glow ----------
+function glowSyncBar() {
+  if (!syncStatus) return;
+  syncStatus.style.transition = "box-shadow 0.5s ease";
+  syncStatus.style.boxShadow = "0 0 10px 3px rgba(0,255,0,0.5)";
+  setTimeout(() => (syncStatus.style.boxShadow = "none"), 800);
 }
-window.addEventListener("beforeunload", saveOfflineCart);
 
-// ---------- Elements ----------
-const searchInput = document.getElementById("productSearch");
-const qtyInput = document.getElementById("qty");
-const addBtn = document.getElementById("addBtn");
-const clearBtn = document.getElementById("clearBtn");
-const previewBody = document.getElementById("previewBody");
-const totalDisplay = document.getElementById("totalDisplay");
-const tableCards = document.querySelectorAll(".table-card");
-const previewInfo = document.getElementById("previewInfo");
-const printKOT = document.getElementById("printKOT");
-const printInv = document.getElementById("printInv");
-const productDropdown = document.getElementById("productDropdown");
+// ---------- Remember Last Active Table ----------
+window.addEventListener("beforeunload", () => {
+  if (window.currentTable) localStorage.setItem("last_table", window.currentTable);
+});
+window.currentTable = localStorage.getItem("last_table") || "table1";
 
-// ---------- Product Load Logic ----------
-const GITHUB_RAW_URL =
-  "https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json";
+// ---------- Offline-First: Push local changes ----------
+window.syncToFirestore = async function (tableName) {
+  const table = tableName || window.currentTable || "table1";
+  const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
 
-async function loadProducts() {
   try {
-    const res = await fetch(GITHUB_RAW_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error("GitHub fetch failed");
-    products = await res.json();
-    localStorage.setItem("offlineProducts", JSON.stringify(products));
-  } catch {
-    try {
-      const resLocal = await fetch("./products.json", { cache: "no-store" });
-      if (!resLocal.ok) throw new Error("Local fetch failed");
-      products = await resLocal.json();
-      localStorage.setItem("offlineProducts", JSON.stringify(products));
-    } catch {
-      products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
+    setSyncState("updating");
+    await setDoc(doc(collection(db, "orders"), table), {
+      items: cart,
+      updatedAt: new Date().toISOString(),
+    });
+    console.log(`☁️ Synced: ${table} (${cart.length} items)`);
+    setSyncState("online");
+    glowSyncBar();
+  } catch (err) {
+    console.warn(`⚠️ Sync failed for ${table}:`, err);
+    setSyncState("offline");
+  }
+};
+
+// ---------- Sync All Local Tables ----------
+function syncAllTables() {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
+  keys.forEach(k => {
+    const table = k.replace("cart_", "");
+    window.syncToFirestore(table);
+  });
+}
+
+// ---------- Local Storage Change Listener ----------
+window.addEventListener("storage", (e) => {
+  if (!e.key || !e.key.startsWith("cart_")) return;
+  clearTimeout(syncDebounce);
+  setSyncState("updating");
+  syncDebounce = setTimeout(() => {
+    const table = e.key.replace("cart_", "");
+    window.syncToFirestore(table);
+  }, 800);
+});
+
+// ---------- Real-Time Listener ----------
+function initRealtimeListener() {
+  const ordersRef = collection(db, "orders");
+
+  onSnapshot(ordersRef, (snapshot) => {
+    let updatedTables = [];
+
+    snapshot.docChanges().forEach((change) => {
+      const tableId = change.doc.id;
+      const data = change.doc.data();
+      if (!data || !data.items) return;
+
+      const remoteJSON = JSON.stringify(data.items);
+      const localJSON = localStorage.getItem(`cart_${tableId}`) || "[]";
+
+      if (remoteJSON !== localJSON) {
+        localStorage.setItem(`cart_${tableId}`, remoteJSON);
+        console.log(`🔄 Remote update -> saved locally: ${tableId}`);
+        updatedTables.push(tableId);
+      }
+    });
+
+    if (updatedTables.includes(window.currentTable)) {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        if (typeof window.loadOfflineCart === "function") {
+          window.loadOfflineCart();
+          glowSyncBar();
+        }
+      }, 300);
     }
-  }
-  populateProductList();
-}
 
-function populateProductList() {
-  const datalist = document.getElementById("productList");
-  if (!datalist) return;
-  datalist.innerHTML = "";
-  products.forEach((p) => {
-    const opt = document.createElement("option");
-    opt.value = p.name;
-    datalist.appendChild(opt);
+    setSyncState("online");
+  }, (err) => {
+    console.warn("⚠️ Firestore listener error:", err);
+    setSyncState("offline");
   });
 }
 
-// ---------- Search Dropdown ----------
-searchInput.addEventListener("input", () => {
-  const term = searchInput.value.toLowerCase().trim();
-  productDropdown.innerHTML = "";
-  if (!term) return (productDropdown.style.display = "none");
-
-  const matches = products.filter((p) => p.name.toLowerCase().includes(term));
-  matches.forEach((p) => {
-    const div = document.createElement("div");
-    div.textContent = p.name;
-    div.addEventListener("click", () => {
-      searchInput.value = p.name;
-      productDropdown.style.display = "none";
-      autoAddProduct();
-    });
-    productDropdown.appendChild(div);
-  });
-  productDropdown.style.display = matches.length ? "block" : "none";
-});
-document.addEventListener("click", (e) => {
-  if (!searchInput.contains(e.target)) productDropdown.style.display = "none";
+// ---------- Auto Re-Sync on Reconnect ----------
+window.addEventListener("online", () => {
+  console.log("🌐 Connection restored — syncing all tables");
+  syncAllTables();
 });
 
-// ---------- Add Product ----------
-function autoAddProduct() {
-  const name = searchInput.value.trim();
-  const qty = parseInt(qtyInput.value || "1");
-  const prod = products.find((p) => p.name.toLowerCase() === name.toLowerCase());
-  if (!prod) return;
+// ---------- Print Data (used by KOT & Invoice) ----------
+window.saveOrderDataForPrint = function (tableOverride) {
+  const table = tableOverride || window.currentTable || "table1";
+  const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
 
-  const existing = cart.find((i) => i.name === prod.name);
-  if (existing) existing.qty += qty;
-  else cart.push({ ...prod, qty });
-
-  renderCart();
-  searchInput.value = "";
-  qtyInput.value = 1;
-}
-addBtn.addEventListener("click", autoAddProduct);
-
-// ---------- Clear All ----------
-clearBtn.addEventListener("click", () => {
-  if (confirm("Clear all items?")) {
-    cart = [];
-    renderCart();
-  }
-});
-
-// ---------- Render Cart ----------
-function renderCart() {
-  previewBody.innerHTML = "";
-  if (!cart.length) {
-    previewBody.innerHTML = '<div style="text-align:center;color:#777;padding:16px">No items</div>';
-  } else {
-    cart.forEach((item, i) => {
-      const row = document.createElement("div");
-      row.className = "item-row";
-      row.innerHTML = `
-        <div class="item-left">${item.name}</div>
-        <div class="item-right">
-          <button class="qty-btn" data-i="${i}" data-type="minus">−</button>
-          <span>${item.qty}</span>
-          <button class="qty-btn" data-i="${i}" data-type="plus">+</button>
-          <strong>${(item.price * item.qty).toLocaleString()}₫</strong>
-          <button class="remove-btn" data-i="${i}">x</button>
-        </div>`;
-      previewBody.appendChild(row);
-    });
-  }
-  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
-  totalDisplay.textContent = total.toLocaleString() + "₫";
-  saveOfflineCart();
-
-  // trigger auto online sync (every render)
-  if (navigator.onLine && window.autoSyncToFirestore) window.autoSyncToFirestore();
-}
-
-// ---------- Qty / Remove ----------
-previewBody.addEventListener("click", (e) => {
-  const i = e.target.dataset.i;
-  if (i === undefined) return;
-  if (e.target.dataset.type === "plus") cart[i].qty++;
-  else if (e.target.dataset.type === "minus" && cart[i].qty > 1) cart[i].qty--;
-  else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
-  renderCart();
-});
-
-// ---------- Table Switching ----------
-tableCards.forEach((card) => {
-  card.addEventListener("click", () => {
-    tableCards.forEach((c) => c.classList.remove("active"));
-    card.classList.add("active");
-    currentTable = card.dataset.table;
-    previewInfo.textContent = card.textContent.trim();
-    loadOfflineCart();
-  });
-});
-
-// ---------- Print Save ----------
-function saveOrderDataForPrint() {
   const orderData = {
-    table: currentTable,
+    table,
     time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: cart,
-    total: cart.reduce((s, i) => s + i.qty * i.price, 0),
+    items: cart.map(i => ({
+      name: i.name,
+      price: i.price,
+      qty: i.qty,
+      unit: i.unit || "",
+    })),
+    total: cart.reduce((s, i) => s + i.price * i.qty, 0),
   };
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
-}
 
-printKOT.addEventListener("click", () => {
-  saveOrderDataForPrint();
+  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
+  return orderData;
+};
+
+// ---------- Buttons ----------
+document.getElementById("printKOT")?.addEventListener("click", () => {
+  window.saveOrderDataForPrint(window.currentTable);
   window.open("kot_browser.html", "_blank");
 });
-printInv.addEventListener("click", () => {
-  saveOrderDataForPrint();
+document.getElementById("printInvoice")?.addEventListener("click", () => {
+  window.saveOrderDataForPrint(window.currentTable);
   window.open("invoice_browser.html", "_blank");
 });
 
-// ---------- Full Preview Modal ----------
-const fullPreviewModal = document.getElementById("fullPreviewModal");
-const fullPreviewContent = document.getElementById("fullPreviewContent");
-const closePreview = document.getElementById("closePreview");
-const previewPanel = document.getElementById("previewPanel");
-
-previewPanel.addEventListener("click", () => {
-  fullPreviewContent.innerHTML =
-    previewBody.innerHTML +
-    `<div style='padding:12px;font-weight:800;text-align:right;border-top:1px solid #eee;margin-top:10px;'>Total: ${totalDisplay.textContent}</div>`;
-  fullPreviewModal.style.display = "flex";
-});
-closePreview.onclick = () => (fullPreviewModal.style.display = "none");
-fullPreviewModal.addEventListener("click", (e) => {
-  if (e.target === fullPreviewModal) fullPreviewModal.style.display = "none";
-});
-
 // ---------- Init ----------
-(async () => {
-  await loadProducts();
-  loadOfflineCart();
-
-  // Printer IP save/load
-  const printerIpInput = document.getElementById("printerIp");
-  const savedPrinterIp = localStorage.getItem("printer_ip");
-  if (savedPrinterIp && printerIpInput) printerIpInput.value = savedPrinterIp;
-  if (printerIpInput)
-    printerIpInput.addEventListener("change", () => {
-      const ip = printerIpInput.value.trim();
-      localStorage.setItem("printer_ip", ip);
-    });
-
-  if (window.initFirestoreRealtime) window.initFirestoreRealtime(); // start listener
-})();
+initRealtimeListener();
+setSyncState("online");
+console.log("🔥 Firestore multi-table sync initialized");
