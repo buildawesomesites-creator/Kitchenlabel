@@ -15,24 +15,11 @@ const totalDisplay = document.getElementById("totalDisplay");
 const previewInfo = document.getElementById("previewInfo");
 const printKOTBtn = document.getElementById("printKOT");
 const printInvBtn = document.getElementById("printInv");
-const syncStatus = document.getElementById("syncStatus");
 
 // ---------- Format Number ----------
 function formatNumber(num){
   if(isNaN(num)) return num;
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,",");
-}
-
-// ---------- Sync / Status ----------
-function setSyncState(state){
-  if(!syncStatus) return;
-  syncStatus.className = state;
-  switch(state){
-    case "online": syncStatus.textContent="✅ Synced"; break;
-    case "offline": syncStatus.textContent="⚠️ Offline"; break;
-    case "syncing": syncStatus.textContent="⏫ Syncing..."; break;
-    case "local": syncStatus.textContent="🟪 Local"; break;
-  }
 }
 
 // ---------- Render Cart ----------
@@ -60,11 +47,9 @@ function renderCart(){
 // ---------- Save Cart ----------
 function saveCart(){
   if(!window.currentTable) return;
-  // Save to localStorage for offline + print
   localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
   localStorage.setItem("last_table", window.currentTable);
-  setSyncState("local");
-  if(typeof window.autoSync==="function") window.autoSync();
+  renderCart();  // refresh UI
 }
 
 // ---------- Load Cart ----------
@@ -73,7 +58,6 @@ window.loadTableCart = function(){
   window.cart = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
   renderCart();
   if(previewInfo) previewInfo.textContent = t.replace(/table/i,"Table ");
-  setSyncState("local");
 };
 
 // ---------- Add Item ----------
@@ -87,8 +71,6 @@ function addItem(name){
   else window.cart.push({name:prod.name, price:prod.price, qty});
 
   saveCart();
-  renderCart();
-
   searchInput.value = "";
   productDropdown.style.display = "none";
   qtyInput.value = 1;
@@ -98,14 +80,12 @@ function addItem(name){
 window.removeItem = function(index){
   window.cart.splice(index,1);
   saveCart();
-  renderCart();
 };
 
 // ---------- Clear Cart ----------
 clearBtn.addEventListener("click", ()=>{
   window.cart=[];
   saveCart();
-  renderCart();
 });
 
 // ---------- Dropdown Search ----------
@@ -135,15 +115,8 @@ document.querySelectorAll(".table-card").forEach(card=>{
     card.classList.add("active");
     window.currentTable = card.dataset.table;
     window.loadTableCart();
-    blinkTable(card);
   });
 });
-
-// ---------- Blink Table Card ----------
-function blinkTable(card){
-  card.classList.add("blinking");
-  setTimeout(()=>card.classList.remove("blinking"), 1000);
-}
 
 // ---------- KOT / Invoice ----------
 if(printKOTBtn){
