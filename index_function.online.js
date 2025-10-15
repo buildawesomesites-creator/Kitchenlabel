@@ -1,24 +1,12 @@
-// =================== Papadums POS — Online Sync & Print Script ===================
+// =================== Papadums POS — Online Sync & Print Script (Final) ===================
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
 import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const syncStatus = document.getElementById("syncStatus");
-const printerIpInput = document.getElementById("printerIp");
 let syncTimer = null;
 let refreshTimer = null;
-
-// ---------- Printer IP ----------
-if (printerIpInput) {
-  printerIpInput.value = localStorage.getItem("printerIp") || "";
-  printerIpInput.addEventListener("input", (e) => {
-    localStorage.setItem("printerIp", e.target.value.trim());
-  });
-}
-function getPrinterIP() {
-  return localStorage.getItem("printerIp") || "";
-}
 
 // ---------- Sync Indicator ----------
 function setSyncState(state, msg = "") {
@@ -30,7 +18,7 @@ function setSyncState(state, msg = "") {
   else syncStatus.textContent = msg || "🔄 Syncing...";
 }
 
-// ---------- Subtle Green Glow Effect ----------
+// ---------- Subtle Glow Effect ----------
 function glowSyncBar() {
   if (!syncStatus) return;
   syncStatus.style.transition = "box-shadow 0.5s ease";
@@ -38,7 +26,7 @@ function glowSyncBar() {
   setTimeout(() => (syncStatus.style.boxShadow = "none"), 800);
 }
 
-// ---------- Remember Last Active Table ----------
+// ---------- Remember last active table ----------
 window.addEventListener("beforeunload", () => {
   if (window.currentTable) localStorage.setItem("last_table", window.currentTable);
 });
@@ -58,16 +46,16 @@ window.syncToFirestore = async function (tableName) {
       updatedAt: new Date().toISOString(),
     });
 
+    console.log(`☁️ Synced ${table} (${cart.length} items)`);
     setSyncState("online");
     glowSyncBar();
-    console.log(`☁️ Synced ${table} (${cart.length} items)`);
   } catch (err) {
     console.warn("⚠️ Sync failed:", err);
     setSyncState("offline");
   }
 };
 
-// ---------- Auto Sync on Local Cart Change ----------
+// ---------- Auto Sync when local changes ----------
 window.addEventListener("storage", (e) => {
   if (e.key && e.key.startsWith("cart_")) {
     clearTimeout(syncTimer);
@@ -75,11 +63,11 @@ window.addEventListener("storage", (e) => {
     syncTimer = setTimeout(() => {
       const table = e.key.replace("cart_", "");
       window.syncToFirestore(table);
-    }, 2000);
+    }, 1500);
   }
 });
 
-// ---------- Auto Sync on Reconnect ----------
+// ---------- Auto Sync on reconnect ----------
 window.addEventListener("online", () => {
   console.log("🌐 Reconnected — syncing all tables");
   try {
@@ -94,53 +82,61 @@ window.addEventListener("online", () => {
   }
 });
 
-// ---------- Real-Time Firestore Listener (Cross-Device Live Sync) ----------
+// ---------- Real-Time Firestore Listener (Improved) ----------
 function initRealtimeListener() {
   const ordersRef = collection(db, "orders");
 
   onSnapshot(ordersRef, (snapshot) => {
     let updatedTables = [];
+
     snapshot.docChanges().forEach((change) => {
       const tableId = change.doc.id;
       const data = change.doc.data();
-
       if (!data || !data.items) return;
 
-      if (change.type === "added" || change.type === "modified") {
-        const localData = localStorage.getItem(`cart_${tableId}`);
-        const localJSON = localData ? JSON.parse(localData) : [];
+      // Compare with local copy
+      const localData = localStorage.getItem(`cart_${tableId}`);
+      const localJSON = localData ? JSON.parse(localData) : [];
+      const localHash = JSON.stringify(localJSON);
+      const remoteHash = JSON.stringify(data.items);
 
-        // Only update local if remote data differs
-        const localHash = JSON.stringify(localJSON);
-        const remoteHash = JSON.stringify(data.items);
-
-        if (localHash !== remoteHash) {
-          localStorage.setItem(`cart_${tableId}`, remoteHash);
-          console.log(`🔄 Updated from Firestore: ${tableId}`);
-          updatedTables.push(tableId);
-        }
+      // Only update if remote changed
+      if (localHash !== remoteHash) {
+        localStorage.setItem(`cart_${tableId}`, remoteHash);
+        console.log(`🔄 Firestore update detected for: ${tableId}`);
+        updatedTables.push(tableId);
       }
     });
 
-    // If the active table is one of the updated ones, refresh it
+    // Refresh active table immediately if changed
     if (updatedTables.includes(window.currentTable)) {
       clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => {
         if (typeof window.loadOfflineCart === "function") {
+          console.log("🔁 Refreshing active table:", window.currentTable);
           window.loadOfflineCart();
-          glowSyncBar();
           setSyncState("online");
+          glowSyncBar();
         }
       }, 500);
-    } else {
-      setSyncState("online");
     }
+
+    // Preload all updated tables silently (so they’re ready when you switch)
+    updatedTables.forEach((t) => {
+      if (t !== window.currentTable) {
+        const data = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
+        if (data.length) console.log(`📦 Cached updated table: ${t}`);
+      }
+    });
+
+    setSyncState("online");
   }, (err) => {
     console.warn("⚠️ Firestore listener error:", err);
     setSyncState("offline");
   });
 }
 
+window.initFirestoreRealtime = initRealtimeListener;
 initRealtimeListener();
 
 // ---------- Save order for print ----------
@@ -162,7 +158,7 @@ window.saveOrderDataForPrint = function () {
   return orderData;
 };
 
-// ---------- Print Buttons ----------
+// ---------- Print ----------
 document.getElementById("printKOT")?.addEventListener("click", () => {
   window.saveOrderDataForPrint();
   window.open("kot_browser.html", "_blank");
