@@ -35,16 +35,6 @@ function setSyncState(state){
   }
 }
 
-// ---------- Load cart ----------
-window.loadTableCart = function(){
-  const t = window.currentTable;
-  const saved = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
-  window.cart = saved;
-  renderCart();
-  if(previewInfo) previewInfo.textContent = t.replace(/table/i,"Table ");
-  setSyncState("local");
-};
-
 // ---------- Render Cart ----------
 function renderCart(){
   if(!window.cart || window.cart.length===0){
@@ -67,6 +57,31 @@ function renderCart(){
   totalDisplay.textContent = formatNumber(total)+"₫";
 }
 
+// ---------- Update Print Cache ----------
+function updatePrintCache() {
+  if(!window.currentTable) return;
+  localStorage.setItem(`cart_print_${window.currentTable}`, JSON.stringify(window.cart));
+}
+
+// ---------- Save Cart ----------
+function saveCart(){
+  localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
+  localStorage.setItem("last_table", window.currentTable);
+  updatePrintCache();
+  setSyncState("local");
+  if(typeof window.autoSync==="function") window.autoSync();
+}
+
+// ---------- Load Cart ----------
+window.loadTableCart = function(){
+  const t = window.currentTable;
+  window.cart = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
+  renderCart();
+  if(previewInfo) previewInfo.textContent = t.replace(/table/i,"Table ");
+  setSyncState("local");
+  updatePrintCache();  // ensure latest print cache
+};
+
 // ---------- Add Item ----------
 function addItem(name){
   const prod = (window.PRODUCTS||[]).find(p=>p.name===name);
@@ -85,19 +100,12 @@ function addItem(name){
   qtyInput.value = 1;
 }
 
-// ---------- Save Cart ----------
-function saveCart(){
-  localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
-  localStorage.setItem("last_table", window.currentTable);
-  setSyncState("local");
-}
-
 // ---------- Remove Item ----------
 window.removeItem = function(index){
   window.cart.splice(index,1);
   saveCart();
   renderCart();
-}
+};
 
 // ---------- Clear Cart ----------
 clearBtn.addEventListener("click", ()=>{
@@ -159,31 +167,3 @@ if(printInvBtn){
 
 // ---------- INIT ----------
 window.loadTableCart();
-
-// ---------- Update print cache for KOT / Invoice ----------
-function updatePrintCache() {
-  if(!window.currentTable) return;
-  localStorage.setItem(`cart_print_${window.currentTable}`, JSON.stringify(window.cart));
-}
-
-// Update print cache whenever cart changes
-function saveCart() {
-  localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
-  localStorage.setItem("last_table", window.currentTable);
-  updatePrintCache();            // <-- ensure latest data for printing
-  if(typeof window.autoSync==="function") window.autoSync();
-}
-
-// Also update print cache when removing or clearing items
-window.removeItem = function(index){
-  window.cart.splice(index,1);
-  saveCart();
-  renderCart();
-};
-
-clearBtn.addEventListener("click", ()=>{
-  window.cart=[];
-  saveCart();
-  renderCart();
-});
-
