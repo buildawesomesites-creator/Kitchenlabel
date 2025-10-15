@@ -6,6 +6,19 @@ let currentTable = "table1";
 let products = [];
 const isNative = /wv|Android.*Version/.test(navigator.userAgent) || window.AndroidInterface;
 
+// ---------- Offline Cart Persistence ----------
+function saveOfflineCart() {
+  localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
+}
+function loadOfflineCart() {
+  const saved = localStorage.getItem(`cart_${currentTable}`);
+  if (saved) {
+    cart = JSON.parse(saved);
+    renderCart();
+  }
+}
+window.addEventListener("beforeunload", saveOfflineCart);
+
 // ---------- Elements ----------
 const searchInput = document.getElementById("productSearch");
 const qtyInput = document.getElementById("qty");
@@ -70,7 +83,7 @@ searchInput.addEventListener("input", () => {
     div.addEventListener("click", () => {
       searchInput.value = p.name;
       productDropdown.style.display = "none";
-      autoAddProduct(); // 👈 auto add product directly
+      autoAddProduct(); // 👈 auto add on click
     });
     productDropdown.appendChild(div);
   });
@@ -80,13 +93,11 @@ document.addEventListener("click", (e) => {
   if (!searchInput.contains(e.target)) productDropdown.style.display = "none";
 });
 
-// ---------- Auto Add Product ----------
+// ---------- Add Product ----------
 function autoAddProduct() {
   const name = searchInput.value.trim();
   const qty = parseInt(qtyInput.value || "1");
-  const prod = products.find(
-    (p) => p.name.toLowerCase() === name.toLowerCase()
-  );
+  const prod = products.find((p) => p.name.toLowerCase() === name.toLowerCase());
   if (!prod) return;
 
   const existing = cart.find((i) => i.name === prod.name);
@@ -94,22 +105,18 @@ function autoAddProduct() {
   else cart.push({ ...prod, qty });
 
   renderCart();
-  saveTableCart();
+  saveOfflineCart();
   searchInput.value = "";
   qtyInput.value = 1;
 }
-
-// ---------- Add Item (Manual) ----------
-addBtn.addEventListener("click", () => {
-  autoAddProduct();
-});
+addBtn.addEventListener("click", autoAddProduct);
 
 // ---------- Clear All ----------
 clearBtn.addEventListener("click", () => {
   if (confirm("Clear all items?")) {
     cart = [];
     renderCart();
-    saveTableCart();
+    saveOfflineCart();
   }
 });
 
@@ -117,8 +124,7 @@ clearBtn.addEventListener("click", () => {
 function renderCart() {
   previewBody.innerHTML = "";
   if (!cart.length) {
-    previewBody.innerHTML =
-      '<div style="text-align:center;color:#777;padding:16px">No items</div>';
+    previewBody.innerHTML = '<div style="text-align:center;color:#777;padding:16px">No items</div>';
   } else {
     cart.forEach((item, i) => {
       const row = document.createElement("div");
@@ -137,6 +143,7 @@ function renderCart() {
   }
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   totalDisplay.textContent = total.toLocaleString() + "₫";
+  saveOfflineCart();
 }
 
 // ---------- Qty / Remove ----------
@@ -147,7 +154,6 @@ previewBody.addEventListener("click", (e) => {
   else if (e.target.dataset.type === "minus" && cart[i].qty > 1) cart[i].qty--;
   else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
   renderCart();
-  saveTableCart();
 });
 
 // ---------- Table Switching ----------
@@ -157,18 +163,9 @@ tableCards.forEach((card) => {
     card.classList.add("active");
     currentTable = card.dataset.table;
     previewInfo.textContent = card.textContent.trim();
-    loadTableCart();
+    loadOfflineCart();
   });
 });
-
-// ---------- Table Cart Storage ----------
-function saveTableCart() {
-  localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
-}
-function loadTableCart() {
-  cart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
-  renderCart();
-}
 
 // ---------- Save Order for Printing ----------
 function saveOrderDataForPrint() {
@@ -217,28 +214,17 @@ fullPreviewModal.addEventListener("click", (e) => {
 // ---------- Init ----------
 (async () => {
   await loadProducts();
-  loadTableCart();
+  loadOfflineCart();
 
-
-// ---------- Printer IP Save / Load ----------
-const printerIpInput = document.getElementById("printerIp");
-
-// Load saved printer IP on startup
-const savedPrinterIp = localStorage.getItem("printer_ip");
-if (savedPrinterIp && printerIpInput) {
-  printerIpInput.value = savedPrinterIp;
-}
-
-// Save printer IP when changed
-if (printerIpInput) {
-  printerIpInput.addEventListener("change", () => {
-    const ip = printerIpInput.value.trim();
-    localStorage.setItem("printer_ip", ip);
-    console.log("💾 Printer IP saved:", ip);
-  });
-}
-
-
-
-
+  // ---------- Printer IP Save / Load ----------
+  const printerIpInput = document.getElementById("printerIp");
+  const savedPrinterIp = localStorage.getItem("printer_ip");
+  if (savedPrinterIp && printerIpInput) printerIpInput.value = savedPrinterIp;
+  if (printerIpInput) {
+    printerIpInput.addEventListener("change", () => {
+      const ip = printerIpInput.value.trim();
+      localStorage.setItem("printer_ip", ip);
+      console.log("💾 Printer IP saved:", ip);
+    });
+  }
 })();
