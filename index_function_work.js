@@ -1,21 +1,9 @@
-// =================== Papadums POS — Local Function Script ===================
 console.log("✅ index_function_work.js loaded");
 
 let cart = [];
 let currentTable = "table1";
 let products = [];
 const isNative = /wv|Android.*Version/.test(navigator.userAgent) || window.AndroidInterface;
-
-// ---------- Offline Cart Persistence ----------
-function saveOfflineCart() {
-  localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
-}
-function loadOfflineCart() {
-  const saved = localStorage.getItem(`cart_${currentTable}`);
-  cart = saved ? JSON.parse(saved) : [];
-  renderCart();
-}
-window.addEventListener("beforeunload", saveOfflineCart);
 
 // ---------- Elements ----------
 const searchInput = document.getElementById("productSearch");
@@ -30,11 +18,12 @@ const printKOT = document.getElementById("printKOT");
 const printInv = document.getElementById("printInv");
 const productDropdown = document.getElementById("productDropdown");
 
-// ---------- Product Load Logic ----------
+// ---------- Product Load ----------
 const GITHUB_RAW_URL =
   "https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json";
 
 async function loadProducts() {
+  console.log("⏳ Loading products...");
   try {
     const res = await fetch(GITHUB_RAW_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("GitHub fetch failed");
@@ -55,13 +44,13 @@ async function loadProducts() {
 
 function populateProductList() {
   const datalist = document.getElementById("productList");
-  if (!datalist) return;
   datalist.innerHTML = "";
   products.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.name;
     datalist.appendChild(opt);
   });
+  console.log("✅ Product list ready");
 }
 
 // ---------- Search Dropdown ----------
@@ -87,7 +76,7 @@ document.addEventListener("click", (e) => {
   if (!searchInput.contains(e.target)) productDropdown.style.display = "none";
 });
 
-// ---------- Add Product ----------
+// ---------- Auto Add Product ----------
 function autoAddProduct() {
   const name = searchInput.value.trim();
   const qty = parseInt(qtyInput.value || "1");
@@ -99,16 +88,20 @@ function autoAddProduct() {
   else cart.push({ ...prod, qty });
 
   renderCart();
+  saveTableCart();
+  window.autoSync?.();
   searchInput.value = "";
   qtyInput.value = 1;
 }
-addBtn.addEventListener("click", autoAddProduct);
 
-// ---------- Clear All ----------
+// ---------- Add / Clear ----------
+addBtn.addEventListener("click", autoAddProduct);
 clearBtn.addEventListener("click", () => {
   if (confirm("Clear all items?")) {
     cart = [];
     renderCart();
+    saveTableCart();
+    window.autoSync?.();
   }
 });
 
@@ -135,10 +128,6 @@ function renderCart() {
   }
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   totalDisplay.textContent = total.toLocaleString() + "₫";
-  saveOfflineCart();
-
-  // trigger auto online sync (every render)
-  if (navigator.onLine && window.autoSyncToFirestore) window.autoSyncToFirestore();
 }
 
 // ---------- Qty / Remove ----------
@@ -149,6 +138,8 @@ previewBody.addEventListener("click", (e) => {
   else if (e.target.dataset.type === "minus" && cart[i].qty > 1) cart[i].qty--;
   else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
   renderCart();
+  saveTableCart();
+  window.autoSync?.();
 });
 
 // ---------- Table Switching ----------
@@ -158,21 +149,36 @@ tableCards.forEach((card) => {
     card.classList.add("active");
     currentTable = card.dataset.table;
     previewInfo.textContent = card.textContent.trim();
-    loadOfflineCart();
+    loadTableCart();
   });
 });
 
-// ---------- Print Save ----------
+// ---------- Table Cart Storage ----------
+function saveTableCart() {
+  localStorage.setItem(`cart_${currentTable}`, JSON.stringify(cart));
+}
+function loadTableCart() {
+  cart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
+  renderCart();
+}
+
+// ---------- Save Order for Printing ----------
 function saveOrderDataForPrint() {
+  const savedCart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
   const orderData = {
     table: currentTable,
     time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: cart,
-    total: cart.reduce((s, i) => s + i.qty * i.price, 0),
+    items: savedCart.map((i) => ({
+      name: i.name,
+      qty: i.qty,
+      price: i.price,
+    })),
+    total: savedCart.reduce((s, i) => s + i.qty * i.price, 0),
   };
   localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
 }
 
+// ---------- Footer Buttons ----------
 printKOT.addEventListener("click", () => {
   saveOrderDataForPrint();
   window.open("kot_browser.html", "_blank");
@@ -183,10 +189,10 @@ printInv.addEventListener("click", () => {
 });
 
 // ---------- Full Preview Modal ----------
+const previewPanel = document.getElementById("previewPanel");
 const fullPreviewModal = document.getElementById("fullPreviewModal");
 const fullPreviewContent = document.getElementById("fullPreviewContent");
 const closePreview = document.getElementById("closePreview");
-const previewPanel = document.getElementById("previewPanel");
 
 previewPanel.addEventListener("click", () => {
   fullPreviewContent.innerHTML =
@@ -202,17 +208,15 @@ fullPreviewModal.addEventListener("click", (e) => {
 // ---------- Init ----------
 (async () => {
   await loadProducts();
-  loadOfflineCart();
+  loadTableCart();
 
-  // Printer IP save/load
   const printerIpInput = document.getElementById("printerIp");
   const savedPrinterIp = localStorage.getItem("printer_ip");
   if (savedPrinterIp && printerIpInput) printerIpInput.value = savedPrinterIp;
-  if (printerIpInput)
+  if (printerIpInput) {
     printerIpInput.addEventListener("change", () => {
       const ip = printerIpInput.value.trim();
       localStorage.setItem("printer_ip", ip);
     });
-
-  if (window.initFirestoreRealtime) window.initFirestoreRealtime(); // start listener
+  }
 })();
