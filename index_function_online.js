@@ -1,4 +1,4 @@
-// =================== Papadums POS — Online Sync (Safe Minimal Version) ===================
+// =================== Papadums POS — Online Sync (Fixed Version) ===================
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
@@ -15,22 +15,28 @@ function setSyncState(state) {
   else syncStatus.textContent = "🔄 Syncing...";
 }
 
-// ---------- Restore last active table ----------
+// ---------- Save last active table ----------
+function saveLastTable() {
+  localStorage.setItem("last_table", window.currentTable);
+}
+
+// ---------- Load table cart safely ----------
+function loadTableCartSafe(table) {
+  window.currentTable = table;
+  saveLastTable();
+  if (typeof window.loadTableCart === "function") window.loadTableCart();
+  document.querySelectorAll(".table-card").forEach((c) => {
+    c.classList.toggle("active", c.dataset.table === table);
+  });
+}
+
+// ---------- Restore last active table on page load ----------
 (function restoreLastTable() {
-  const lastTable = localStorage.getItem("last_table");
-  if (lastTable && window.currentTable !== lastTable) {
-    window.currentTable = lastTable;
-    console.log("🔄 Restored last active table:", window.currentTable);
-    // Call offline logic to load cart
-    if (typeof window.loadTableCart === "function") window.loadTableCart();
-    // Update UI table cards highlight
-    document.querySelectorAll(".table-card").forEach((c) => {
-      c.classList.toggle("active", c.dataset.table === window.currentTable);
-    });
-  }
+  const lastTable = localStorage.getItem("last_table") || "table1";
+  loadTableCartSafe(lastTable);
 })();
 
-// ---------- Simple Firestore sync ----------
+// ---------- Sync current table to Firestore ----------
 window.syncToFirestore = async function () {
   if (!navigator.onLine) return setSyncState("offline");
   try {
@@ -49,7 +55,7 @@ window.syncToFirestore = async function () {
   }
 };
 
-// ---------- Firestore listener ----------
+// ---------- Firestore listener with safe merge ----------
 (function attachListener() {
   const ordersRef = collection(db, "orders");
   onSnapshot(ordersRef, (snapshot) => {
@@ -57,11 +63,17 @@ window.syncToFirestore = async function () {
       const tableId = change.doc.id;
       const data = change.doc.data();
       if (!data || !data.items) return;
-      const localJSON = localStorage.getItem(`cart_${tableId}`) || "[]";
+
+      const localKey = `cart_${tableId}`;
+      const localJSON = localStorage.getItem(localKey) || "[]";
       const remoteJSON = JSON.stringify(data.items);
+
+      // Only overwrite if remote has different content
       if (localJSON !== remoteJSON) {
-        localStorage.setItem(`cart_${tableId}`, remoteJSON);
-        console.log(`🔄 Remote update synced locally: cart_${tableId}`);
+        // If cleared locally, skip overwrite
+        if (localJSON === "[]") return;
+        localStorage.setItem(localKey, remoteJSON);
+        console.log(`🔄 Remote update synced locally: ${localKey}`);
         if (window.currentTable === tableId && typeof window.loadTableCart === "function") {
           window.loadTableCart();
         }
@@ -74,13 +86,24 @@ window.syncToFirestore = async function () {
   });
 })();
 
+// ---------- Clear table sync helper ----------
+window.clearCurrentTable = function () {
+  window.cart = [];
+  if (typeof window.renderCart === "function") window.renderCart();
+  const key = `cart_${window.currentTable}`;
+  localStorage.setItem(key, JSON.stringify([]));
+  saveLastTable();
+  window.syncToFirestore();
+  console.log(`🗑️ Cleared table ${window.currentTable}`);
+};
+
 // ---------- Re-sync on reconnect ----------
 window.addEventListener("online", () => {
   console.log("🌐 Reconnected — syncing current table");
   window.syncToFirestore();
 });
 
-// ---------- Printer IP (optional) ----------
+// ---------- Printer IP ----------
 const printerIpInput = document.getElementById("printerIp");
 if (printerIpInput) {
   printerIpInput.value = localStorage.getItem("printerIp") || "";
