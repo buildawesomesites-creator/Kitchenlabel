@@ -57,17 +57,12 @@ function renderCart(){
   totalDisplay.textContent = formatNumber(total)+"₫";
 }
 
-// ---------- Update Print Cache ----------
-function updatePrintCache() {
-  if(!window.currentTable) return;
-  localStorage.setItem(`cart_print_${window.currentTable}`, JSON.stringify(window.cart));
-}
-
 // ---------- Save Cart ----------
 function saveCart(){
+  if(!window.currentTable) return;
+  // Save to localStorage for offline + print
   localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
   localStorage.setItem("last_table", window.currentTable);
-  updatePrintCache();
   setSyncState("local");
   if(typeof window.autoSync==="function") window.autoSync();
 }
@@ -79,7 +74,6 @@ window.loadTableCart = function(){
   renderCart();
   if(previewInfo) previewInfo.textContent = t.replace(/table/i,"Table ");
   setSyncState("local");
-  updatePrintCache();  // ensure latest print cache
 };
 
 // ---------- Add Item ----------
