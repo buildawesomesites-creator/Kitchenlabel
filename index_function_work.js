@@ -1,161 +1,117 @@
-console.log("✅ index_function_online.js loaded");
+console.log("✅ index_function_work.js loaded");
 
-import { db } from "./firebase_config.js";
-import { collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// ---------- Globals ----------
+window.cart = [];
+window.currentTable = localStorage.getItem("last_table") || "Table 1";
 
-const syncStatus = document.getElementById("syncStatus");
-const defaultTables = ["Table 1", "Table 2", "Table 3", "Online", "Take Away"];
+// ---------- Elements ----------
+const searchInput = document.getElementById("productSearch");
+const productDropdown = document.getElementById("productDropdown");
+const qtyInput = document.getElementById("qty");
+const addBtn = document.getElementById("addBtn");
+const clearBtn = document.getElementById("clearBtn");
+const previewBody = document.getElementById("previewBody");
+const totalDisplay = document.getElementById("totalDisplay");
+const previewInfo = document.getElementById("previewInfo");
 
-// ---------- Sync status ----------
-function setSyncState(state) {
-  if (!syncStatus) return;
-  syncStatus.className = state;
-  switch (state) {
-    case "online": syncStatus.textContent = "✅ Synced"; break;
-    case "offline": syncStatus.textContent = "⚠️ Offline"; break;
-    case "syncing": syncStatus.textContent = "⏫ Syncing..."; break;
-    case "local": syncStatus.textContent = "🟪 Local"; break;
-  }
+// ---------- Format Number ----------
+function formatNumber(num){
+  if(isNaN(num)) return num;
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,",");
 }
 
-// ---------- Table card indicator ----------
-function updateTableCardStatus(table, status) {
-  const card = document.querySelector(`.table-card[data-table="${table}"]`);
-  if (!card) return;
-  card.classList.remove("syncing", "sync-online", "sync-local");
-  if (status === "syncing") card.classList.add("syncing");
-  else if (status === "online") {
-    card.classList.add("sync-online");
-    setTimeout(() => card.classList.remove("sync-online"), 1000);
-  }
-  else if (status === "local") card.classList.add("sync-local");
-}
-
-// ---------- Load cart safely ----------
-window.loadTableCartSafe = function(table) {
-  const t = table || window.currentTable || "Table 1";
-  const cart = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
-  window.cart = cart;
-  if (typeof window.loadTableCart === "function") window.loadTableCart();
-  updateTableCardStatus(t, "local");
+// ---------- Load cart ----------
+window.loadTableCart = function(){
+  const t = window.currentTable;
+  const saved = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
+  window.cart = saved;
+  renderCart();
 };
 
-// ---------- Sync table to Firebase ----------
-async function syncTable(table) {
-  const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-  updateTableCardStatus(table, "syncing");
-  setSyncState("syncing");
-
-  if (!navigator.onLine) {
-    setSyncState("offline");
-    updateTableCardStatus(table, "local");
+// ---------- Render Cart ----------
+function renderCart(){
+  if(!window.cart || window.cart.length===0){
+    previewBody.innerHTML = `<div style="text-align:center;color:#777;padding:18px">No items</div>`;
+    totalDisplay.textContent = "0₫";
     return;
   }
 
-  try {
-    await setDoc(doc(collection(db, "tables"), table), {
-      items: cart,
-      updatedAt: new Date().toISOString()
-    });
-    setSyncState("online");
-    updateTableCardStatus(table, "online");
-    console.log(`☁️ Synced table ${table} (${cart.length} items)`);
-  } catch (err) {
-    console.warn("⚠️ Sync failed:", err);
-    setSyncState("offline");
-    updateTableCardStatus(table, "local");
-  }
-}
-
-// ---------- Auto-sync current table ----------
-window.autoSync = function() {
-  if (!window.currentTable) return;
-  syncTable(window.currentTable);
+  let html = "";
+  let total = 0;
+  window.cart.forEach((item, i)=>{
+    total += item.price * item.qty;
+    html += `<div class="cart-item">
+      <span>${item.name} x${item.qty}</span>
+      <span>${formatNumber(item.price*item.qty)}₫</span>
+      <button onclick="removeItem(${i})">×</button>
+    </div>`;
+  });
+  previewBody.innerHTML = html;
+  totalDisplay.textContent = formatNumber(total)+"₫";
 };
 
-// ---------- Merge Firebase data ----------
-async function mergeFirebaseTable(table, force=false) {
-  try {
-    const docSnap = await getDoc(doc(db, "tables", table));
-    const remoteCart = docSnap.exists() ? docSnap.data().items || [] : [];
-    const localCart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
+// ---------- Add Item ----------
+function addItem(name){
+  const prod = (window.PRODUCTS||[]).find(p=>p.name===name);
+  if(!prod) return;
+  const qty = parseInt(qtyInput.value)||1;
 
-    const merged = (force || localCart.length === 0) ? remoteCart : localCart;
-    localStorage.setItem(`cart_${table}`, JSON.stringify(merged));
-
-    if (window.currentTable === table) window.loadTableCartSafe(table);
-    console.log(`🔄 Merged Firebase data for ${table}`);
-  } catch (err) {
-    console.warn("⚠️ Merge failed:", table, err);
+  const existing = window.cart.find(c=>c.name===prod.name);
+  if(existing){
+    existing.qty += qty;
+  }else{
+    window.cart.push({name:prod.name, price:prod.price, qty});
   }
+
+  saveCart();
+  renderCart();
 }
 
-// ---------- Initialize tables ----------
-async function initTables() {
-  const tableCards = Array.from(document.querySelectorAll(".table-card"));
-  tableCards.forEach(c => {
-    const t = c.dataset.table;
-    if (!localStorage.getItem(`cart_${t}`)) localStorage.setItem(`cart_${t}`, JSON.stringify([]));
-  });
-
-  window.currentTable = localStorage.getItem("last_table") || "Table 1";
-  await mergeFirebaseTable("Table 1", true); // force first table load
-  window.loadTableCartSafe(window.currentTable);
-
-  tableCards.forEach(c => c.classList.toggle("active", c.dataset.table === window.currentTable));
+// ---------- Save cart ----------
+function saveCart(){
+  localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
+  localStorage.setItem("last_table", window.currentTable);
+  if(typeof window.autoSync==="function") window.autoSync();
 }
 
-// ---------- Table switching ----------
-document.querySelectorAll(".table-card").forEach(card => {
-  card.addEventListener("click", () => {
-    document.querySelectorAll(".table-card").forEach(c => c.classList.remove("active"));
-    card.classList.add("active");
-    window.currentTable = card.dataset.table;
-    if (document.getElementById("previewInfo")) {
-      document.getElementById("previewInfo").textContent = card.textContent.trim();
-    }
-    window.loadTableCartSafe(window.currentTable);
-    window.autoSync?.();
-  });
+// ---------- Remove item ----------
+window.removeItem = function(index){
+  window.cart.splice(index,1);
+  saveCart();
+  renderCart();
+}
+
+// ---------- Clear cart ----------
+clearBtn.addEventListener("click", ()=>{
+  window.cart=[];
+  saveCart();
+  renderCart();
 });
 
-// ---------- Real-time listener ----------
-function initRealtimeListener() {
-  const ordersRef = collection(db, "tables");
-  onSnapshot(ordersRef, snapshot => {
-    snapshot.docChanges().forEach(change => {
-      const table = change.doc.id;
-      const data = change.doc.data();
-      if (!data || !data.items) return;
+// ---------- Dropdown search ----------
+searchInput.addEventListener("input", ()=>{
+  const term = searchInput.value.toLowerCase().trim();
+  productDropdown.innerHTML="";
+  if(!term) return productDropdown.style.display="none";
 
-      const localCart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-      const remoteJSON = JSON.stringify(data.items);
-      const localJSON = JSON.stringify(localCart);
-
-      if (localJSON !== remoteJSON) {
-        if (localCart.length === 0) localStorage.setItem(`cart_${table}`, remoteJSON);
-        if (window.currentTable === table) window.loadTableCartSafe(table);
-        updateTableCardStatus(table, "online");
-        console.log(`🔄 Remote update synced: ${table}`);
-      }
+  const matches = (window.PRODUCTS||[]).filter(p=>p.name.toLowerCase().includes(term));
+  matches.forEach(p=>{
+    const div=document.createElement("div");
+    div.textContent=p.name;
+    div.addEventListener("click", ()=>{
+      searchInput.value = p.name;
+      productDropdown.style.display="none";
+      addItem(p.name);
     });
-  }, err => console.warn("Firestore listener error:", err));
-}
+    productDropdown.appendChild(div);
+  });
 
-// ---------- Online reconnect ----------
-window.addEventListener("online", () => {
-  console.log("🌐 Connection restored — syncing all tables");
-  defaultTables.forEach(t => mergeFirebaseTable(t));
-  window.autoSync?.();
+  productDropdown.style.display = matches.length ? "block" : "none";
 });
 
-// ---------- Printer IP ----------
-const printerIpInput = document.getElementById("printerIp");
-if (printerIpInput) {
-  printerIpInput.value = localStorage.getItem("printerIp") || "";
-  printerIpInput.addEventListener("input", e => localStorage.setItem("printerIp", e.target.value.trim()));
-}
+document.addEventListener("click", e=>{
+  if(!searchInput.contains(e.target)) productDropdown.style.display="none";
+});
 
-// ---------- INIT ----------
-initTables();
-initRealtimeListener();
+// ---------- Init ----------
+window.loadTableCart();
