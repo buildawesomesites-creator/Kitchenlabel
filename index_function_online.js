@@ -4,6 +4,7 @@ import { db } from "./firebase_config.js";
 import { collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const syncStatus = document.getElementById("syncStatus");
+const defaultTables = ["Table 1", "Table 2", "Table 3", "Online", "Take Away"];
 
 // ---------- Sync status ----------
 function setSyncState(state) {
@@ -15,7 +16,7 @@ function setSyncState(state) {
   else if (state === "local") syncStatus.textContent = "🟪 Local";
 }
 
-// ---------- Table card status ----------
+// ---------- Table card indicator ----------
 function updateTableCardStatus(table, status) {
   const card = document.querySelector(`.table-card[data-table="${table}"]`);
   if (!card) return;
@@ -28,7 +29,7 @@ function updateTableCardStatus(table, status) {
   else if (status === "local") card.classList.add("sync-local");
 }
 
-// ---------- Load cart from localStorage safely ----------
+// ---------- Load cart safely ----------
 window.loadTableCartSafe = function(table) {
   const t = table || window.currentTable || "Table 1";
   const cart = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
@@ -37,14 +38,8 @@ window.loadTableCartSafe = function(table) {
   updateTableCardStatus(t, "local");
 };
 
-// ---------- Sync current table to Firebase ----------
+// ---------- Sync table to Firebase ----------
 async function syncTable(table) {
-  if (!navigator.onLine) {
-    setSyncState("offline");
-    updateTableCardStatus(table, "local");
-    return;
-  }
-
   const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
   updateTableCardStatus(table, "syncing");
   setSyncState("syncing");
@@ -52,7 +47,7 @@ async function syncTable(table) {
   try {
     await setDoc(doc(collection(db, "tables"), table), {
       items: cart,
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
     setSyncState("online");
     updateTableCardStatus(table, "online");
@@ -64,33 +59,30 @@ async function syncTable(table) {
   }
 }
 
-// ---------- Auto-sync current table (called after add/remove/clear) ----------
+// ---------- Auto-sync current table ----------
 window.autoSync = function() {
   if (!window.currentTable) return;
   syncTable(window.currentTable);
 };
 
-// ---------- Merge Firebase table safely ----------
-async function mergeFirebaseTable(table, forceLoad=false) {
-  if (!navigator.onLine) return;
+// ---------- Merge Firebase data ----------
+async function mergeFirebaseTable(table, force=false) {
   try {
     const docSnap = await getDoc(doc(db, "tables", table));
     const remoteCart = docSnap.exists() ? docSnap.data().items || [] : [];
     const localCart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
 
-    // Force load or local empty -> use remote
-    const mergedCart = (forceLoad || localCart.length === 0) ? remoteCart : localCart;
-
-    localStorage.setItem(`cart_${table}`, JSON.stringify(mergedCart));
+    const merged = (force || localCart.length === 0) ? remoteCart : localCart;
+    localStorage.setItem(`cart_${table}`, JSON.stringify(merged));
 
     if (window.currentTable === table) window.loadTableCartSafe(table);
-    console.log(`🔄 Merged Firebase data for table ${table}`);
+    console.log(`🔄 Merged Firebase data for ${table}`);
   } catch (err) {
-    console.warn("⚠️ Merge failed for table", table, err);
+    console.warn("⚠️ Merge failed:", table, err);
   }
 }
 
-// ---------- Init tables ----------
+// ---------- Initialize tables ----------
 async function initTables() {
   const tableCards = Array.from(document.querySelectorAll(".table-card"));
   tableCards.forEach(c => {
@@ -98,50 +90,40 @@ async function initTables() {
     if (!localStorage.getItem(`cart_${t}`)) localStorage.setItem(`cart_${t}`, JSON.stringify([]));
   });
 
-  if (!window.currentTable) window.currentTable = localStorage.getItem("last_table") || "Table 1";
-
-  // Force-load Table 1 to fix old cached issue
-  await mergeFirebaseTable("Table 1", true);
-
-  // Load current table safely
+  window.currentTable = localStorage.getItem("last_table") || "Table 1";
+  await mergeFirebaseTable("Table 1", true); // ensure first table gets latest
   window.loadTableCartSafe(window.currentTable);
 
-  // Highlight UI
   tableCards.forEach(c => c.classList.toggle("active", c.dataset.table === window.currentTable));
 }
 
-// ---------- Realtime listener ----------
+// ---------- Real-time listener ----------
 function initRealtimeListener() {
   const ordersRef = collection(db, "tables");
   onSnapshot(ordersRef, snapshot => {
     snapshot.docChanges().forEach(change => {
-      const tableId = change.doc.id;
+      const table = change.doc.id;
       const data = change.doc.data();
       if (!data || !data.items) return;
 
-      const localCart = JSON.parse(localStorage.getItem(`cart_${tableId}`) || "[]");
+      const localCart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
       const remoteJSON = JSON.stringify(data.items);
       const localJSON = JSON.stringify(localCart);
 
       if (localJSON !== remoteJSON) {
-        if (localCart.length === 0) localStorage.setItem(`cart_${tableId}`, remoteJSON);
-
-        if (window.currentTable === tableId) {
-          window.loadTableCartSafe(tableId);
-          updateTableCardStatus(tableId, "online");
-        }
-
-        console.log(`🔄 Remote update synced locally: cart_${tableId}`);
+        if (localCart.length === 0) localStorage.setItem(`cart_${table}`, remoteJSON);
+        if (window.currentTable === table) window.loadTableCartSafe(table);
+        updateTableCardStatus(table, "online");
+        console.log(`🔄 Remote update synced: ${table}`);
       }
     });
   }, err => console.warn("Firestore listener error:", err));
 }
 
-// ---------- Online reconnect ----------
+// ---------- Reconnect handler ----------
 window.addEventListener("online", () => {
   console.log("🌐 Connection restored — syncing all tables");
-  const tableCards = Array.from(document.querySelectorAll(".table-card"));
-  tableCards.forEach(c => mergeFirebaseTable(c.dataset.table));
+  defaultTables.forEach(t => mergeFirebaseTable(t));
   window.autoSync?.();
 });
 
@@ -149,9 +131,7 @@ window.addEventListener("online", () => {
 const printerIpInput = document.getElementById("printerIp");
 if (printerIpInput) {
   printerIpInput.value = localStorage.getItem("printerIp") || "";
-  printerIpInput.addEventListener("input", e => {
-    localStorage.setItem("printerIp", e.target.value.trim());
-  });
+  printerIpInput.addEventListener("input", e => localStorage.setItem("printerIp", e.target.value.trim()));
 }
 
 // ---------- INIT ----------
