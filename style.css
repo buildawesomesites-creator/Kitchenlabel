@@ -188,3 +188,15 @@ header {
 #productDropdown div:hover {
   background: rgba(255,255,255,0.15);
 }
+/* Table sync indicators */
+.table-card.syncing {
+  animation: blinkYellow 1s infinite;
+}
+.table-card.sync-online {
+  background-color: #4caf50 !important; /* green for synced */
+  color: #fff;
+}
+@keyframes blinkYellow {
+  0%, 100% { background-color: #ffc107; }
+  50% { background-color: #fff; }
+}
