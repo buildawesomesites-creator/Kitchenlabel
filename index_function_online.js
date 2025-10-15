@@ -1,4 +1,3 @@
-
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
@@ -65,32 +64,26 @@ async function syncTable(table) {
   }
 }
 
-// ---------- Auto-sync current table (called after add/remove/clear) ----------
+// ---------- Auto-sync current table ----------
 window.autoSync = function() {
   if (!window.currentTable) return;
   syncTable(window.currentTable);
 };
 
-// ---------- Merge Firebase data for multiple devices ----------
-async function mergeFirebaseTable(table) {
+// ---------- Merge Firebase data for a table ----------
+async function mergeFirebaseTable(table, forceLoad=false) {
   if (!navigator.onLine) return;
   try {
     const docSnap = await getDoc(doc(db, "orders", table));
-    if (!docSnap.exists()) return;
-
-    const remoteCart = docSnap.data().items || [];
+    const remoteCart = docSnap.exists() ? docSnap.data().items || [] : [];
     const localCart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
 
-    // Merge: keep cleared tables empty, otherwise merge new items
-    const mergedCart = remoteCart.length && localCart.length === 0
-      ? remoteCart
-      : localCart;
+    // Force load or empty local -> use remote
+    const mergedCart = (forceLoad || localCart.length === 0) ? remoteCart : localCart;
 
     localStorage.setItem(`cart_${table}`, JSON.stringify(mergedCart));
 
-    if (window.currentTable === table) {
-      window.loadTableCartSafe(table);
-    }
+    if (window.currentTable === table) window.loadTableCartSafe(table);
 
     console.log(`🔄 Merged Firebase data for table ${table}`);
   } catch (err) {
@@ -98,16 +91,20 @@ async function mergeFirebaseTable(table) {
   }
 }
 
-// ---------- Initial load of all tables from localStorage ----------
-function initTables() {
+// ---------- Initial load of all tables ----------
+async function initTables() {
   const tableCards = Array.from(document.querySelectorAll(".table-card"));
   tableCards.forEach(c => {
     const t = c.dataset.table;
     if (!localStorage.getItem(`cart_${t}`)) localStorage.setItem(`cart_${t}`, JSON.stringify([]));
   });
 
-  // Load current table safely
   if (!window.currentTable) window.currentTable = localStorage.getItem("last_table") || "table1";
+
+  // Force-load table 1 to fix old cached data issue
+  await mergeFirebaseTable("table1", true);
+
+  // Load current table safely
   window.loadTableCartSafe(window.currentTable);
 
   // Highlight UI
@@ -128,7 +125,7 @@ function initRealtimeListener() {
       const localJSON = JSON.stringify(localCart);
 
       if (localJSON !== remoteJSON) {
-        // Merge if local not cleared, otherwise skip
+        // Merge if local not cleared
         if (localCart.length === 0) localStorage.setItem(`cart_${tableId}`, remoteJSON);
 
         if (window.currentTable === tableId) {
@@ -144,7 +141,7 @@ function initRealtimeListener() {
   });
 }
 
-// ---------- Reconnect handler ----------
+// ---------- Online reconnect ----------
 window.addEventListener("online", () => {
   console.log("🌐 Connection restored — syncing all tables");
   const tableCards = Array.from(document.querySelectorAll(".table-card"));
