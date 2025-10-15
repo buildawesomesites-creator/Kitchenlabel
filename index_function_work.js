@@ -89,7 +89,7 @@ function autoAddProduct() {
 
   renderCart();
   saveTableCart();
-  window.autoSync?.();
+  window.autoSync?.(); // ✅ Sync to Firebase automatically
   searchInput.value = "";
   qtyInput.value = 1;
 }
@@ -101,7 +101,7 @@ clearBtn.addEventListener("click", () => {
     cart = [];
     renderCart();
     saveTableCart();
-    window.autoSync?.();
+    window.autoSync?.(); // ✅ Sync cleared table
   }
 });
 
@@ -139,7 +139,7 @@ previewBody.addEventListener("click", (e) => {
   else if (e.target.classList.contains("remove-btn")) cart.splice(i, 1);
   renderCart();
   saveTableCart();
-  window.autoSync?.();
+  window.autoSync?.(); // ✅ Sync after qty change or remove
 });
 
 // ---------- Table Switching ----------
@@ -168,11 +168,7 @@ function saveOrderDataForPrint() {
   const orderData = {
     table: currentTable,
     time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: savedCart.map((i) => ({
-      name: i.name,
-      qty: i.qty,
-      price: i.price,
-    })),
+    items: savedCart.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
     total: savedCart.reduce((s, i) => s + i.qty * i.price, 0),
   };
   localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
