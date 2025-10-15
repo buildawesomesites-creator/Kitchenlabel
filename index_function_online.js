@@ -1,13 +1,12 @@
-// =================== Papadums POS — Online Sync & Print Script (Safe) ===================
+// =================== Papadums POS — Online Sync (Minimal, Safe) ===================
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
 import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// DOM element for sync status (may be null during early load)
-const syncStatus = typeof document !== "undefined" ? document.getElementById("syncStatus") : null;
+const syncStatus = document.getElementById("syncStatus");
 
-// small helpers
+// Small UI helpers (non-invasive)
 function setSyncState(state, msg = "") {
   if (!syncStatus) return;
   syncStatus.className = state;
@@ -18,105 +17,125 @@ function setSyncState(state, msg = "") {
 }
 function glowSyncBar() {
   if (!syncStatus) return;
-  syncStatus.style.transition = "box-shadow 0.5s ease";
-  syncStatus.style.boxShadow = "0 0 10px 2px rgba(0,255,0,0.55)";
+  syncStatus.style.transition = "box-shadow 0.4s ease";
+  syncStatus.style.boxShadow = "0 0 10px 2px rgba(0,255,0,0.45)";
   setTimeout(() => { if (syncStatus) syncStatus.style.boxShadow = "none"; }, 700);
 }
 
-// -- Debounced local->remote sync exposed for the UI script to call --
-let autoSyncTimer = null;
+// Restore last active table on load (this does NOT overwrite your product logic)
+// Important: index_function_work.js defines currentTable = "table1" initially. We override it with persisted value here,
+// then trigger loadOfflineCart() so the UI shows the correct data after refresh.
+(function restoreLastTableAndLoad() {
+  try {
+    const last = localStorage.getItem("last_table");
+    if (last) {
+      // set global currentTable if present (index_function_work defines it; if not, no-op)
+      window.currentTable = last;
+      // If your offline script exposed loadOfflineCart, call it to load the restored table immediately
+      if (typeof window.loadOfflineCart === "function") {
+        // small timeout to ensure DOM and offline script finished initialising
+        setTimeout(() => {
+          try { window.loadOfflineCart(); }
+          catch (e) { console.warn("loadOfflineCart() threw:", e); }
+        }, 50);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to restore last table:", e);
+  }
+})();
+
+// ------- Minimal autoSync (debounced) used by offline UI ----------
+let __autoSyncTimer = null;
+
+/**
+ * window.autoSyncToFirestore([tableName])
+ * - debounced, writes localStorage cart_<table> -> Firestore doc orders/<table>
+ * - offline-safe: if navigator.onLine === false, will set offline status and return
+ */
 window.autoSyncToFirestore = function(tableName) {
   const table = tableName || window.currentTable || "table1";
-  if (!navigator.onLine) { setSyncState("offline"); return; }
-  // debounce rapid calls
+
+  if (!navigator.onLine) {
+    setSyncState("offline");
+    return;
+  }
+
   setSyncState("updating");
-  if (autoSyncTimer) clearTimeout(autoSyncTimer);
-  autoSyncTimer = setTimeout(async () => {
+  if (__autoSyncTimer) clearTimeout(__autoSyncTimer);
+  __autoSyncTimer = setTimeout(async () => {
     try {
       const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-      // write to Firestore (offline-first)
+      // write to Firestore doc: orders/<table>
       await setDoc(doc(collection(db, "orders"), table), {
         items: cart,
         updatedAt: new Date().toISOString(),
       });
+      console.log(`☁️ autoSync: wrote orders/${table} (${cart.length} items)`);
       setSyncState("online");
       glowSyncBar();
-      console.log(`☁️ Synced ${table} (${cart.length} items)`);
     } catch (err) {
-      console.warn("⚠️ Sync failed:", err);
+      console.warn("autoSyncToFirestore failed:", err);
       setSyncState("offline");
     } finally {
-      autoSyncTimer = null;
+      __autoSyncTimer = null;
     }
-  }, 900); // 900ms debounce
+  }, 800); // small debounce to coalesce rapid updates
 };
 
-// -- Collection-level real-time listener that writes Firestore -> localStorage --
-let firestoreUnsub = null;
-window.initFirestoreRealtime = function() {
+// ------- Minimal collection-level listener: Firestore -> localStorage -------
+let unsubscribe = null;
+function attachCollectionListener() {
   try {
     const ordersRef = collection(db, "orders");
-    if (firestoreUnsub) firestoreUnsub(); // remove previous if any
+    if (unsubscribe) unsubscribe();
 
-    firestoreUnsub = onSnapshot(ordersRef, (snap) => {
-      const changedTables = [];
-      snap.docChanges().forEach((ch) => {
-        const tableId = ch.doc.id;
-        const data = ch.doc.data();
+    unsubscribe = onSnapshot(ordersRef, (snapshot) => {
+      const updated = [];
+      snapshot.docChanges().forEach(change => {
+        const tableId = change.doc.id;
+        const data = change.doc.data();
         if (!data) return;
-        const remote = JSON.stringify(data.items || []);
-        const local = localStorage.getItem(`cart_${tableId}`) || "[]";
-        if (remote !== local) {
-          localStorage.setItem(`cart_${tableId}`, remote);
-          changedTables.push(tableId);
-          console.log(`🔁 Firestore -> local updated: ${tableId}`);
+        const remoteJSON = JSON.stringify(data.items || []);
+        const localJSON = localStorage.getItem(`cart_${tableId}`) || "[]";
+        if (remoteJSON !== localJSON) {
+          localStorage.setItem(`cart_${tableId}`, remoteJSON);
+          updated.push(tableId);
+          console.log(`🔄 Firestore -> localStorage updated: cart_${tableId}`);
         }
       });
 
-      // If active table was updated, refresh UI using existing function
-      if (changedTables.length && typeof window.loadOfflineCart === "function") {
-        // if currentTable was updated, refresh it quickly (allow other storage writes to settle)
-        if (changedTables.includes(window.currentTable)) {
-          setTimeout(() => {
-            try { window.loadOfflineCart(); } catch (e) { console.warn(e); }
-            glowSyncBar();
-            setSyncState("online");
-          }, 150);
-        } else {
-          // else just mark online and cache updated tables silently
-          setSyncState("online");
-          glowSyncBar();
+      if (updated.length) {
+        // If the active table was updated remotely, reload it immediately
+        if (window.currentTable && updated.includes(window.currentTable) && typeof window.loadOfflineCart === "function") {
+          try {
+            // slight delay to allow any concurrent localStorage writes to finish
+            setTimeout(() => {
+              try { window.loadOfflineCart(); }
+              catch (e) { console.warn("loadOfflineCart() after remote update failed:", e); }
+            }, 75);
+          } catch (e) { console.warn(e); }
         }
-      } else {
-        setSyncState("online");
+        glowSyncBar();
       }
+      setSyncState("online");
     }, (err) => {
-      console.warn("⚠️ Firestore realtime error:", err);
+      console.warn("Firestore listener error:", err);
       setSyncState("offline");
     });
 
-    console.log("✅ Firestore realtime listener attached (collection orders)");
-  } catch (err) {
-    console.warn("⚠️ Failed to init Firestore realtime:", err);
+    console.log("✅ Firestore collection listener attached (orders)");
+  } catch (e) {
+    console.warn("Failed to attach Firestore listener:", e);
     setSyncState("offline");
   }
-};
+}
+attachCollectionListener();
 
-// safe sync-on-reconnect
-window.addEventListener("online", () => {
-  try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
-    keys.forEach(k => {
-      const table = k.replace("cart_", "");
-      // do not fire too many writes at once — stagger
-      setTimeout(() => window.autoSyncToFirestore(table), 100 * Math.random());
-    });
-  } catch (e) { console.warn(e); }
-});
-
-// expose a safe sync-to-firestore function for manual use
+// ------- Safe manual sync function (optional) -------
 window.syncToFirestore = async function(tableName) {
   const table = tableName || window.currentTable || "table1";
+  if (!navigator.onLine) { setSyncState("offline"); return; }
   try {
     setSyncState("updating");
     const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
@@ -126,28 +145,26 @@ window.syncToFirestore = async function(tableName) {
     });
     setSyncState("online");
     glowSyncBar();
-    console.log(`☁️ Manual sync done: ${table}`);
+    console.log(`☁️ syncToFirestore: wrote orders/${table}`);
   } catch (err) {
-    console.warn("⚠️ Manual sync failed:", err);
+    console.warn("syncToFirestore failed:", err);
     setSyncState("offline");
   }
 };
 
-// provide a noop saveOrderDataForPrint only if not provided by the offline file
-if (typeof window.saveOrderDataForPrint !== "function") {
-  window.saveOrderDataForPrint = function(tableOverride) {
-    const table = tableOverride || window.currentTable || "table1";
-    const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-    const orderData = { table, time: new Date().toLocaleString("vi-VN",{hour12:false}), items: cart, total: cart.reduce((s,i)=>s+i.price*i.qty,0) };
-    localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
-    return orderData;
-  };
-}
-
-// auto-init when the script loads (safe to call multiple times)
-if (typeof window.initFirestoreRealtime === "function") {
-  // allow the offline script to control startup; if that script calls initFirestoreRealtime it is fine.
-} else {
-  // expose for offline script to call
-  window.initFirestoreRealtime = window.initFirestoreRealtime || window.initFirestoreRealtime;
-}
+// ------- On reconnect, attempt to push all local carts (staggered) -------
+window.addEventListener("online", () => {
+  try {
+    setSyncState("updating");
+    const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
+    let delay = 0;
+    keys.forEach(k => {
+      const table = k.replace("cart_", "");
+      setTimeout(() => window.syncToFirestore(table), delay);
+      delay += 150;
+    });
+  } catch (e) {
+    console.warn(e);
+    setSyncState("offline");
+  }
+});
