@@ -12,10 +12,8 @@ function saveOfflineCart() {
 }
 function loadOfflineCart() {
   const saved = localStorage.getItem(`cart_${currentTable}`);
-  if (saved) {
-    cart = JSON.parse(saved);
-    renderCart();
-  }
+  cart = saved ? JSON.parse(saved) : [];
+  renderCart();
 }
 window.addEventListener("beforeunload", saveOfflineCart);
 
@@ -37,23 +35,19 @@ const GITHUB_RAW_URL =
   "https://raw.githubusercontent.com/buildawesomesites-creator/Kitchenlabel/main/products.json";
 
 async function loadProducts() {
-  console.log("⏳ Loading products...");
   try {
     const res = await fetch(GITHUB_RAW_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("GitHub fetch failed");
     products = await res.json();
     localStorage.setItem("offlineProducts", JSON.stringify(products));
-    console.log("📦 Products from GitHub:", products.length);
   } catch {
     try {
       const resLocal = await fetch("./products.json", { cache: "no-store" });
       if (!resLocal.ok) throw new Error("Local fetch failed");
       products = await resLocal.json();
       localStorage.setItem("offlineProducts", JSON.stringify(products));
-      console.log("📦 Products from local file:", products.length);
     } catch {
       products = JSON.parse(localStorage.getItem("offlineProducts") || "[]");
-      console.log("📦 Products from cache:", products.length);
     }
   }
   populateProductList();
@@ -61,13 +55,13 @@ async function loadProducts() {
 
 function populateProductList() {
   const datalist = document.getElementById("productList");
+  if (!datalist) return;
   datalist.innerHTML = "";
   products.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.name;
     datalist.appendChild(opt);
   });
-  console.log("✅ Product list ready");
 }
 
 // ---------- Search Dropdown ----------
@@ -83,7 +77,7 @@ searchInput.addEventListener("input", () => {
     div.addEventListener("click", () => {
       searchInput.value = p.name;
       productDropdown.style.display = "none";
-      autoAddProduct(); // 👈 auto add on click
+      autoAddProduct();
     });
     productDropdown.appendChild(div);
   });
@@ -105,7 +99,6 @@ function autoAddProduct() {
   else cart.push({ ...prod, qty });
 
   renderCart();
-  saveOfflineCart();
   searchInput.value = "";
   qtyInput.value = 1;
 }
@@ -116,7 +109,6 @@ clearBtn.addEventListener("click", () => {
   if (confirm("Clear all items?")) {
     cart = [];
     renderCart();
-    saveOfflineCart();
   }
 });
 
@@ -144,6 +136,9 @@ function renderCart() {
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   totalDisplay.textContent = total.toLocaleString() + "₫";
   saveOfflineCart();
+
+  // trigger auto online sync (every render)
+  if (navigator.onLine && window.autoSyncToFirestore) window.autoSyncToFirestore();
 }
 
 // ---------- Qty / Remove ----------
@@ -167,24 +162,17 @@ tableCards.forEach((card) => {
   });
 });
 
-// ---------- Save Order for Printing ----------
+// ---------- Print Save ----------
 function saveOrderDataForPrint() {
-  const savedCart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
   const orderData = {
     table: currentTable,
     time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: savedCart.map((i) => ({
-      name: i.name,
-      qty: i.qty,
-      price: i.price,
-    })),
-    total: savedCart.reduce((s, i) => s + i.qty * i.price, 0),
+    items: cart,
+    total: cart.reduce((s, i) => s + i.qty * i.price, 0),
   };
   localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
-  console.log("💾 Order saved for print:", orderData);
 }
 
-// ---------- Footer Buttons ----------
 printKOT.addEventListener("click", () => {
   saveOrderDataForPrint();
   window.open("kot_browser.html", "_blank");
@@ -195,10 +183,10 @@ printInv.addEventListener("click", () => {
 });
 
 // ---------- Full Preview Modal ----------
-const previewPanel = document.getElementById("previewPanel");
 const fullPreviewModal = document.getElementById("fullPreviewModal");
 const fullPreviewContent = document.getElementById("fullPreviewContent");
 const closePreview = document.getElementById("closePreview");
+const previewPanel = document.getElementById("previewPanel");
 
 previewPanel.addEventListener("click", () => {
   fullPreviewContent.innerHTML =
@@ -216,15 +204,15 @@ fullPreviewModal.addEventListener("click", (e) => {
   await loadProducts();
   loadOfflineCart();
 
-  // ---------- Printer IP Save / Load ----------
+  // Printer IP save/load
   const printerIpInput = document.getElementById("printerIp");
   const savedPrinterIp = localStorage.getItem("printer_ip");
   if (savedPrinterIp && printerIpInput) printerIpInput.value = savedPrinterIp;
-  if (printerIpInput) {
+  if (printerIpInput)
     printerIpInput.addEventListener("change", () => {
       const ip = printerIpInput.value.trim();
       localStorage.setItem("printer_ip", ip);
-      console.log("💾 Printer IP saved:", ip);
     });
-  }
+
+  if (window.initFirestoreRealtime) window.initFirestoreRealtime(); // start listener
 })();
