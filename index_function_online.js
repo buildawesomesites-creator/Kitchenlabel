@@ -1,3 +1,4 @@
+
 console.log("✅ index_function_online.js loaded");
 
 import { db } from "./firebase_config.js";
