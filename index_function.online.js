@@ -6,6 +6,7 @@ import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/fir
 
 const syncStatus = document.getElementById("syncStatus");
 const printerIpInput = document.getElementById("printerIp");
+let syncTimer = null;
 
 // ---------- Printer IP ----------
 if (printerIpInput) {
@@ -19,31 +20,23 @@ function getPrinterIP() {
 }
 
 // ---------- Sync Indicator ----------
-function setSyncState(state) {
+function setSyncState(state, msg = "") {
   if (!syncStatus) return;
   syncStatus.className = state;
   if (state === "online") syncStatus.textContent = "✅ Online";
   else if (state === "offline") syncStatus.textContent = "⚠️ Offline";
-  else syncStatus.textContent = "🔄 Syncing...";
+  else if (state === "updating") syncStatus.textContent = "⏫ Updating...";
+  else syncStatus.textContent = msg || "🔄 Syncing...";
 }
 
-// ---------- Green Blink Visual Effect ----------
-function flashGreen() {
-  const flash = document.createElement("div");
-  flash.style.position = "fixed";
-  flash.style.top = 0;
-  flash.style.left = 0;
-  flash.style.width = "100%";
-  flash.style.height = "100%";
-  flash.style.background = "rgba(0,255,0,0.15)";
-  flash.style.zIndex = 9999;
-  flash.style.pointerEvents = "none";
-  flash.style.transition = "opacity 0.5s ease";
-  document.body.appendChild(flash);
+// ---------- Subtle Green Glow Effect ----------
+function glowSyncBar() {
+  if (!syncStatus) return;
+  syncStatus.style.transition = "box-shadow 0.5s ease";
+  syncStatus.style.boxShadow = "0 0 12px 3px rgba(0,255,0,0.6)";
   setTimeout(() => {
-    flash.style.opacity = 0;
-    setTimeout(() => flash.remove(), 500);
-  }, 100);
+    syncStatus.style.boxShadow = "none";
+  }, 800);
 }
 
 // ---------- Offline-First Sync ----------
@@ -53,7 +46,7 @@ window.syncToFirestore = async function (tableName) {
     const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
     if (!cart.length) return;
 
-    setSyncState("syncing");
+    setSyncState("updating");
 
     await setDoc(doc(collection(db, "orders"), table), {
       items: cart,
@@ -61,12 +54,25 @@ window.syncToFirestore = async function (tableName) {
     });
 
     setSyncState("online");
+    glowSyncBar();
     console.log(`☁️ Synced ${table} (${cart.length} items)`);
   } catch (err) {
     console.warn("⚠️ Sync failed:", err);
     setSyncState("offline");
   }
 };
+
+// ---------- Auto Sync on Local Cart Change ----------
+window.addEventListener("storage", (e) => {
+  if (e.key && e.key.startsWith("cart_")) {
+    clearTimeout(syncTimer);
+    setSyncState("updating");
+    syncTimer = setTimeout(() => {
+      const table = e.key.replace("cart_", "");
+      window.syncToFirestore(table);
+    }, 2000);
+  }
+});
 
 // ---------- Auto Sync on Reconnect ----------
 window.addEventListener("online", () => {
@@ -83,7 +89,7 @@ window.addEventListener("online", () => {
   }
 });
 
-// ---------- Real-Time Firestore Listener (Live Cross-Device Sync) ----------
+// ---------- Real-Time Firestore Listener (Cross-Device Live Sync) ----------
 function initRealtimeListener() {
   const ordersRef = collection(db, "orders");
 
@@ -95,16 +101,21 @@ function initRealtimeListener() {
       if (!data || !data.items) return;
 
       if (change.type === "added" || change.type === "modified") {
-        // Update local cache instantly
-        localStorage.setItem(`cart_${tableId}`, JSON.stringify(data.items || []));
-        console.log(`🔄 Updated from Firestore: ${tableId}`);
+        const localData = localStorage.getItem(`cart_${tableId}`);
+        const localJSON = localData ? JSON.parse(localData) : [];
 
-        // Flash green to show sync
-        flashGreen();
+        // Only update local if remote data differs
+        const localHash = JSON.stringify(localJSON);
+        const remoteHash = JSON.stringify(data.items);
 
-        // If viewing same table, refresh cart immediately
-        if (window.currentTable === tableId && typeof window.loadOfflineCart === "function") {
-          window.loadOfflineCart();
+        if (localHash !== remoteHash) {
+          localStorage.setItem(`cart_${tableId}`, remoteHash);
+          console.log(`🔄 Updated from Firestore: ${tableId}`);
+          glowSyncBar();
+
+          if (window.currentTable === tableId && typeof window.loadOfflineCart === "function") {
+            window.loadOfflineCart();
+          }
         }
       }
     });
