@@ -159,3 +159,31 @@ if(printInvBtn){
 
 // ---------- INIT ----------
 window.loadTableCart();
+
+// ---------- Update print cache for KOT / Invoice ----------
+function updatePrintCache() {
+  if(!window.currentTable) return;
+  localStorage.setItem(`cart_print_${window.currentTable}`, JSON.stringify(window.cart));
+}
+
+// Update print cache whenever cart changes
+function saveCart() {
+  localStorage.setItem(`cart_${window.currentTable}`, JSON.stringify(window.cart));
+  localStorage.setItem("last_table", window.currentTable);
+  updatePrintCache();            // <-- ensure latest data for printing
+  if(typeof window.autoSync==="function") window.autoSync();
+}
+
+// Also update print cache when removing or clearing items
+window.removeItem = function(index){
+  window.cart.splice(index,1);
+  saveCart();
+  renderCart();
+};
+
+clearBtn.addEventListener("click", ()=>{
+  window.cart=[];
+  saveCart();
+  renderCart();
+});
+
