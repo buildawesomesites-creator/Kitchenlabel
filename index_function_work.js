@@ -103,7 +103,7 @@ previewBody.addEventListener("click", (e)=>{
 function autoAddProduct() {
   const name = searchInput.value.trim();
   const qty = parseInt(qtyInput.value || "1");
-  const prod = products.find(p=>p.name.toLowerCase()===name.toLowerCase());
+  const prod = window.products.find(p=>p.name.toLowerCase()===name.toLowerCase());
   if(!prod) return;
 
   const existing = cart.find(i=>i.name===prod.name);
@@ -132,7 +132,7 @@ searchInput.addEventListener("input", ()=>{
   productDropdown.innerHTML="";
   if(!term) return productDropdown.style.display="none";
 
-  const matches = products.filter(p=>p.name.toLowerCase().includes(term));
+  const matches = window.products.filter(p=>p.name.toLowerCase().includes(term));
   matches.forEach(p=>{
     const div = document.createElement("div");
     div.textContent = p.name;
@@ -218,20 +218,40 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ---------- Init ----------
-(async ()=>{
-  if(typeof loadProducts==="function") await loadProducts(); // from products.js
-  loadTableCart();
+// ---------- Products.js Offline Load ----------
+(async()=>{
+  // Load cached products from localStorage
+  const cached = localStorage.getItem("offlineProducts");
+  if(cached){
+    try { window.products = JSON.parse(cached); console.log("📦 Products loaded from cache", window.products.length); }
+    catch(e){ console.warn("⚠️ Failed to parse cached products:", e); }
+  }
 
-  // ---------- Printer IP ----------
-  const printerIpInput = document.getElementById("printerIp");
-  const savedPrinterIp = localStorage.getItem("printer_ip");
-  if(savedPrinterIp && printerIpInput) printerIpInput.value=savedPrinterIp;
-  if(printerIpInput){
-    printerIpInput.addEventListener("change",()=>{
-      const ip = printerIpInput.value.trim();
-      localStorage.setItem("printer_ip", ip);
-      console.log("💾 Printer IP saved:", ip);
-    });
+  // Load local JSON fallback
+  try{
+    const res = await fetch("./products.json", {cache:"no-store"});
+    if(res.ok){
+      const data = await res.json();
+      window.products = data;
+      localStorage.setItem("offlineProducts", JSON.stringify(data));
+      console.log("📦 Products loaded from local products.json", window.products.length);
+    }
+  } catch(err){
+    console.warn("⚠️ Could not load local products.json, using cache only", err);
   }
 })();
+
+// ---------- Init ----------
+loadTableCart();
+
+// ---------- Printer IP ----------
+const printerIpInput = document.getElementById("printerIp");
+const savedPrinterIp = localStorage.getItem("printer_ip");
+if(savedPrinterIp && printerIpInput) printerIpInput.value=savedPrinterIp;
+if(printerIpInput){
+  printerIpInput.addEventListener("change",()=>{
+    const ip = printerIpInput.value.trim();
+    localStorage.setItem("printer_ip", ip);
+    console.log("💾 Printer IP saved:", ip);
+  });
+}
