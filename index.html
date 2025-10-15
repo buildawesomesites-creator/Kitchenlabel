@@ -4,24 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Papadums POS V.1</title>
-
-</head>
-<body>
-  <header>
-    <span id="versionTag">V. 1</span>
-    Papadums POS
-    <span id="printerDot"></span>
-    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
-  </header>
-
-
-  
   <link rel="stylesheet" href="style.css">
+
   <style>
     /* === Dark Dropdown Styling === */
     #productDropdown {
       position: absolute;
-      background: #222;
+      background: #111;
       color: #f1f1f1;
       border: 1px solid #333;
       border-radius: 8px;
@@ -49,6 +38,15 @@
       border-radius: 3px;
     }
   </style>
+</head>
+
+<body>
+  <header>
+    <span id="versionTag">V. 1</span>
+    Papadums POS
+    <span id="printerDot"></span>
+    <div id="syncStatus" class="syncing">🔄 Syncing...</div>
+  </header>
 
   <div class="wrap">
     <div class="table-panel">
@@ -63,12 +61,15 @@
     </div>
 
     <div class="controls-panel">
-      <div class="top-row" style="position: relative;">
-        <input id="productSearch" type="text" list="productList" placeholder="Search product..." autocomplete="off" />
-        <datalist id="productList"></datalist>
+      <div class="top-row">
+        <input id="productSearch" type="text" placeholder="Search product..." autocomplete="off" />
         <div id="productDropdown"></div>
+      </div>
+
+      <div class="mid-row">
         <input id="qty" type="number" min="1" value="1" />
       </div>
+
       <div class="bottom-row">
         <button id="clearBtn" class="btn-clear">Clear Items</button>
         <button id="addBtn" class="btn-add">Add Item</button>
@@ -112,6 +113,8 @@
     </div>
   </div>
 
+  <!-- === Scripts === -->
+  <script type="module" src="./index_function_work.js"></script>
   <script type="module" src="./index_function.online.js"></script>
 
   <script>
@@ -139,7 +142,7 @@
     ipInput.addEventListener("input",()=>{localStorage.setItem("printerIp",ipInput.value);checkPrinterConnection();});
     checkPrinterConnection(); setInterval(checkPrinterConnection,10000);
 
-    // === Clickable Order Preview ===
+    // === Clickable Order Preview Modal ===
     const previewPanel = document.getElementById("previewPanel");
     const fullModal = document.getElementById("fullPreviewModal");
     const fullContent = document.getElementById("fullPreviewContent");
@@ -152,46 +155,44 @@
     closeBtn.onclick = ()=> fullModal.style.display="none";
     fullModal.addEventListener("click",(e)=>{if(e.target===fullModal)fullModal.style.display="none";});
 
-    // === Custom Scrollable Search Dropdown (Dark) ===
+    // === Dark Dropdown with Auto Add to Cart ===
     const searchInput = document.getElementById("productSearch");
-    const dropdown = document.getElementById("productDropdown");
+    const productDropdown = document.getElementById("productDropdown");
 
     searchInput.addEventListener("input", () => {
-      const value = searchInput.value.toLowerCase();
-      const options = Array.from(document.getElementById("productList").options);
-      dropdown.innerHTML = "";
-      const filtered = options.filter(o => o.value.toLowerCase().includes(value));
-      filtered.forEach(o => {
+      const term = searchInput.value.toLowerCase().trim();
+      productDropdown.innerHTML = "";
+      if (!term) return (productDropdown.style.display = "none");
+
+      const matches = (window.products || []).filter(p =>
+        p.name.toLowerCase().includes(term)
+      );
+
+      matches.forEach(p => {
         const div = document.createElement("div");
-        div.textContent = o.value;
-        div.onclick = () => {
-          searchInput.value = o.value;
-          dropdown.style.display = "none";
-        };
-        dropdown.appendChild(div);
+        div.textContent = p.name;
+        div.addEventListener("click", () => {
+          searchInput.value = p.name;
+          productDropdown.style.display = "none";
+          if (typeof autoAddProduct === "function") autoAddProduct();
+        });
+        productDropdown.appendChild(div);
       });
-      dropdown.style.display = filtered.length ? "block" : "none";
+
+      productDropdown.style.display = matches.length ? "block" : "none";
     });
 
     document.addEventListener("click", e => {
-      if (!searchInput.contains(e.target)) dropdown.style.display = "none";
+      if (!searchInput.contains(e.target)) productDropdown.style.display = "none";
     });
+
+    // === Hide Android native dropdown to prevent white overlay ===
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('wv') || ua.includes('version/')) {
+      const input = document.getElementById('productSearch');
+      input.removeAttribute('list');
+      input.setAttribute('autocomplete', 'off');
+    }
   </script>
-
-  <!-- Add these lines before the closing </body> tag -->
-  <script type="module" src="./index_function_work.js"></script>
-  <script type="module" src="./index_function.online.js"></script>
-<script>
-  // === Hide Android native dropdown to prevent white overlay ===
-  const ua = navigator.userAgent.toLowerCase();
-  if (ua.includes('wv') || ua.includes('version/')) { // Android WebView detection
-    const input = document.getElementById('productSearch');
-    // Disable system datalist dropdown
-    input.removeAttribute('list');
-    input.setAttribute('autocomplete', 'off');
-  }
-</script>
-
-  
 </body>
 </html>
