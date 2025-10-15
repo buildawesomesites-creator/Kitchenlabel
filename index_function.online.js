@@ -1,94 +1,66 @@
-// =================== Papadums POS — Online Sync & Print Script ===================
-console.log("✅ index_function_online.js loaded");
-
+// =================== Papadums POS — Firestore Sync ===================
 import { db } from "./firebase_config.js";
-import { collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import {
+  collection,
+  doc,
+  setDoc,
+  onSnapshot,
+  getDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-const syncStatus = document.getElementById("syncStatus");
-const printerIpInput = document.getElementById("printerIp");
+console.log("✅ Firestore sync module loaded");
 
-// ---------- Printer IP ----------
-if (printerIpInput) {
-  printerIpInput.value = localStorage.getItem("printerIp") || "";
-  printerIpInput.addEventListener("input", (e) => {
-    localStorage.setItem("printerIp", e.target.value.trim());
-  });
-}
-function getPrinterIP() {
-  return localStorage.getItem("printerIp") || "";
-}
+// --- Save cart data online ---
+export async function syncToFirestore() {
+  const currentTable = window.currentTable || "table1";
+  const cart = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
+  if (!cart.length) return;
 
-// ---------- Sync Indicator ----------
-function setSyncState(state) {
-  if (!syncStatus) return;
-  syncStatus.className = state;
-  if (state === "online") syncStatus.textContent = "✅ Online";
-  else if (state === "offline") syncStatus.textContent = "⚠️ Offline";
-  else syncStatus.textContent = "🔄 Syncing...";
-}
-
-// ---------- Offline-First Sync ----------
-window.syncToFirestore = async function () {
   try {
-    const table = window.currentTable || "table1";
-    const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-    if (!cart.length) return;
-
-    setSyncState("syncing");
-
-    await setDoc(doc(collection(db, "orders"), table), {
-      items: cart,
-      updatedAt: new Date().toISOString(),
+    const ref = doc(db, "papadums_orders", currentTable);
+    await setDoc(ref, {
+      table: currentTable,
+      cart,
+      updated: serverTimestamp(),
     });
-
-    setSyncState("online");
-    console.log(`☁️ Synced ${table} (${cart.length} items)`);
+    console.log(`☁️ Synced ${currentTable} to Firestore`);
   } catch (err) {
-    console.warn("⚠️ Sync failed:", err);
-    setSyncState("offline");
+    console.error("❌ Firestore sync failed:", err);
   }
+}
+window.syncToFirestore = syncToFirestore;
+
+// --- Auto sync every 5 seconds if online ---
+let autoSyncTimer = null;
+window.autoSyncToFirestore = () => {
+  if (!navigator.onLine) return;
+  if (autoSyncTimer) clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(syncToFirestore, 5000); // ⏱️ 5s debounce
 };
 
-// Auto sync on reconnect
-window.addEventListener("online", () => {
-  console.log("🌐 Reconnected — syncing all tables");
-  try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith("cart_"));
-    keys.forEach(k => {
-      const table = k.replace("cart_", "");
-      const cart = JSON.parse(localStorage.getItem(k) || "[]");
-      if (cart.length) window.syncToFirestore(table, cart);
-    });
-  } catch {}
-});
+// --- Real-time listener for live multi-device updates ---
+export function initFirestoreRealtime() {
+  const currentTable = window.currentTable || "table1";
+  const ref = doc(db, "papadums_orders", currentTable);
 
-// ---------- Save order for print ----------
-window.saveOrderDataForPrint = function () {
-  const table = window.currentTable || "table1";
-  const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-  const orderData = {
-    table,
-    time: new Date().toLocaleString("vi-VN", { hour12: false }),
-    items: cart.map((i) => ({
-      name: i.name,
-      price: i.price,
-      qty: i.qty,
-      unit: i.unit || "",
-    })),
-    total: cart.reduce((s, i) => s + i.price * i.qty, 0),
-  };
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
-  return orderData;
-};
+  onSnapshot(ref, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const local = JSON.parse(localStorage.getItem(`cart_${currentTable}`) || "[]");
+    const onlineCart = data.cart || [];
 
-// ---------- Print Buttons ----------
-document.getElementById("printKOT")?.addEventListener("click", () => {
-  const order = window.saveOrderDataForPrint();
-  window.open("kot_browser.html", "_blank");
-});
-document.getElementById("printInvoice")?.addEventListener("click", () => {
-  const order = window.saveOrderDataForPrint();
-  window.open("invoice_browser.html", "_blank");
-});
+    // compare hashes (simple length + total)
+    const localHash = local.reduce((s, i) => s + i.qty * i.price, 0) + ":" + local.length;
+    const onlineHash = onlineCart.reduce((s, i) => s + i.qty * i.price, 0) + ":" + onlineCart.length;
 
-setSyncState("online");
+    if (localHash !== onlineHash) {
+      console.log("🔁 Updating local cart from Firestore...");
+      localStorage.setItem(`cart_${currentTable}`, JSON.stringify(onlineCart));
+      window.cart = onlineCart;
+      if (window.renderCart) window.renderCart();
+    }
+  });
+  console.log("👂 Firestore real-time listener active");
+}
+window.initFirestoreRealtime = initFirestoreRealtime;
