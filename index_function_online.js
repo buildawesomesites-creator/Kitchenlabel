@@ -15,52 +15,59 @@ function setSyncState(state) {
   else if (state === "local") syncStatus.textContent = "🟪 Local";
 }
 
-// ---------- Table card status ----------
-function updateTableCardStatus(table, status) {
+// ---------- Table card blinking ----------
+function blinkTableCard(table, status) {
   const card = document.querySelector(`.table-card[data-table="${table}"]`);
   if (!card) return;
   card.classList.remove("syncing", "sync-online", "sync-local");
-  if (status === "syncing") card.classList.add("syncing");
-  else if (status === "online") {
+
+  if (status === "syncing") {
+    card.classList.add("syncing");
+    // blink yellow
+    card.style.animation = "blinkYellow 1s ease 0s 2";
+  } else if (status === "online") {
     card.classList.add("sync-online");
-    setTimeout(() => card.classList.remove("sync-online"), 1000);
+    // blink green
+    card.style.animation = "blinkGreen 1s ease 0s 2";
+    setTimeout(() => card.style.animation = "", 1000);
+  } else if (status === "local") {
+    card.classList.add("sync-local");
   }
-  else if (status === "local") card.classList.add("sync-local");
 }
 
-// ---------- Load cart from localStorage ----------
+// ---------- Load cart safely ----------
 window.loadTableCartSafe = function(table) {
-  const t = table || window.currentTable || "table1";
+  const t = table || window.currentTable || "Table 1";
   const cart = JSON.parse(localStorage.getItem(`cart_${t}`) || "[]");
   window.cart = cart;
   if (typeof window.loadTableCart === "function") window.loadTableCart();
-  updateTableCardStatus(t, "local");
+  blinkTableCard(t, "local");
 };
 
 // ---------- Sync table to Firebase ----------
 async function syncTable(table) {
+  const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
+  blinkTableCard(table, "syncing");
+  setSyncState("syncing");
+
   if (!navigator.onLine) {
     setSyncState("offline");
-    updateTableCardStatus(table, "local");
+    blinkTableCard(table, "local");
     return;
   }
 
-  const cart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
-  updateTableCardStatus(table, "syncing");
-  setSyncState("syncing");
-
   try {
-    await setDoc(doc(collection(db, "orders"), table), {
+    await setDoc(doc(collection(db, "tables"), table), {
       items: cart,
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
     setSyncState("online");
-    updateTableCardStatus(table, "online");
+    blinkTableCard(table, "online");
     console.log(`☁️ Synced table ${table} (${cart.length} items)`);
   } catch (err) {
     console.warn("⚠️ Sync failed:", err);
     setSyncState("offline");
-    updateTableCardStatus(table, "local");
+    blinkTableCard(table, "local");
   }
 }
 
@@ -70,19 +77,17 @@ window.autoSync = function() {
   syncTable(window.currentTable);
 };
 
-// ---------- Merge Firebase data for a table ----------
+// ---------- Merge Firebase data ----------
 async function mergeFirebaseTable(table, forceLoad=false) {
   if (!navigator.onLine) return;
   try {
-    const docSnap = await getDoc(doc(db, "orders", table));
+    const docSnap = await getDoc(doc(db, "tables", table));
     const remoteCart = docSnap.exists() ? docSnap.data().items || [] : [];
     const localCart = JSON.parse(localStorage.getItem(`cart_${table}`) || "[]");
 
-    // Force load or empty local -> use remote
     const mergedCart = (forceLoad || localCart.length === 0) ? remoteCart : localCart;
 
     localStorage.setItem(`cart_${table}`, JSON.stringify(mergedCart));
-
     if (window.currentTable === table) window.loadTableCartSafe(table);
 
     console.log(`🔄 Merged Firebase data for table ${table}`);
@@ -91,7 +96,7 @@ async function mergeFirebaseTable(table, forceLoad=false) {
   }
 }
 
-// ---------- Initial load of all tables ----------
+// ---------- Initialize tables ----------
 async function initTables() {
   const tableCards = Array.from(document.querySelectorAll(".table-card"));
   tableCards.forEach(c => {
@@ -99,21 +104,19 @@ async function initTables() {
     if (!localStorage.getItem(`cart_${t}`)) localStorage.setItem(`cart_${t}`, JSON.stringify([]));
   });
 
-  if (!window.currentTable) window.currentTable = localStorage.getItem("last_table") || "table1";
+  if (!window.currentTable) window.currentTable = localStorage.getItem("last_table") || "Table 1";
 
-  // Force-load table 1 to fix old cached data issue
-  await mergeFirebaseTable("table1", true);
+  // Force load Table 1 to fix old cache
+  await mergeFirebaseTable("Table 1", true);
 
-  // Load current table safely
   window.loadTableCartSafe(window.currentTable);
 
-  // Highlight UI
   tableCards.forEach(c => c.classList.toggle("active", c.dataset.table === window.currentTable));
 }
 
-// ---------- Realtime listener ----------
+// ---------- Real-time listener ----------
 function initRealtimeListener() {
-  const ordersRef = collection(db, "orders");
+  const ordersRef = collection(db, "tables");
   onSnapshot(ordersRef, snapshot => {
     snapshot.docChanges().forEach(change => {
       const tableId = change.doc.id;
@@ -125,23 +128,20 @@ function initRealtimeListener() {
       const localJSON = JSON.stringify(localCart);
 
       if (localJSON !== remoteJSON) {
-        // Merge if local not cleared
         if (localCart.length === 0) localStorage.setItem(`cart_${tableId}`, remoteJSON);
 
         if (window.currentTable === tableId) {
           window.loadTableCartSafe(tableId);
-          updateTableCardStatus(tableId, "online");
+          blinkTableCard(tableId, "online");
         }
 
         console.log(`🔄 Remote update synced locally: cart_${tableId}`);
       }
     });
-  }, err => {
-    console.warn("Firestore listener error:", err);
-  });
+  }, err => console.warn("Firestore listener error:", err));
 }
 
-// ---------- Online reconnect ----------
+// ---------- Reconnect handler ----------
 window.addEventListener("online", () => {
   console.log("🌐 Connection restored — syncing all tables");
   const tableCards = Array.from(document.querySelectorAll(".table-card"));
@@ -153,9 +153,7 @@ window.addEventListener("online", () => {
 const printerIpInput = document.getElementById("printerIp");
 if (printerIpInput) {
   printerIpInput.value = localStorage.getItem("printerIp") || "";
-  printerIpInput.addEventListener("input", e => {
-    localStorage.setItem("printerIp", e.target.value.trim());
-  });
+  printerIpInput.addEventListener("input", e => localStorage.setItem("printerIp", e.target.value.trim()));
 }
 
 // ---------- INIT ----------
