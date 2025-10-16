@@ -8,22 +8,24 @@
 <title>KOT Print (Browser)</title>
 <style>
 @page { size: 80mm auto; margin: 3mm; }
-body { font-family: Arial, Helvetica, sans-serif; width: 80mm; margin: 0 auto; font-size: 14px; background: #fff; }
-.receipt { width: 100%; background: #fff; padding: 8px; }
-.copy { text-align: left; font-weight: bold; margin-bottom: 3px; }
-h2 { text-align: center; margin: 2px 0 5px 0; font-weight: 900; font-size: 18px; }
-.meta { font-size: 14px; margin: 1px 0; display: flex; align-items: center; gap: 4px; }
-.meta b { font-weight: bold; }
-.code-line { font-size: 13px; margin: 4px 0 6px 0; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 4px 0; text-align: left; border-bottom: 1px solid #000; font-size: 14px; }
-th { font-weight: bold; }
-.no-print { margin-top: 8px; text-align: center; }
-.no-print button { background: #0066ff; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; margin: 4px; cursor: pointer; font-weight: bold; }
-.no-print button:hover { background: #004bb5; }
-.status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-top: 8px; background: gray; transition: background 0.3s ease; }
-.status-label { display: block; font-size: 13px; margin-top: 3px; color: #555; }
-@media print { .no-print { display: none !important; } }
+body { font-family: Arial, Helvetica, sans-serif; width: 80mm; margin:0 auto; font-size:14px; background:#fff; }
+.receipt { width:100%; background:#fff; padding:8px; }
+.copy { text-align:left; font-weight:bold; margin-bottom:3px; }
+h2 { text-align:center; margin:2px 0 5px 0; font-weight:900; font-size:18px; }
+.meta { font-size:14px; margin:1px 0; display:flex; align-items:center; gap:4px; }
+.meta b { font-weight:bold; }
+.code-line { font-size:13px; margin:4px 0 6px 0; }
+table { width:100%; border-collapse:collapse; }
+th, td { padding:4px 0; text-align:left; border-bottom:1px solid #000; font-size:14px; }
+th { font-weight:bold; }
+.no-print { margin-top:8px; text-align:center; }
+.no-print button, .no-print input { margin:4px; padding:6px 10px; border-radius:6px; font-weight:bold; }
+.no-print button { background:#0066ff; color:#fff; border:none; cursor:pointer; }
+.no-print button:hover { background:#004bb5; }
+.no-print input { border:1px solid #aaa; width:140px; }
+.status-dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-top:8px; background:gray; transition:background 0.3s ease; }
+.status-label { display:block; font-size:13px; margin-top:3px; color:#555; }
+@media print { .no-print { display:none !important; } }
 </style>
 </head>
 <body>
@@ -34,30 +36,28 @@ th { font-weight: bold; }
   <div class="meta"><b>Bàn:</b><span id="tableNum">—</span></div>
   <div class="meta"><b>Phục vụ:</b><span id="serverName">Quỳnh Anh</span></div>
   <div class="code-line" id="codeLine"></div>
-
   <table>
-    <thead>
-      <tr><th>Món</th><th>DVT</th><th>SL</th></tr>
-    </thead>
-    <tbody id="itemList">
-      <tr><td colspan="3" style="text-align:center;">Đang tải...</td></tr>
-    </tbody>
+    <thead><tr><th>Món</th><th>DVT</th><th>SL</th></tr></thead>
+    <tbody id="itemList"><tr><td colspan="3" style="text-align:center;">Đang tải...</td></tr></tbody>
   </table>
 </div>
 
 <div class="no-print">
-  <button id="normalPrintBtn">🖨️ Normal Print</button>
-  <button id="downloadPngBtn">⬇️ Download PNG</button>
+  <input type="text" id="printerIp" value="192.168.1.182" placeholder="Printer IP">
+  <button id="updateJsonBtn">🔄 Update JSON</button>
+  <button id="printPreviewBtn">🖼️ Print Preview PNG</button>
+  <button id="testPrinterBtn">🖧 Test Printer</button>
   <button id="wifiPrintBtn">📡 Wi-Fi Print</button>
   <div>
-    <span class="status-dot" id="printerStatus"></span>
+    <span class="status-dot" id="statusDot"></span>
     <span class="status-label" id="statusText">Status: Waiting</span>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -72,54 +72,113 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-window.onload = async () => {
-  function randomCode() {
-    const p1 = Math.floor(Math.random() * 90 + 10);
-    const p2 = Math.floor(Math.random() * 90 + 10);
-    return `${p1}-${p2}`;
+const tableNumEl = document.getElementById("tableNum");
+const serverNameEl = document.getElementById("serverName");
+const tbody = document.getElementById("itemList");
+const codeLineEl = document.getElementById("codeLine");
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+
+const urlParams = new URLSearchParams(window.location.search);
+const table = urlParams.get("table") || localStorage.getItem("last_table") || "Table1";
+
+function showStatus(success, message){
+  statusDot.style.background = success ? "limegreen":"red";
+  statusText.textContent = message;
+  setTimeout(()=>{ statusDot.style.background="gray"; statusText.textContent="Status: Waiting"; },3000);
+}
+
+function randomCode(){ const p1=Math.floor(Math.random()*90+10); const p2=Math.floor(Math.random()*90+10); return `${p1}-${p2}`; }
+
+function updateTable(data){
+  tableNumEl.textContent = data.table || table;
+  serverNameEl.textContent = data.server || "Quỳnh Anh";
+  tbody.innerHTML = "";
+  if(!data.items || data.items.length===0){
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">No items</td></tr>`;
+  } else {
+    data.items.forEach(it=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${it.name}</td><td>${it.unit||""}</td><td>${it.qty}</td>`;
+      tbody.appendChild(tr);
+    });
   }
+}
 
-  const codeLineEl = document.getElementById("codeLine");
-  codeLineEl.textContent = `${randomCode()} ${new Date().toLocaleTimeString('en-GB', { hour12: false })} ${new Date().toLocaleDateString('en-GB')}`;
+// --- Load from localStorage first ---
+let cachedData = localStorage.getItem(`cart_${table}`);
+if(cachedData){
+  try{
+    const parsed = JSON.parse(cachedData);
+    updateTable(parsed);
+    showStatus(true,"Loaded from localStorage");
+  } catch(e){ console.warn("Failed to parse local cache",e); }
+}
 
-  const table = document.getElementById("tableNum").textContent || "Table1";
-  const server = document.getElementById("serverName").textContent || "Server";
-  const tbody = document.getElementById("itemList");
-  const items = [];
-  tbody.querySelectorAll("tr").forEach(tr => {
-    const tds = tr.querySelectorAll("td");
-    if(tds.length === 3) {
-      items.push({ name: tds[0].textContent, unit: tds[1].textContent, qty: tds[2].textContent });
-    }
-  });
+// --- Sync with Firebase ---
+const docRef = doc(db,"carts",table);
+onSnapshot(docRef,(docSnap)=>{
+  if(docSnap.exists()){
+    const data = docSnap.data();
+    updateTable({table, server:data.server||"Quỳnh Anh", items:data.items||[]});
+    localStorage.setItem(`cart_${table}`,JSON.stringify({table, server:data.server||"Quỳnh Anh", items:data.items||[]}));
+    showStatus(true,"Synced with Firebase");
+  }
+},err=>{
+  console.error(err);
+  showStatus(false,"Firebase sync failed");
+});
 
-  // Save to Firestore
-  await setDoc(doc(db, "kot", table), { table, server, items, timestamp: new Date() });
+// --- Dynamic code line ---
+setInterval(()=>{
+  const now = new Date();
+  codeLineEl.textContent = `${randomCode()} ${now.toLocaleTimeString('en-GB',{hour12:false})} ${now.toLocaleDateString('en-GB')}`;
+},1000);
 
-  // Normal Print
-  document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
+// --- Update JSON button ---
+document.getElementById("updateJsonBtn").addEventListener("click", async ()=>{
+  const docSnap = await getDoc(docRef);
+  if(docSnap.exists()) updateTable(docSnap.data());
+});
 
-  // Download PNG
-  document.getElementById("downloadPngBtn").addEventListener("click", async () => {
-    const canvas = await html2canvas(document.getElementById("receipt"), { scale: 2, backgroundColor: "#ffffff" });
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = `KOT_${Date.now()}.png`;
-    link.click();
-  });
+// --- Print Preview PNG ---
+document.getElementById("printPreviewBtn").addEventListener("click", async ()=>{
+  const canvas = await html2canvas(document.getElementById("receipt"), {scale:2, backgroundColor:"#ffffff"});
+  const imgData = canvas.toDataURL("image/png");
+  const iframe = document.createElement("iframe");
+  iframe.style.position="fixed"; iframe.style.left="-9999px"; document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<html><head><title>Print Preview</title>
+    <style>body{margin:0;text-align:center;} img{width:80mm;}</style>
+    </head><body><img src="${imgData}"/></body></html>`);
+  doc.close(); iframe.contentWindow.focus();
+  iframe.contentWindow.print();
+  setTimeout(()=>document.body.removeChild(iframe),1000);
+});
 
-  // Wi-Fi Print → use AndroidBridge
-  document.getElementById("wifiPrintBtn").addEventListener("click", () => {
-    if(window.AndroidBridge && typeof window.AndroidBridge.openAssetWiFiPrinter === "function"){
-        // Opens kot_browser.asset.html inside app
-        window.AndroidBridge.openAssetWiFiPrinter();
-    } else {
-        alert("⚠️ Wi-Fi Print works only inside the Android app.");
-    }
-  });
-};
+// --- Test Printer ---
+document.getElementById("testPrinterBtn").addEventListener("click", ()=>{
+  const ip = document.getElementById("printerIp").value;
+  if(window.AndroidBridge?.testPrinterConnection) AndroidBridge.testPrinterConnection(ip);
+  else alert("AndroidBridge not found!");
+});
+
+// --- Wi-Fi Print ---
+document.getElementById("wifiPrintBtn").addEventListener("click", async ()=>{
+  const ip = document.getElementById("printerIp").value;
+  const canvas = await html2canvas(document.getElementById("receipt"), {scale:2, backgroundColor:"#ffffff"});
+  const imgData = canvas.toDataURL("image/png");
+
+  // Send to AndroidBridge
+  if(window.AndroidBridge?.printWiFi) AndroidBridge.printWiFi(ip,imgData);
+
+  // Also open asset HTML with data
+  const orderData = localStorage.getItem(`cart_${table}`) || "{}";
+  const blob = new Blob([orderData], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  window.open(`kot_browser.asset.html?data=${encodeURIComponent(orderData)}`, "_blank");
+});
 </script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
