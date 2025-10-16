@@ -1,0 +1,17 @@
+{
+  "table": "5",
+  "server": "Quỳnh Anh",
+  "items": [
+    {
+      "name": "Beef Noodle Soup",
+      "unit": "",
+      "qty": 2
+    },
+    {
+      "name": "Spring Roll",
+      "unit": "",
+      "qty": 4
+    }
+  ],
+  "timestamp": "22:39:37 16/10/2025"
+}
