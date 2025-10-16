@@ -166,22 +166,22 @@ window.onload = () => {
   // 🖨️ Normal Print
   document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
 
-  // 🤖 Android Wi-Fi Print — OPEN ASSET HTML ONLY
+  // 🤖 Android Wi-Fi Print — OPEN ASSET HTML
   document.getElementById("androidPrintBtn").addEventListener("click", async () => {
 
     // Save latest data
-    const table = document.getElementById("tableNum").textContent;
+    const tableNum = document.getElementById("tableNum").textContent;
     const orderItems = Array.from(document.querySelectorAll("#itemList tr")).map(tr => ({
         name: tr.children[0]?.textContent || "",
         unit: tr.children[1]?.textContent || "",
         qty: tr.children[2]?.textContent || ""
     }));
-    const orderData = { table, items: orderItems };
+    const orderData = { table: tableNum, items: orderItems };
     localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
 
-    // Open asset HTML through AndroidBridge if available
-    if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetHtml) {
-        AndroidBridge.openAssetHtml("kot_browser.asset.html");
+    // Call Android bridge to open asset
+    if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetWiFiPrinter) {
+        AndroidBridge.openAssetWiFiPrinter();
     } else {
         // fallback for browser
         window.open("kot_browser.asset.html", "_blank");
