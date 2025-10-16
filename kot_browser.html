@@ -82,7 +82,6 @@ window.onload = async () => {
   const codeLineEl = document.getElementById("codeLine");
   codeLineEl.textContent = `${randomCode()} ${new Date().toLocaleTimeString('en-GB', { hour12: false })} ${new Date().toLocaleDateString('en-GB')}`;
 
-  // Example: read data from your form or table
   const table = document.getElementById("tableNum").textContent || "Table1";
   const server = document.getElementById("serverName").textContent || "Server";
   const tbody = document.getElementById("itemList");
@@ -94,12 +93,13 @@ window.onload = async () => {
     }
   });
 
-  // Save to Firestore per table
+  // Save to Firestore
   await setDoc(doc(db, "kot", table), { table, server, items, timestamp: new Date() });
 
-  // Print buttons
+  // Normal Print
   document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
 
+  // Download PNG
   document.getElementById("downloadPngBtn").addEventListener("click", async () => {
     const canvas = await html2canvas(document.getElementById("receipt"), { scale: 2, backgroundColor: "#ffffff" });
     const link = document.createElement("a");
@@ -108,11 +108,18 @@ window.onload = async () => {
     link.click();
   });
 
+  // Wi-Fi Print → use AndroidBridge
   document.getElementById("wifiPrintBtn").addEventListener("click", () => {
-    window.open(`kot_browser.asset.html?table=${table}`, "_blank");
+    if(window.AndroidBridge && typeof window.AndroidBridge.openAssetWiFiPrinter === "function"){
+        // Opens kot_browser.asset.html inside app
+        window.AndroidBridge.openAssetWiFiPrinter();
+    } else {
+        alert("⚠️ Wi-Fi Print works only inside the Android app.");
+    }
   });
 };
 </script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
