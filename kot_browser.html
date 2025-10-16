@@ -108,6 +108,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 window.onload = () => {
+  // Random code + timestamp
   function randomCode() {
     const p1 = Math.floor(Math.random() * 90 + 10);
     const p2 = Math.floor(Math.random() * 90 + 10);
@@ -119,6 +120,7 @@ window.onload = () => {
   const time = now.toLocaleTimeString('en-GB', { hour12: false });
   document.getElementById('codeLine').textContent = `${randomCode()}  ${time}  ${date}`;
 
+  // Load items
   const params = new URLSearchParams(window.location.search);
   let table = params.get("table");
   let itemsData = params.get("items");
@@ -161,37 +163,32 @@ window.onload = () => {
     }, 3000);
   }
 
+  // 🖨️ Normal Print
   document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
 
-  // ✅ Correct Android Wi-Fi button integration
+  // 🤖 Android Wi-Fi Print — OPEN ASSET HTML ONLY
   document.getElementById("androidPrintBtn").addEventListener("click", async () => {
-    const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
-    const receipt = document.getElementById("receipt");
-    const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
-    const dataUrl = canvas.toDataURL("image/png");
 
-    if (typeof AndroidBridge !== "undefined") {
-      try {
-        if (AndroidBridge.printWiFi) AndroidBridge.printWiFi(ip, dataUrl);
-        if (AndroidBridge.openAssetHtml) AndroidBridge.openAssetHtml("kot_browser.asset.html");
-        showStatus(true, "✅ Printing started & asset opened");
-      } catch (err) {
-        showStatus(false, "❌ Print/open failed");
-      }
-    } else {
-      showStatus(false, "❌ AndroidBridge not found");
-      window.open("kot_browser.asset.html", "_blank");
-    }
-
+    // Save latest data
+    const table = document.getElementById("tableNum").textContent;
     const orderItems = Array.from(document.querySelectorAll("#itemList tr")).map(tr => ({
-      name: tr.children[0]?.textContent || "",
-      unit: tr.children[1]?.textContent || "",
-      qty: tr.children[2]?.textContent || ""
+        name: tr.children[0]?.textContent || "",
+        unit: tr.children[1]?.textContent || "",
+        qty: tr.children[2]?.textContent || ""
     }));
-    const orderData = { table: document.getElementById("tableNum").textContent, items: orderItems };
+    const orderData = { table, items: orderItems };
     localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
+
+    // Open asset HTML through AndroidBridge if available
+    if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetHtml) {
+        AndroidBridge.openAssetHtml("kot_browser.asset.html");
+    } else {
+        // fallback for browser
+        window.open("kot_browser.asset.html", "_blank");
+    }
   });
 
+  // ⬇️ Download PNG
   document.getElementById("downloadPngBtn").addEventListener("click", async () => {
     const receipt = document.getElementById("receipt");
     const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
