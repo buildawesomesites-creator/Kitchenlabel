@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" translate="no" class="notranslate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="en">
+<title>KOT Print (Browser)</title>
+<style>
+@page { size: 80mm auto; margin: 3mm; }
+body { font-family: Arial, Helvetica, sans-serif; width: 80mm; margin: 0 auto; font-size: 14px; background: #fff; }
+.receipt { width: 100%; background: #fff; padding: 8px; }
+.copy { text-align: left; font-weight: bold; margin-bottom: 3px; }
+h2 { text-align: center; margin: 2px 0 5px 0; font-weight: 900; font-size: 18px; }
+.meta { font-size: 14px; margin: 1px 0; display: flex; align-items: center; gap: 4px; }
+.meta b { font-weight: bold; }
+.code-line { font-size: 13px; margin: 4px 0 6px 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 4px 0; text-align: left; border-bottom: 1px solid #000; font-size: 14px; }
+th { font-weight: bold; }
+.no-print { margin-top: 8px; text-align: center; }
+.no-print button { background: #0066ff; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; margin: 4px; cursor: pointer; font-weight: bold; }
+.no-print button:hover { background: #004bb5; }
+.status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-top: 8px; background: gray; transition: background 0.3s ease; }
+.status-label { display: block; font-size: 13px; margin-top: 3px; color: #555; }
+@media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="receipt" id="receipt">
+  <div class="copy">Copies 1</div>
+  <h2>CHẾ BIẾN</h2>
+  <div class="meta"><b>Bàn:</b><span id="tableNum">—</span></div>
+  <div class="meta"><b>Phục vụ:</b><span id="serverName">Quỳnh Anh</span></div>
+  <div class="code-line" id="codeLine"></div>
+
+  <table>
+    <thead>
+      <tr><th>Món</th><th>DVT</th><th>SL</th></tr>
+    </thead>
+    <tbody id="itemList">
+      <tr><td colspan="3" style="text-align:center;">Đang tải...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="no-print">
+  <button id="normalPrintBtn">🖨️ Normal Print</button>
+  <button id="downloadPngBtn">⬇️ Download PNG</button>
+  <button id="wifiPrintBtn">📡 Wi-Fi Print</button>
+  <div>
+    <span class="status-dot" id="printerStatus"></span>
+    <span class="status-label" id="statusText">Status: Waiting</span>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyDRc3dNn-OIidR2Qv6o9wvlpJ3Yx5vJzI4",
+  authDomain: "invoiceapp-8026d.firebaseapp.com",
+  projectId: "invoiceapp-8026d",
+  storageBucket: "invoiceapp-8026d.appspot.com",
+  messagingSenderId: "871292464773",
+  appId: "1:871292464773:web:abf324b83a14f21ce2cd2f",
+  measurementId: "G-4QMSJQKX8R"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.onload = async () => {
+  function randomCode() {
+    const p1 = Math.floor(Math.random() * 90 + 10);
+    const p2 = Math.floor(Math.random() * 90 + 10);
+    return `${p1}-${p2}`;
+  }
+
+  const codeLineEl = document.getElementById("codeLine");
+  codeLineEl.textContent = `${randomCode()} ${new Date().toLocaleTimeString('en-GB', { hour12: false })} ${new Date().toLocaleDateString('en-GB')}`;
+
+  // Example: read data from your form or table
+  const table = document.getElementById("tableNum").textContent || "Table1";
+  const server = document.getElementById("serverName").textContent || "Server";
+  const tbody = document.getElementById("itemList");
+  const items = [];
+  tbody.querySelectorAll("tr").forEach(tr => {
+    const tds = tr.querySelectorAll("td");
+    if(tds.length === 3) {
+      items.push({ name: tds[0].textContent, unit: tds[1].textContent, qty: tds[2].textContent });
+    }
+  });
+
+  // Save to Firestore per table
+  await setDoc(doc(db, "kot", table), { table, server, items, timestamp: new Date() });
+
+  // Print buttons
+  document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
+
+  document.getElementById("downloadPngBtn").addEventListener("click", async () => {
+    const canvas = await html2canvas(document.getElementById("receipt"), { scale: 2, backgroundColor: "#ffffff" });
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `KOT_${Date.now()}.png`;
+    link.click();
+  });
+
+  document.getElementById("wifiPrintBtn").addEventListener("click", () => {
+    window.open(`kot_browser.asset.html?table=${table}`, "_blank");
+  });
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
