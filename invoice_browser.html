@@ -24,8 +24,9 @@ body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:0;}
 .totals .line{display:flex;justify-content:space-between;padding:2px 0;}
 .header-title{font-weight:700;font-size:13px;}
 .roundbox{border:1px solid #000;padding:4px 8px;border-radius:10px;font-size:12px;font-weight:700;display:inline-block;}
-button{width:100%;padding:10px;margin-top:10px;background:#007bff;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;}
+button{width:100%;padding:10px;background:#007bff;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;}
 button:hover{background:#0056b3;}
+#buttonGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
 #message{display:none;text-align:center;margin-top:8px;font-size:13px;color:green;font-weight:bold;}
 #statusDot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-top:8px;background:#aaa;transition:background 0.3s;}
 @media print {
@@ -94,11 +95,12 @@ button:hover{background:#0056b3;}
 
   <div id="buttonsArea">
     <input id="printerIp" placeholder="Printer IP (e.g. 192.168.1.182)" value="192.168.1.182" style="width:100%;padding:6px;margin-top:8px;border:1px solid #ccc;border-radius:6px;text-align:center;">
-    <button onclick="normalPrint()">🖨️ Normal Print</button>
-    <button onclick="androidPrint()">🤖 Android Wi-Fi Print</button>
-    <button onclick="testPrinter()">🧠 Test Printer</button>
-    <button onclick="printInvoiceAsImage()">🖼️ Print as PNG</button>
-    <button onclick="downloadPNG()">⬇️ Download PNG</button>
+    <div id="buttonGrid">
+      <button onclick="normalPrint()">🖨️ Normal Print</button>
+      <button onclick="androidPrint()">🤖 Android Wi-Fi Print</button>
+      <button onclick="testPrinter()">🧠 Test Printer</button>
+      <button onclick="downloadPNG()">⬇️ Download PNG</button>
+    </div>
   </div>
 
   <div style="text-align:center;margin-top:6px;">
