@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" translate="no" class="notranslate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="en">
+<title>KOT Print (Browser + Android)</title>
+<style>
+  @page { size: 80mm auto; margin: 3mm; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    width: 80mm;
+    margin: 0 auto;
+    font-size: 14px;
+    background: #fff;
+  }
+  .receipt { width: 100%; background: #fff; padding: 8px; }
+  .copy { text-align: left; font-weight: bold; margin-bottom: 3px; }
+  h2 { text-align: center; margin: 2px 0 5px 0; font-weight: 900; font-size: 18px; }
+  .meta { font-size: 14px; margin: 1px 0; display: flex; align-items: center; gap: 4px; }
+  .meta b { font-weight: bold; }
+  .code-line { font-size: 13px; margin: 4px 0 6px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    padding: 4px 0;
+    text-align: left;
+    border-bottom: 1px solid #000;
+    font-size: 14px;
+  }
+  th { font-weight: bold; }
+
+  .no-print {
+    margin-top: 8px;
+    text-align: center;
+  }
+  .no-print button {
+    background: #0066ff;
+    color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .no-print button:hover { background: #004bb5; }
+  .no-print input {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    width: 160px;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-top: 8px;
+    background: gray;
+    transition: background 0.3s ease;
+  }
+  .status-label {
+    display: block;
+    font-size: 13px;
+    margin-top: 3px;
+    color: #555;
+  }
+
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="receipt" id="receipt">
+  <div class="copy">Copies 1</div>
+  <h2>CHẾ BIẾN</h2>
+
+  <div class="meta"><b>Bàn:</b><span id="tableNum">—</span></div>
+  <div class="meta"><b>Phục vụ:</b><span id="serverName">Quỳnh Anh</span></div>
+  <div class="code-line" id="codeLine"></div>
+
+  <table>
+    <thead>
+      <tr><th>Món</th><th>DVT</th><th>SL</th></tr>
+    </thead>
+    <tbody id="itemList">
+      <tr><td colspan="3" style="text-align:center;">Đang tải...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 🔽 Button panel -->
+<div class="no-print">
+  <input id="printerIp" placeholder="192.168.1.182" value="192.168.1.182"><br>
+  <button id="testPrinterBtn">🧠 Test Printer</button>
+  <button id="androidPrintBtn">🤖 Android Wi-Fi Print</button>
+  <button id="downloadPngBtn">⬇️ Download PNG</button>
+  <button id="normalPrintBtn">🖨️ Normal Print</button>
+  <div>
+    <span class="status-dot" id="printerStatus"></span>
+    <span class="status-label" id="statusText">Status: Unknown</span>
+  </div>
+</div>
+
+<!-- CDN for html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+  // Random code + timestamp
+  function randomCode() {
+    const p1 = Math.floor(Math.random() * 90 + 10);
+    const p2 = Math.floor(Math.random() * 90 + 10);
+    return `${p1}-${p2}`;
+  }
+
+  const now = new Date();
+  const date = now.toLocaleDateString('en-GB');
+  const time = now.toLocaleTimeString('en-GB', { hour12: false });
+  document.getElementById('codeLine').textContent = `${randomCode()}  ${time}  ${date}`;
+
+  // Load items
+  const params = new URLSearchParams(window.location.search);
+  let table = params.get("table");
+  let itemsData = params.get("items");
+  let items = [];
+
+  if (!itemsData) {
+    const saved = localStorage.getItem("papadumsInvoiceData");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        table = parsed.table || table;
+        items = parsed.items || [];
+      } catch (e) {}
+    }
+  } else {
+    try { items = JSON.parse(decodeURIComponent(itemsData)); } catch (e) {}
+  }
+
+  document.getElementById("tableNum").textContent = (table || "—").replace(/table\s*/i, "");
+  const tbody = document.getElementById("itemList");
+  tbody.innerHTML = "";
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">No items</td></tr>`;
+  } else {
+    items.forEach(it => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${it.name}</td><td>${it.unit || ""}</td><td>${it.qty}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Elements
+  const statusDot = document.getElementById("printerStatus");
+  const statusText = document.getElementById("statusText");
+
+  // Helper to show result
+  function showStatus(success, message) {
+    statusDot.style.background = success ? "limegreen" : "red";
+    statusText.textContent = message;
+    setTimeout(() => {
+      statusDot.style.background = "gray";
+      statusText.textContent = "Status: Waiting";
+    }, 4000);
+  }
+
+  // 🖨️ Normal Print
+  document.getElementById("normalPrintBtn").addEventListener("click", () => { window.print(); });
+
+  // 🤖 Android Wi-Fi Print
+  document.getElementById("androidPrintBtn").addEventListener("click", async () => {
+    const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
+    const receipt = document.getElementById("receipt");
+
+    const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
+    const dataUrl = canvas.toDataURL("image/png");
+
+    if (typeof AndroidBridge === "undefined" || !AndroidBridge.printWiFi) {
+      alert("AndroidBridge not found. Please use browser print instead.");
+      window.print();
+      return;
+    }
+
+    try {
+      AndroidBridge.printWiFi(ip, dataUrl);
+      showStatus(true, "✅ Printing started");
+    } catch (err) {
+      alert("Print failed: " + err.message);
+      showStatus(false, "❌ Print failed");
+    }
+  });
+
+  // 🧠 Test Printer
+  document.getElementById("testPrinterBtn").addEventListener("click", () => {
+    const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
+    if (typeof AndroidBridge === "undefined" || !AndroidBridge.testPrinterConnection) {
+      alert("AndroidBridge not found. Please use Android app to test printer.");
+      showStatus(false, "❌ AndroidBridge not found");
+      return;
+    }
+    try {
+      AndroidBridge.testPrinterConnection(ip);
+      showStatus(true, "✅ Signal sent to printer");
+    } catch (err) {
+      showStatus(false, "❌ Test failed");
+    }
+  });
+
+  // ⬇️ Download PNG
+  document.getElementById("downloadPngBtn").addEventListener("click", async () => {
+    const receipt = document.getElementById("receipt");
+    const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `KOT_${Date.now()}.png`;
+    link.click();
+  });
+</script>
+</body>
+</html>
