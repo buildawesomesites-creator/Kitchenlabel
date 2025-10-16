@@ -93,7 +93,6 @@
   </table>
 </div>
 
-<!-- 🔽 Button panel -->
 <div class="no-print">
   <input id="printerIp" placeholder="192.168.1.182" value="192.168.1.182"><br>
   <button id="testPrinterBtn">🧠 Test Printer</button>
@@ -106,7 +105,6 @@
   </div>
 </div>
 
-<!-- CDN for html2canvas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
@@ -154,59 +152,49 @@
     });
   }
 
-  // Elements
   const statusDot = document.getElementById("printerStatus");
   const statusText = document.getElementById("statusText");
 
-  // Helper to show result
-  function showStatus(success, message) {
+  function showStatus(success, message){
     statusDot.style.background = success ? "limegreen" : "red";
     statusText.textContent = message;
-    setTimeout(() => {
-      statusDot.style.background = "gray";
-      statusText.textContent = "Status: Waiting";
-    }, 4000);
   }
 
   // 🖨️ Normal Print
   document.getElementById("normalPrintBtn").addEventListener("click", () => { window.print(); });
 
-  // 🤖 Android Wi-Fi Print
+  // 🤖 Android Wi-Fi Print with JSBridge
   document.getElementById("androidPrintBtn").addEventListener("click", async () => {
     const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
     const receipt = document.getElementById("receipt");
-
     const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
     const dataUrl = canvas.toDataURL("image/png");
 
-    if (typeof AndroidBridge === "undefined" || !AndroidBridge.printWiFi) {
-      alert("AndroidBridge not found. Please use browser print instead.");
-      window.print();
-      return;
-    }
-
-    try {
-      AndroidBridge.printWiFi(ip, dataUrl);
-      showStatus(true, "✅ Printing started");
-    } catch (err) {
-      alert("Print failed: " + err.message);
-      showStatus(false, "❌ Print failed");
+    if(typeof AndroidBridge !== "undefined" && AndroidBridge.printWiFi){
+      try {
+        AndroidBridge.printWiFi(ip, dataUrl);
+        showStatus(true, "✅ Printing started");
+      } catch (err) {
+        showStatus(false, "❌ Print failed");
+      }
+    } else {
+      showStatus(false, "❌ AndroidBridge not found");
+      alert("⚠️ AndroidBridge not found. Open this in the native app.");
     }
   });
 
   // 🧠 Test Printer
   document.getElementById("testPrinterBtn").addEventListener("click", () => {
     const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
-    if (typeof AndroidBridge === "undefined" || !AndroidBridge.testPrinterConnection) {
-      alert("AndroidBridge not found. Please use Android app to test printer.");
+    if(typeof AndroidBridge !== "undefined" && AndroidBridge.testPrinterConnection){
+      try {
+        AndroidBridge.testPrinterConnection(ip);
+        showStatus(true, "✅ Signal sent");
+      } catch(err){
+        showStatus(false, "❌ Test failed");
+      }
+    } else {
       showStatus(false, "❌ AndroidBridge not found");
-      return;
-    }
-    try {
-      AndroidBridge.testPrinterConnection(ip);
-      showStatus(true, "✅ Signal sent to printer");
-    } catch (err) {
-      showStatus(false, "❌ Test failed");
     }
   });
 
