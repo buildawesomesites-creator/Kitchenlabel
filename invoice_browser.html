@@ -110,6 +110,19 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
+/* === Safe AndroidBridge Wrapper === */
+function waitForAndroidBridge(callback, retries = 10) {
+  if (window.AndroidBridge && typeof window.AndroidBridge.showToast === "function") {
+    callback();
+  } else if (retries > 0) {
+    console.warn("Waiting for AndroidBridge...");
+    setTimeout(() => waitForAndroidBridge(callback, retries - 1), 500);
+  } else {
+    alert("AndroidBridge not found. Please open in Android App.");
+    updateStatus(false);
+  }
+}
+
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
@@ -182,35 +195,31 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
+/* ✅ Test Printer with bridge check */
 function testPrinter(){
   const ip=document.getElementById("printerIp").value.trim();
-  if(typeof AndroidBridge==="undefined"||!AndroidBridge.testPrinterConnection){
-    alert("AndroidBridge not found. Please open in Android App.");
-    updateStatus(false);
-    return;
-  }
-  try{
-    AndroidBridge.testPrinterConnection(ip);
-    updateStatus(true);
-  }catch(e){
-    alert("Test failed: "+e.message);
-    updateStatus(false);
-  }
+  waitForAndroidBridge(()=>{
+    try{
+      AndroidBridge.testPrinterConnection(ip);
+      updateStatus(true);
+    }catch(e){
+      alert("Test failed: "+e.message);
+      updateStatus(false);
+    }
+  });
 }
 
+/* ✅ Android Wi-Fi Print with bridge check */
 function androidPrint(){
   const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
-  if(typeof AndroidBridge==="undefined"||!AndroidBridge.printWiFi){
-    alert("AndroidBridge not found. Please open in Android App.");
-    updateStatus(false);
-    return;
-  }
-  getInvoiceImage().then(dataUrl=>{
-    AndroidBridge.printWiFi(ip,dataUrl);
-    updateStatus(true);
-  }).catch(e=>{
-    alert("Print failed: "+e.message);
-    updateStatus(false);
+  waitForAndroidBridge(()=>{
+    getInvoiceImage().then(dataUrl=>{
+      AndroidBridge.printWiFi(ip,dataUrl);
+      updateStatus(true);
+    }).catch(e=>{
+      alert("Print failed: "+e.message);
+      updateStatus(false);
+    });
   });
 }
 </script>
