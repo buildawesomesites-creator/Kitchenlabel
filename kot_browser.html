@@ -106,8 +106,8 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <script>
+window.onload = () => {
   // Random code + timestamp
   function randomCode() {
     const p1 = Math.floor(Math.random() * 90 + 10);
@@ -154,23 +154,26 @@
 
   const statusDot = document.getElementById("printerStatus");
   const statusText = document.getElementById("statusText");
-
   function showStatus(success, message){
     statusDot.style.background = success ? "limegreen" : "red";
     statusText.textContent = message;
+    setTimeout(() => {
+      statusDot.style.background = "gray";
+      statusText.textContent = "Status: Waiting";
+    }, 3000);
   }
 
   // 🖨️ Normal Print
-  document.getElementById("normalPrintBtn").addEventListener("click", () => { window.print(); });
+  document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
 
-  // 🤖 Android Wi-Fi Print with JSBridge
+  // 🤖 Android Wi-Fi Print
   document.getElementById("androidPrintBtn").addEventListener("click", async () => {
     const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
     const receipt = document.getElementById("receipt");
     const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
     const dataUrl = canvas.toDataURL("image/png");
 
-    if(typeof AndroidBridge !== "undefined" && AndroidBridge.printWiFi){
+    if (typeof AndroidBridge !== "undefined" && AndroidBridge.printWiFi) {
       try {
         AndroidBridge.printWiFi(ip, dataUrl);
         showStatus(true, "✅ Printing started");
@@ -186,11 +189,11 @@
   // 🧠 Test Printer
   document.getElementById("testPrinterBtn").addEventListener("click", () => {
     const ip = document.getElementById("printerIp").value.trim() || "192.168.1.182";
-    if(typeof AndroidBridge !== "undefined" && AndroidBridge.testPrinterConnection){
+    if (typeof AndroidBridge !== "undefined" && AndroidBridge.testPrinterConnection) {
       try {
         AndroidBridge.testPrinterConnection(ip);
         showStatus(true, "✅ Signal sent");
-      } catch(err){
+      } catch(err) {
         showStatus(false, "❌ Test failed");
       }
     } else {
@@ -207,6 +210,7 @@
     link.download = `KOT_${Date.now()}.png`;
     link.click();
   });
+};
 </script>
 </body>
 </html>
