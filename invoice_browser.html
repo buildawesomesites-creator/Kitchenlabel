@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google" content="notranslate">
 <title>Papadums Invoice</title>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-
 <style>
 *{box-sizing:border-box;}
 body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:0;}
@@ -38,7 +36,6 @@ button:hover{background:#0056b3;}
 </style>
 </head>
 <body>
-
 <div id="currentDateTime" style="position:absolute;top:5px;left:5px;font-size:12px;color:#000;"></div>
 <div id="invoiceTitle" style="position:absolute;top:5px;right:5px;font-size:12px;font-weight:bold;">Papadums Invoice</div>
 
@@ -81,14 +78,6 @@ button:hover{background:#0056b3;}
   </div>
 
   <div class="center" style="margin-top:8px;">
-    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
-    <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
-    <div class="small"><b>Phone:</b> 0946 024 520</div>
-    <div class="small">WiFi: <b>PAPADUMS INDIAN CUISINE 5G</b></div>
-    <div class="small">Pass: <b>everyday</b></div>
-  </div>
-
-  <div class="center" style="margin-top:6px;">
     <canvas id="qrImg" width="80" height="80"></canvas>
     <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
   </div>
@@ -109,19 +98,6 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
-/* === Safe AndroidInvoiceBridge Wrapper === */
-function waitForAndroidBridge(callback, retries = 10) {
-  if (window.AndroidInvoiceBridge && typeof window.AndroidInvoiceBridge.showToast === "function") {
-    callback();
-  } else if (retries > 0) {
-    console.warn("Waiting for AndroidInvoiceBridge...");
-    setTimeout(() => waitForAndroidBridge(callback, retries - 1), 500);
-  } else {
-    alert("AndroidInvoiceBridge not found. Please open in Android App.");
-    updateStatus(false);
-  }
-}
-
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
@@ -163,12 +139,6 @@ document.addEventListener('DOMContentLoaded',()=> {
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
 });
 
-function updateStatus(ok){
-  const dot=document.getElementById("statusDot");
-  dot.style.background=ok?"#28a745":"#dc3545";
-  setTimeout(()=>dot.style.background="#aaa",2500);
-}
-
 function normalPrint(){window.print();}
 
 async function getInvoiceImage(){
@@ -194,8 +164,13 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
-function androidPrint() { 
-  // 1️⃣ Gather current invoice data
+function updateStatus(ok){
+  const dot=document.getElementById("statusDot");
+  dot.style.background=ok?"#28a745":"#dc3545";
+  setTimeout(()=>dot.style.background="#aaa",2500);
+}
+
+async function androidPrint() { 
   const orderData = {
     table: document.getElementById("tableBox").textContent,
     billNo: document.getElementById("billLabel").textContent,
@@ -214,27 +189,15 @@ function androidPrint() {
     vat: parseFloat(document.getElementById("vatAmount").textContent.replace(/,/g, "")) || 0,
     grandTotal: parseFloat(document.getElementById("grandTotal").textContent.replace(/,/g, "")) || 0
   };
-
-  // 2️⃣ Save locally for asset page
   localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
 
-  // 3️⃣ Broadcast to asset page if open (optional)
-  try {
-    const bc = new BroadcastChannel('invoice_channel');
-    bc.postMessage({ type: "ORDER_DATA", data: orderData });
-    bc.close();
-  } catch(e){}
-
-  // 4️⃣ Call AndroidInvoiceBridge instead of AndroidBridge
-  setTimeout(() => {
-    if (window.AndroidInvoiceBridge && typeof AndroidInvoiceBridge.openAssetWiFiPrinter === "function") {
-      AndroidInvoiceBridge.openAssetWiFiPrinter();
+  setTimeout(async () => {
+    if (window.AndroidInvoiceBridge && typeof AndroidInvoiceBridge.printWiFi === "function") {
+      AndroidInvoiceBridge.printWiFi(document.getElementById("printerIp").value.trim(), await getInvoiceImage());
     } else {
-      // fallback for browser
       window.open("invoice_browser.asset.html", "_blank");
     }
   }, 250);
-
   updateStatus(true);
 }
 </script>
