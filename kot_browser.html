@@ -7,14 +7,9 @@
 <meta http-equiv="Content-Language" content="en">
 <title>KOT Print (Browser + Android)</title>
 <style>
+  /* (KEEP YOUR CSS EXACT — trimmed here for brevity, copy your original CSS) */
   @page { size: 80mm auto; margin: 3mm; }
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    width: 80mm;
-    margin: 0 auto;
-    font-size: 14px;
-    background: #fff;
-  }
+  body { font-family: Arial, Helvetica, sans-serif; width: 80mm; margin: 0 auto; font-size: 14px; background: #fff; }
   .receipt { width: 100%; background: #fff; padding: 8px; }
   .copy { text-align: left; font-weight: bold; margin-bottom: 3px; }
   h2 { text-align: center; margin: 2px 0 5px 0; font-weight: 900; font-size: 18px; }
@@ -22,54 +17,15 @@
   .meta b { font-weight: bold; }
   .code-line { font-size: 13px; margin: 4px 0 6px 0; }
   table { width: 100%; border-collapse: collapse; }
-  th, td {
-    padding: 4px 0;
-    text-align: left;
-    border-bottom: 1px solid #000;
-    font-size: 14px;
-  }
+  th, td { padding: 4px 0; text-align: left; border-bottom: 1px solid #000; font-size: 14px; }
   th { font-weight: bold; }
-
-  .no-print {
-    margin-top: 8px;
-    text-align: center;
-  }
-  .no-print button {
-    background: #0066ff;
-    color: #fff;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    margin: 4px;
-    cursor: pointer;
-    font-weight: bold;
-  }
+  .no-print { margin-top: 8px; text-align: center; }
+  .no-print button, .no-print input { margin: 4px; padding: 6px 10px; border-radius: 6px; font-weight: bold; }
+  .no-print button { background: #0066ff; color: #fff; border: none; cursor: pointer; }
   .no-print button:hover { background: #004bb5; }
-  .no-print input {
-    padding: 6px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    width: 160px;
-    text-align: center;
-    margin-top: 6px;
-  }
-
-  .status-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-top: 8px;
-    background: gray;
-    transition: background 0.3s ease;
-  }
-  .status-label {
-    display: block;
-    font-size: 13px;
-    margin-top: 3px;
-    color: #555;
-  }
-
+  .no-print input { border: 1px solid #aaa; width: 140px; }
+  .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-top: 8px; background: gray; transition: background 0.3s ease; }
+  .status-label { display: block; font-size: 13px; margin-top: 3px; color: #555; }
   @media print { .no-print { display: none !important; } }
 </style>
 </head>
@@ -94,33 +50,30 @@
 </div>
 
 <div class="no-print">
-  <input id="printerIp" placeholder="192.168.1.182" value="192.168.1.182"><br>
-  
+  <input type="text" id="printerIp" value="192.168.1.182" placeholder="Printer IP">
   <button id="androidPrintBtn">🤖 Android Wi-Fi Print</button>
   <button id="downloadPngBtn">⬇️ Download PNG</button>
-  <button id="normalPrintBtn">🖨️ Normal Print</button>
+  <button id="normalPrintBtn">🖧 Test Printer</button>
   <div>
-    <span class="status-dot" id="printerStatus"></span>
-    <span class="status-label" id="statusText">Status: Unknown</span>
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-label" id="statusText">Status: Waiting</span>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 window.onload = () => {
-  // === Random code and timestamp ===
   function randomCode() {
     const p1 = Math.floor(Math.random() * 90 + 10);
     const p2 = Math.floor(Math.random() * 90 + 10);
     return `${p1}-${p2}`;
   }
+  setInterval(()=>{ // update time code line every second
+    const now = new Date();
+    document.getElementById('codeLine').textContent = `${randomCode()} ${now.toLocaleTimeString('en-GB',{hour12:false})} ${now.toLocaleDateString('en-GB')}`;
+  },1000);
 
-  const now = new Date();
-  const date = now.toLocaleDateString('en-GB');
-  const time = now.toLocaleTimeString('en-GB', { hour12: false });
-  document.getElementById('codeLine').textContent = `${randomCode()}  ${time}  ${date}`;
-
-  // === Load data if query or localStorage ===
+  // Load items from localStorage or querystring (no layout change)
   const params = new URLSearchParams(window.location.search);
   let table = params.get("table");
   let itemsData = params.get("items");
@@ -147,59 +100,78 @@ window.onload = () => {
   } else {
     items.forEach(it => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${it.name}</td><td>${it.unit || ""}</td><td>${it.qty}</td>`;
+      tr.innerHTML = `<td>${it.name}</td><td>${it.unit||""}</td><td>${it.qty}</td>`;
       tbody.appendChild(tr);
     });
   }
 
-  // === Status indicator ===
-  const statusDot = document.getElementById("printerStatus");
-  const statusText = document.getElementById("statusText");
   function showStatus(success, message){
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
     statusDot.style.background = success ? "limegreen" : "red";
     statusText.textContent = message;
-    setTimeout(() => {
-      statusDot.style.background = "gray";
-      statusText.textContent = "Status: Waiting";
-    }, 3000);
+    setTimeout(()=>{ statusDot.style.background="gray"; statusText.textContent="Status: Waiting"; }, 3000);
   }
 
-  // === Normal print ===
-  document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
-
-  // === Android Wi-Fi Print ===
-  document.getElementById("androidPrintBtn").addEventListener("click", async () => {
-    const tableNum = document.getElementById("tableNum").textContent;
-    const orderItems = Array.from(document.querySelectorAll("#itemList tr")).map(tr => ({
-        name: tr.children[0]?.textContent || "",
-        unit: tr.children[1]?.textContent || "",
-        qty: tr.children[2]?.textContent || ""
-    }));
-    const orderData = { table: tableNum, items: orderItems };
-
-    // 💾 Save order to localStorage first
-    localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
-
-    // Small delay to ensure persistence before new WebView opens
-    setTimeout(() => {
-      if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetWiFiPrinter) {
-        AndroidBridge.openAssetWiFiPrinter();
-      } else {
-        window.open("kot_browser.asset.html", "_blank");
-      }
-    }, 300);
-
-    showStatus(true, "📦 Data saved, opening asset...");
-  });
-
-  // === Download PNG ===
+  // DOWNLOAD PNG
   document.getElementById("downloadPngBtn").addEventListener("click", async () => {
     const receipt = document.getElementById("receipt");
-    const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
+    const canvas = await html2canvas(receipt,{ scale:2, backgroundColor:"#ffffff" });
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
     link.download = `KOT_${Date.now()}.png`;
     link.click();
+  });
+
+  // TEST PRINTER (in-browser, quick head)
+  document.getElementById("normalPrintBtn").addEventListener("click", async () => {
+    const ip = document.getElementById("printerIp").value.trim();
+    if (!ip) return alert("Enter printer IP");
+    try {
+      // best-effort (no-cors)
+      await fetch(`http://${ip}:9100`, { method: "HEAD", mode: "no-cors" });
+      showStatus(true, `🟢 Printer reachable ${ip}:9100`);
+    } catch {
+      showStatus(false, `🔴 Printer unreachable ${ip}:9100`);
+    }
+  });
+
+  // ANDROID WIFI PRINT: save data, call bridge and/or broadcast channel
+  document.getElementById("androidPrintBtn").addEventListener("click", async ()=> {
+    const tableNum = document.getElementById("tableNum").textContent;
+    const orderItems = Array.from(document.querySelectorAll("#itemList tr")).map(tr => ({
+      name: tr.children[0]?.textContent || "",
+      unit: tr.children[1]?.textContent || "",
+      qty: tr.children[2]?.textContent || ""
+    }));
+    const orderData = { table: tableNum, server: "Quỳnh Anh", items: orderItems };
+
+    // Save to localStorage (offline-first)
+    localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
+
+    // Browser-only fast path: BroadcastChannel so asset page in same browser/tab can pick it up quickly
+    try {
+      const bc = new BroadcastChannel('kot_channel');
+      bc.postMessage({ type: "ORDER_DATA", data: orderData });
+      bc.close();
+    } catch(e){ /* ignore */ }
+
+    // Call Android bridge to persist and open asset WebView
+    if (window.AndroidBridge && typeof AndroidBridge.saveOrder === "function") {
+      try {
+        AndroidBridge.saveOrder(JSON.stringify(orderData)); // native saves to internal storage
+      } catch(e){ console.warn("saveOrder failed", e); }
+    }
+
+    // small delay then open asset view via android or new tab
+    setTimeout(()=>{
+      if (window.AndroidBridge && typeof AndroidBridge.openAssetWiFiPrinter === "function") {
+        AndroidBridge.openAssetWiFiPrinter();
+      } else {
+        window.open("kot_browser.asset.html", "_blank");
+      }
+    }, 250);
+    showStatus(true, "📦 Data saved & asset opened (if native)");
   });
 };
 </script>
