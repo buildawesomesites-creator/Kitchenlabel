@@ -81,14 +81,6 @@ button:hover{background:#0056b3;}
   </div>
 
   <div class="center" style="margin-top:8px;">
-    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
-    <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
-    <div class="small"><b>Phone:</b> 0946 024 520</div>
-    <div class="small">WiFi: <b>PAPADUMS INDIAN CUISINE 5G</b></div>
-    <div class="small">Pass: <b>everyday</b></div>
-  </div>
-
-  <div class="center" style="margin-top:6px;">
     <canvas id="qrImg" width="80" height="80"></canvas>
     <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
   </div>
@@ -110,50 +102,56 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
-function waitForAndroidBridge(callback,retries=10){
-  if(window.AndroidBridgeInvoice && typeof window.AndroidBridgeInvoice.showToast==="function"){
-    callback();
-  } else if(retries>0){
-    console.warn("Waiting for AndroidBridgeInvoice...");
-    setTimeout(()=>waitForAndroidBridge(callback,retries-1),500);
-  } else {
-    alert("AndroidBridgeInvoice not found. Open in Android App.");
-    updateStatus(false);
-  }
-}
-
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
 
-document.addEventListener('DOMContentLoaded',()=>{
-  const now=new Date();
-  document.getElementById('currentDateTime').textContent=formatDate(now)+" "+formatTime(now);
+function updateStatus(ok){
+  const dot=document.getElementById("statusDot");
+  dot.style.background=ok?"#28a745":"#dc3545";
+  setTimeout(()=>dot.style.background="#aaa",2500);
+}
 
-  // Use custom localStorage key
-  const order=JSON.parse(localStorage.getItem('papadumsInvoiceJSON'))||{};
+// Load order from multiple possible localStorage keys
+function loadOrder(){
+  const keys=['papadumsInvoiceJSON','papadumsInvoiceData','papadumsCartJSON'];
+  let order={};
+  for(const k of keys){
+    const data=localStorage.getItem(k);
+    if(data){ order=JSON.parse(data); break; }
+  }
+  return order;
+}
+
+function renderInvoice(order){
+  if(!order || !order.items || order.items.length===0){
+    alert("⚠️ No saved invoice found");
+    updateStatus(false);
+    return;
+  }
+
   const tableBox=document.getElementById('tableBox');
-  if(order.table){tableBox.textContent=`Bàn: ${order.table.replace("table","")}`;}
-  else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
-  else if(order.type==="online"){tableBox.textContent="Online";}
-  else{tableBox.style.display="none";}
+  if(order.table){ tableBox.textContent=`Bàn: ${order.table.replace("table","")}`; }
+  else if(order.type==="takeaway"){ tableBox.textContent="Take Away"; }
+  else if(order.type==="online"){ tableBox.textContent="Online"; }
+  else{ tableBox.style.display="none"; }
 
+  const now=new Date();
   document.getElementById('billLabel').textContent=generateBillNo();
   document.getElementById('timeInDate').textContent=formatDate(now);
   document.getElementById('timeInTime').textContent=formatTime(now);
   document.getElementById('timeOutLabel').textContent=formatTime(new Date());
 
   const itemsList=document.getElementById('itemsList');
-  if(Array.isArray(order.items)){
-    order.items.forEach(it=>{
-      const row=document.createElement('div');
-      row.className='row';
-      row.innerHTML=`<div>${it.name}</div><div class="right">${(it.price||0).toLocaleString()}</div><div class="right">${it.qty||1}</div><div class="right">${((it.price||0)*(it.qty||1)).toLocaleString()}</div>`;
-      itemsList.appendChild(row);
-    });
-  }
+  itemsList.innerHTML='<div class="row header"><div>Item</div><div class="right">Price</div><div class="right">Qty</div><div class="right">Amt</div></div>';
+  order.items.forEach(it=>{
+    const row=document.createElement('div');
+    row.className='row';
+    row.innerHTML=`<div>${it.name}</div><div class="right">${(it.price||0).toLocaleString()}</div><div class="right">${it.qty||1}</div><div class="right">${((it.price||0)*(it.qty||1)).toLocaleString()}</div>`;
+    itemsList.appendChild(row);
+  });
 
-  const total=order.items?.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0)||0;
+  const total=order.items.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0);
   const discount=order.discount||0;
   const vat=total*0.08;
   const grandTotal=total+vat-discount;
@@ -163,24 +161,27 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('grandTotal').textContent=grandTotal.toLocaleString();
 
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
-});
 
-function updateStatus(ok){
-  const dot=document.getElementById("statusDot");
-  dot.style.background=ok?"#28a745":"#dc3545";
-  setTimeout(()=>dot.style.background="#aaa",2500);
+  // Broadcast to asset page
+  try{ const bc=new BroadcastChannel('invoice_channel'); bc.postMessage({type:"ORDER_DATA",data:order}); bc.close(); }catch(e){}
 }
 
-function normalPrint(){window.print();}
+// On load
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('currentDateTime').textContent=formatDate(new Date())+" "+formatTime(new Date());
+  const order=loadOrder();
+  renderInvoice(order);
+});
 
+// === Buttons ===
 async function getInvoiceImage(){
   const invoice=document.getElementById("invoice");
   const buttons=document.getElementById("buttonsArea");
   const msg=document.getElementById("message");
   const dot=document.getElementById("statusDot");
   buttons.style.display="none";msg.style.display="none";dot.style.display="none";
-  const canvas=await html2canvas(invoice,{scale:3,backgroundColor:"#ffffff",useCORS:true});
-  buttons.style.display="";msg.style.display="";dot.style.display="";
+  const canvas=await html2canvas(invoice,{scale:3,backgroundColor:"#fff"});
+  buttons.style.display="block";msg.style.display="";dot.style.display="inline-block";
   return canvas.toDataURL("image/png");
 }
 
@@ -196,38 +197,29 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
-function testPrinter(){
-  const ip=document.getElementById("printerIp").value.trim();
-  waitForAndroidBridge(()=>{
-    try{
-      AndroidBridgeInvoice.testPrinterConnection(ip);
-      updateStatus(true);
-    }catch(e){
-      alert("Test failed: "+e.message);
-      updateStatus(false);
-    }
-  });
+async function normalPrint(){
+  const dataUrl=await getInvoiceImage();
+  const w=window.open("");
+  w.document.write(`<img src="${dataUrl}" onload="window.print(); setTimeout(()=>window.close(),500)"/>`);
 }
 
-function androidPrint(){
-  const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
-  waitForAndroidBridge(async ()=>{
-    const tableNum=document.getElementById("tableBox").textContent;
-    const items=Array.from(document.querySelectorAll("#itemsList .row")).map(tr=>({
-      name: tr.children[0]?.textContent || "",
-      price: parseFloat(tr.children[1]?.textContent.replace(/,/g,''))||0,
-      qty: parseInt(tr.children[2]?.textContent)||1
-    }));
-    const orderData={table:tableNum,items:items,discount:0};
+async function androidPrint(){
+  const ip=document.getElementById("printerIp").value.trim();
+  if(!ip)return alert("Enter printer IP");
+  const dataUrl=await getInvoiceImage();
+  if(window.AndroidBridge && typeof AndroidBridge.printWiFi==="function"){
+    try{ AndroidBridge.printWiFi(ip,dataUrl); updateStatus(true);} catch(e){alert("AndroidBridge print failed"); updateStatus(false);}
+  }else{ alert("AndroidBridge not found, fallback to normal print"); normalPrint();}
+}
 
-    // Save to localStorage with custom key
-    localStorage.setItem("papadumsInvoiceJSON",JSON.stringify(orderData));
-
-    try{AndroidBridgeInvoice.saveOrder(JSON.stringify(orderData));}catch(e){console.warn(e);}
-    try{AndroidBridgeInvoice.openAssetInvoice();}catch(e){window.open("invoice_browser.asset.html","_blank");}
-
-    updateStatus(true);
-  });
+function testPrinter(){
+  const ip=document.getElementById("printerIp").value.trim();
+  if(!ip)return alert("Enter printer IP");
+  if(window.AndroidBridge && typeof AndroidBridge.testPrinterConnection==="function"){
+    try{ AndroidBridge.testPrinterConnection(ip); updateStatus(true);}catch(e){updateStatus(false);}
+  }else{
+    fetch(`http://${ip}`,{method:"HEAD",mode:"no-cors"}).then(()=>updateStatus(true)).catch(()=>updateStatus(false));
+  }
 }
 </script>
 </body>
