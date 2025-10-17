@@ -108,7 +108,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 window.onload = () => {
-  // Random code + timestamp
+  // === Random code and timestamp ===
   function randomCode() {
     const p1 = Math.floor(Math.random() * 90 + 10);
     const p2 = Math.floor(Math.random() * 90 + 10);
@@ -120,7 +120,7 @@ window.onload = () => {
   const time = now.toLocaleTimeString('en-GB', { hour12: false });
   document.getElementById('codeLine').textContent = `${randomCode()}  ${time}  ${date}`;
 
-  // Load items
+  // === Load data if query or localStorage ===
   const params = new URLSearchParams(window.location.search);
   let table = params.get("table");
   let itemsData = params.get("items");
@@ -152,6 +152,7 @@ window.onload = () => {
     });
   }
 
+  // === Status indicator ===
   const statusDot = document.getElementById("printerStatus");
   const statusText = document.getElementById("statusText");
   function showStatus(success, message){
@@ -163,10 +164,10 @@ window.onload = () => {
     }, 3000);
   }
 
-  // 🖨️ Normal Print
+  // === Normal print ===
   document.getElementById("normalPrintBtn").addEventListener("click", () => window.print());
 
-  // 🤖 Android Wi-Fi Print — OPEN ASSET HTML
+  // === Android Wi-Fi Print ===
   document.getElementById("androidPrintBtn").addEventListener("click", async () => {
     const tableNum = document.getElementById("tableNum").textContent;
     const orderItems = Array.from(document.querySelectorAll("#itemList tr")).map(tr => ({
@@ -175,28 +176,23 @@ window.onload = () => {
         qty: tr.children[2]?.textContent || ""
     }));
     const orderData = { table: tableNum, items: orderItems };
+
+    // 💾 Save order to localStorage first
     localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
 
-    // Send to asset page via BroadcastChannel
-    const bc = new BroadcastChannel('kot_channel');
-    bc.postMessage({ type: "ORDER_DATA", data: orderData });
-
-    // Wait for acknowledgment
-    bc.onmessage = (event) => {
-      if (event.data === "ACK_RECEIVED") {
-        showStatus(true, "✅ Asset page received data");
-      }
-    };
-
-    // Call Android bridge
-    if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetWiFiPrinter) {
+    // Small delay to ensure persistence before new WebView opens
+    setTimeout(() => {
+      if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetWiFiPrinter) {
         AndroidBridge.openAssetWiFiPrinter();
-    } else {
+      } else {
         window.open("kot_browser.asset.html", "_blank");
-    }
+      }
+    }, 300);
+
+    showStatus(true, "📦 Data saved, opening asset...");
   });
 
-  // ⬇️ Download PNG
+  // === Download PNG ===
   document.getElementById("downloadPngBtn").addEventListener("click", async () => {
     const receipt = document.getElementById("receipt");
     const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" });
@@ -209,4 +205,3 @@ window.onload = () => {
 </script>
 </body>
 </html>
-ss
