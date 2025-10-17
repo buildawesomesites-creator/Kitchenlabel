@@ -97,8 +97,8 @@ button:hover{background:#0056b3;}
     <input id="printerIp" placeholder="Printer IP (e.g. 192.168.1.182)" value="192.168.1.182" style="width:100%;padding:6px;margin-top:8px;border:1px solid #ccc;border-radius:6px;text-align:center;">
     <div id="buttonGrid">
       <button onclick="normalPrint()">🖨️ Normal Print</button>
-      <button onclick="handleAndroidWiFiPrint()">📶 Android Wi-Fi Print</button>
-      <button onclick="downloadPNG()">⬇️ Download PNG (58mm)</button>
+      <button onclick="androidPrint()">📶 Android Wi-Fi Print</button>
+      <button onclick="downloadPNG()">⬇️ Download PNG</button>
     </div>
   </div>
 
@@ -109,7 +109,6 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
-// ===== Core Display Logic =====
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
@@ -117,16 +116,23 @@ function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
 document.addEventListener('DOMContentLoaded',()=>{
   const now=new Date();
   document.getElementById('currentDateTime').textContent=formatDate(now)+" "+formatTime(now);
+
+  // ✅ Read invoice order from correct key
   const order=JSON.parse(localStorage.getItem('papadumsInvoiceOrder'))||{};
+
+  // Table / Type
   const tableBox=document.getElementById('tableBox');
   if(order.table){tableBox.textContent=`Bàn: ${order.table.replace("table","")}`;}
   else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
   else if(order.type==="online"){tableBox.textContent="Online";}
   else{tableBox.style.display="none";}
+
   document.getElementById('billLabel').textContent=generateBillNo();
   document.getElementById('timeInDate').textContent=formatDate(now);
   document.getElementById('timeInTime').textContent=formatTime(now);
   document.getElementById('timeOutLabel').textContent=formatTime(new Date());
+
+  // Items
   const itemsList=document.getElementById('itemsList');
   if(Array.isArray(order.items)){
     order.items.forEach(it=>{
@@ -136,6 +142,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       itemsList.appendChild(row);
     });
   }
+
+  // Totals
   const total=order.items?.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0)||0;
   const discount=order.discount||0;
   const vat=total*0.08;
@@ -144,22 +152,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('discountLabel').textContent=discount.toLocaleString();
   document.getElementById('vatAmount').textContent=vat.toLocaleString();
   document.getElementById('grandTotal').textContent=grandTotal.toLocaleString();
+
+  // QR Code
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
 });
 
+// Status dot helper
 function updateStatus(ok){
   const dot=document.getElementById("statusDot");
   dot.style.background=ok?"#28a745":"#dc3545";
   dot.style.boxShadow=`0 0 8px ${ok?"#28a745":"#dc3545"}`;
-  setTimeout(()=>{
-    dot.style.background="#aaa";
-    dot.style.boxShadow="none";
-  },2500);
+  setTimeout(()=>{dot.style.background="#aaa";dot.style.boxShadow="none";},2500);
 }
 
 function normalPrint(){window.print();}
 
-// ===== PNG Export =====
+// PNG export
 async function getInvoiceImage(){
   const invoice=document.getElementById("invoice");
   const buttons=document.getElementById("buttonsArea");
@@ -183,7 +191,22 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
-// ===== Invoice Bridge (PapadumsInvoiceOrder) =====
+// Android Wi-Fi Print
+function androidPrint(){
+  const ip=document.getElementById("printerIp").value.trim();
+  if(window.AndroidBridge && typeof AndroidBridge.printWiFi==="function"){
+    getInvoiceImage().then(dataUrl=>{
+      AndroidBridge.printWiFi(ip,dataUrl);
+      updateStatus(true);
+    }).catch(e=>{
+      console.error(e);updateStatus(false);
+    });
+  }else{
+    alert("AndroidBridge not available.");updateStatus(false);
+  }
+}
+
+// ✅ Save order to localStorage (so it shows)
 function saveInvoiceOrder(orderData){
   try{
     localStorage.setItem("papadumsInvoiceOrder",JSON.stringify(orderData));
@@ -191,23 +214,6 @@ function saveInvoiceOrder(orderData){
       AndroidBridge.saveOrder(JSON.stringify(orderData));
     }
   }catch(e){console.warn("saveInvoiceOrder failed",e);}
-}
-
-function openInvoiceAsset(orderData){
-  saveInvoiceOrder(orderData);
-  const path="invoice_browser.asset.html";
-  if(window.AndroidBridge && typeof AndroidBridge.openAsset==="function"){
-    try{AndroidBridge.openAsset(path);return;}catch(e){console.warn("openAsset failed",e);}
-  }
-  window.open(path,"_blank");
-}
-
-function handleAndroidWiFiPrint(){
-  try{
-    const orderData=JSON.parse(localStorage.getItem('papadumsInvoiceOrder'))||{};
-    openInvoiceAsset(orderData);
-    updateStatus(true);
-  }catch(e){console.error(e);updateStatus(false);}
 }
 </script>
 </body>
