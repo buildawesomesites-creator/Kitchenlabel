@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google" content="notranslate">
 <title>Papadums Invoice</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
 <style>
 *{box-sizing:border-box;}
 body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:0;}
@@ -36,6 +38,7 @@ button:hover{background:#0056b3;}
 </style>
 </head>
 <body>
+
 <div id="currentDateTime" style="position:absolute;top:5px;left:5px;font-size:12px;color:#000;"></div>
 <div id="invoiceTitle" style="position:absolute;top:5px;right:5px;font-size:12px;font-weight:bold;">Papadums Invoice</div>
 
@@ -78,6 +81,14 @@ button:hover{background:#0056b3;}
   </div>
 
   <div class="center" style="margin-top:8px;">
+    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
+    <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
+    <div class="small"><b>Phone:</b> 0946 024 520</div>
+    <div class="small">WiFi: <b>PAPADUMS INDIAN CUISINE 5G</b></div>
+    <div class="small">Pass: <b>everyday</b></div>
+  </div>
+
+  <div class="center" style="margin-top:6px;">
     <canvas id="qrImg" width="80" height="80"></canvas>
     <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
   </div>
@@ -87,6 +98,7 @@ button:hover{background:#0056b3;}
     <div id="buttonGrid">
       <button onclick="normalPrint()">🖨️ Normal Print</button>
       <button onclick="androidPrint()">🤖 Android Wi-Fi Print</button>
+      <button onclick="testPrinter()">🧠 Test Printer</button>
       <button onclick="downloadPNG()">⬇️ Download PNG</button>
     </div>
   </div>
@@ -98,14 +110,28 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
+function waitForAndroidBridge(callback,retries=10){
+  if(window.AndroidBridgeInvoice && typeof window.AndroidBridgeInvoice.showToast==="function"){
+    callback();
+  } else if(retries>0){
+    console.warn("Waiting for AndroidBridgeInvoice...");
+    setTimeout(()=>waitForAndroidBridge(callback,retries-1),500);
+  } else {
+    alert("AndroidBridgeInvoice not found. Open in Android App.");
+    updateStatus(false);
+  }
+}
+
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
 
-document.addEventListener('DOMContentLoaded',()=> {
+document.addEventListener('DOMContentLoaded',()=>{
   const now=new Date();
   document.getElementById('currentDateTime').textContent=formatDate(now)+" "+formatTime(now);
-  const order=JSON.parse(localStorage.getItem('papadumsInvoiceData'))||{};
+
+  // Use custom localStorage key
+  const order=JSON.parse(localStorage.getItem('papadumsInvoiceJSON'))||{};
   const tableBox=document.getElementById('tableBox');
   if(order.table){tableBox.textContent=`Bàn: ${order.table.replace("table","")}`;}
   else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
@@ -139,6 +165,12 @@ document.addEventListener('DOMContentLoaded',()=> {
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
 });
 
+function updateStatus(ok){
+  const dot=document.getElementById("statusDot");
+  dot.style.background=ok?"#28a745":"#dc3545";
+  setTimeout(()=>dot.style.background="#aaa",2500);
+}
+
 function normalPrint(){window.print();}
 
 async function getInvoiceImage(){
@@ -164,46 +196,38 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
-function updateStatus(ok){
-  const dot=document.getElementById("statusDot");
-  dot.style.background=ok?"#28a745":"#dc3545";
-  setTimeout(()=>dot.style.background="#aaa",2500);
+function testPrinter(){
+  const ip=document.getElementById("printerIp").value.trim();
+  waitForAndroidBridge(()=>{
+    try{
+      AndroidBridgeInvoice.testPrinterConnection(ip);
+      updateStatus(true);
+    }catch(e){
+      alert("Test failed: "+e.message);
+      updateStatus(false);
+    }
+  });
 }
 
-async function androidPrint() { 
-  const orderData = {
-    table: document.getElementById("tableBox").textContent,
-    billNo: document.getElementById("billLabel").textContent,
-    timeIn: document.getElementById("timeInTime").textContent,
-    timeOut: document.getElementById("timeOutLabel").textContent,
-    items: Array.from(document.querySelectorAll("#itemsList .row"))
-      .filter(r => !r.classList.contains("header"))
-      .map(r => ({
-        name: r.children[0].textContent,
-        price: parseFloat(r.children[1].textContent.replace(/,/g, "")) || 0,
-        qty: parseInt(r.children[2].textContent) || 1,
-        amount: parseFloat(r.children[3].textContent.replace(/,/g, "")) || 0
-      })),
-    total: parseFloat(document.getElementById("totalPrice").textContent.replace(/,/g, "")) || 0,
-    discount: parseFloat(document.getElementById("discountLabel").textContent.replace(/,/g, "")) || 0,
-    vat: parseFloat(document.getElementById("vatAmount").textContent.replace(/,/g, "")) || 0,
-    grandTotal: parseFloat(document.getElementById("grandTotal").textContent.replace(/,/g, "")) || 0
-  };
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
+function androidPrint(){
+  const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
+  waitForAndroidBridge(async ()=>{
+    const tableNum=document.getElementById("tableBox").textContent;
+    const items=Array.from(document.querySelectorAll("#itemsList .row")).map(tr=>({
+      name: tr.children[0]?.textContent || "",
+      price: parseFloat(tr.children[1]?.textContent.replace(/,/g,''))||0,
+      qty: parseInt(tr.children[2]?.textContent)||1
+    }));
+    const orderData={table:tableNum,items:items,discount:0};
 
-  setTimeout(async () => {
-    if (window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.printWiFi === "function") {
-      AndroidBridgeInvoice.printWiFi(
-        document.getElementById("printerIp").value.trim(),
-        await getInvoiceImage()
-      );
-    } else if (/Android/i.test(navigator.userAgent)) {
-      window.location.href = "file:///android_asset/invoice_browser.asset.html";
-    } else {
-      window.open("invoice_browser.asset.html", "_blank");
-    }
-  }, 250);
-  updateStatus(true);
+    // Save to localStorage with custom key
+    localStorage.setItem("papadumsInvoiceJSON",JSON.stringify(orderData));
+
+    try{AndroidBridgeInvoice.saveOrder(JSON.stringify(orderData));}catch(e){console.warn(e);}
+    try{AndroidBridgeInvoice.openAssetInvoice();}catch(e){window.open("invoice_browser.asset.html","_blank");}
+
+    updateStatus(true);
+  });
 }
 </script>
 </body>
