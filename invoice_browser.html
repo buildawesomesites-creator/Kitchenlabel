@@ -109,15 +109,15 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
-/* === Safe AndroidBridge Wrapper === */
+/* === Safe AndroidInvoiceBridge Wrapper === */
 function waitForAndroidBridge(callback, retries = 10) {
-  if (window.AndroidBridge && typeof window.AndroidBridge.showToast === "function") {
+  if (window.AndroidInvoiceBridge && typeof window.AndroidInvoiceBridge.showToast === "function") {
     callback();
   } else if (retries > 0) {
-    console.warn("Waiting for AndroidBridge...");
+    console.warn("Waiting for AndroidInvoiceBridge...");
     setTimeout(() => waitForAndroidBridge(callback, retries - 1), 500);
   } else {
-    alert("AndroidBridge not found. Please open in Android App.");
+    alert("AndroidInvoiceBridge not found. Please open in Android App.");
     updateStatus(false);
   }
 }
@@ -225,10 +225,10 @@ function androidPrint() {
     bc.close();
   } catch(e){}
 
-  // 4️⃣ Call Android bridge or fallback
+  // 4️⃣ Call AndroidInvoiceBridge instead of AndroidBridge
   setTimeout(() => {
-    if (window.AndroidBridge && typeof AndroidBridge.openAssetWiFiPrinter === "function") {
-      AndroidBridge.openAssetWiFiPrinter();
+    if (window.AndroidInvoiceBridge && typeof AndroidInvoiceBridge.openAssetWiFiPrinter === "function") {
+      AndroidInvoiceBridge.openAssetWiFiPrinter();
     } else {
       // fallback for browser
       window.open("invoice_browser.asset.html", "_blank");
