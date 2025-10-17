@@ -97,7 +97,7 @@ button:hover{background:#0056b3;}
     <input id="printerIp" placeholder="Printer IP (e.g. 192.168.1.182)" value="192.168.1.182" style="width:100%;padding:6px;margin-top:8px;border:1px solid #ccc;border-radius:6px;text-align:center;">
     <div id="buttonGrid">
       <button onclick="normalPrint()">🖨️ Normal Print</button>
-      <button onclick="androidPrint()">📶 Android Wi-Fi Print</button>
+      <button onclick="androidPrint()">🤖 Android Wi-Fi Print</button>
       <button onclick="downloadPNG()">⬇️ Download PNG</button>
     </div>
   </div>
@@ -109,18 +109,27 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
+/* === Safe AndroidBridge Wrapper === */
+function waitForAndroidBridge(callback, retries = 10) {
+  if (window.AndroidBridge && typeof window.AndroidBridge.showToast === "function") {
+    callback();
+  } else if (retries > 0) {
+    console.warn("Waiting for AndroidBridge...");
+    setTimeout(() => waitForAndroidBridge(callback, retries - 1), 500);
+  } else {
+    alert("AndroidBridge not found. Please open in Android App.");
+    updateStatus(false);
+  }
+}
+
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
 
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',()=> {
   const now=new Date();
   document.getElementById('currentDateTime').textContent=formatDate(now)+" "+formatTime(now);
-
-  // ✅ Read invoice order from correct key
-  const order=JSON.parse(localStorage.getItem('papadumsInvoiceOrder'))||{};
-
-  // Table / Type
+  const order=JSON.parse(localStorage.getItem('papadumsInvoiceData'))||{};
   const tableBox=document.getElementById('tableBox');
   if(order.table){tableBox.textContent=`Bàn: ${order.table.replace("table","")}`;}
   else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
@@ -132,7 +141,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('timeInTime').textContent=formatTime(now);
   document.getElementById('timeOutLabel').textContent=formatTime(new Date());
 
-  // Items
   const itemsList=document.getElementById('itemsList');
   if(Array.isArray(order.items)){
     order.items.forEach(it=>{
@@ -143,7 +151,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 
-  // Totals
   const total=order.items?.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0)||0;
   const discount=order.discount||0;
   const vat=total*0.08;
@@ -153,21 +160,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('vatAmount').textContent=vat.toLocaleString();
   document.getElementById('grandTotal').textContent=grandTotal.toLocaleString();
 
-  // QR Code
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
 });
 
-// Status dot helper
 function updateStatus(ok){
   const dot=document.getElementById("statusDot");
   dot.style.background=ok?"#28a745":"#dc3545";
-  dot.style.boxShadow=`0 0 8px ${ok?"#28a745":"#dc3545"}`;
-  setTimeout(()=>{dot.style.background="#aaa";dot.style.boxShadow="none";},2500);
+  setTimeout(()=>dot.style.background="#aaa",2500);
 }
 
 function normalPrint(){window.print();}
 
-// PNG export
 async function getInvoiceImage(){
   const invoice=document.getElementById("invoice");
   const buttons=document.getElementById("buttonsArea");
@@ -191,29 +194,48 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
-// Android Wi-Fi Print
-function androidPrint(){
-  const ip=document.getElementById("printerIp").value.trim();
-  if(window.AndroidBridge && typeof AndroidBridge.printWiFi==="function"){
-    getInvoiceImage().then(dataUrl=>{
-      AndroidBridge.printWiFi(ip,dataUrl);
-      updateStatus(true);
-    }).catch(e=>{
-      console.error(e);updateStatus(false);
-    });
-  }else{
-    alert("AndroidBridge not available.");updateStatus(false);
-  }
-}
+function androidPrint() { 
+  // 1️⃣ Gather current invoice data
+  const orderData = {
+    table: document.getElementById("tableBox").textContent,
+    billNo: document.getElementById("billLabel").textContent,
+    timeIn: document.getElementById("timeInTime").textContent,
+    timeOut: document.getElementById("timeOutLabel").textContent,
+    items: Array.from(document.querySelectorAll("#itemsList .row"))
+      .filter(r => !r.classList.contains("header"))
+      .map(r => ({
+        name: r.children[0].textContent,
+        price: parseFloat(r.children[1].textContent.replace(/,/g, "")) || 0,
+        qty: parseInt(r.children[2].textContent) || 1,
+        amount: parseFloat(r.children[3].textContent.replace(/,/g, "")) || 0
+      })),
+    total: parseFloat(document.getElementById("totalPrice").textContent.replace(/,/g, "")) || 0,
+    discount: parseFloat(document.getElementById("discountLabel").textContent.replace(/,/g, "")) || 0,
+    vat: parseFloat(document.getElementById("vatAmount").textContent.replace(/,/g, "")) || 0,
+    grandTotal: parseFloat(document.getElementById("grandTotal").textContent.replace(/,/g, "")) || 0
+  };
 
-// ✅ Save order to localStorage (so it shows)
-function saveInvoiceOrder(orderData){
-  try{
-    localStorage.setItem("papadumsInvoiceOrder",JSON.stringify(orderData));
-    if(window.AndroidBridge && typeof AndroidBridge.saveOrder==="function"){
-      AndroidBridge.saveOrder(JSON.stringify(orderData));
+  // 2️⃣ Save locally for asset page
+  localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
+
+  // 3️⃣ Broadcast to asset page if open (optional)
+  try {
+    const bc = new BroadcastChannel('invoice_channel');
+    bc.postMessage({ type: "ORDER_DATA", data: orderData });
+    bc.close();
+  } catch(e){}
+
+  // 4️⃣ Call Android bridge or fallback
+  setTimeout(() => {
+    if (window.AndroidBridge && typeof AndroidBridge.openAssetWiFiPrinter === "function") {
+      AndroidBridge.openAssetWiFiPrinter();
+    } else {
+      // fallback for browser
+      window.open("invoice_browser.asset.html", "_blank");
     }
-  }catch(e){console.warn("saveInvoiceOrder failed",e);}
+  }, 250);
+
+  updateStatus(true);
 }
 </script>
 </body>
