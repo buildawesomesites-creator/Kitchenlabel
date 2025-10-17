@@ -168,8 +168,6 @@ window.onload = () => {
 
   // 🤖 Android Wi-Fi Print — OPEN ASSET HTML
   document.getElementById("androidPrintBtn").addEventListener("click", async () => {
-
-    // Save latest data
     const tableNum = document.getElementById("tableNum").textContent;
     const orderItems = Array.from(document.querySelectorAll("#itemList tr")).map(tr => ({
         name: tr.children[0]?.textContent || "",
@@ -179,11 +177,21 @@ window.onload = () => {
     const orderData = { table: tableNum, items: orderItems };
     localStorage.setItem("papadumsInvoiceData", JSON.stringify(orderData));
 
-    // Call Android bridge to open asset
+    // Send to asset page via BroadcastChannel
+    const bc = new BroadcastChannel('kot_channel');
+    bc.postMessage({ type: "ORDER_DATA", data: orderData });
+
+    // Wait for acknowledgment
+    bc.onmessage = (event) => {
+      if (event.data === "ACK_RECEIVED") {
+        showStatus(true, "✅ Asset page received data");
+      }
+    };
+
+    // Call Android bridge
     if (typeof AndroidBridge !== "undefined" && AndroidBridge.openAssetWiFiPrinter) {
         AndroidBridge.openAssetWiFiPrinter();
     } else {
-        // fallback for browser
         window.open("kot_browser.asset.html", "_blank");
     }
   });
@@ -201,3 +209,4 @@ window.onload = () => {
 </script>
 </body>
 </html>
+ss
