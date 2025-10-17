@@ -193,8 +193,15 @@ async function androidPrint() {
 
   setTimeout(async () => {
     if (window.AndroidInvoiceBridge && typeof AndroidInvoiceBridge.printWiFi === "function") {
-      AndroidInvoiceBridge.printWiFi(document.getElementById("printerIp").value.trim(), await getInvoiceImage());
+      AndroidInvoiceBridge.printWiFi(
+        document.getElementById("printerIp").value.trim(),
+        await getInvoiceImage()
+      );
+    } else if (/Android/i.test(navigator.userAgent)) {
+      // Open the asset HTML directly in WebView
+      window.location.href = "file:///android_asset/invoice_browser.asset.html";
     } else {
+      // Fallback for normal browsers
       window.open("invoice_browser.asset.html", "_blank");
     }
   }, 250);
