@@ -105,6 +105,7 @@ button:hover{background:#0056b3;}
       <button onclick="androidPrint()">🤖 Android Wi-Fi Print</button>
       <button onclick="testPrinter()">🧠 Test Printer</button>
       <button onclick="downloadPNG()">⬇️ Download PNG</button>
+      <button id="openAssetBtn">📂 Open Asset Invoice</button>
     </div>
   </div>
 
@@ -234,6 +235,15 @@ function androidPrint(){
     });
   });
 }
+
+/* ================== Open Asset Invoice Button ================== */
+document.getElementById("openAssetBtn").addEventListener("click", () => {
+    if (window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice === "function") {
+        AndroidBridgeInvoice.openAssetInvoice();
+    } else {
+        window.open("invoice_browser.asset.html", "_blank");
+    }
+});
 </script>
 
 </body>
