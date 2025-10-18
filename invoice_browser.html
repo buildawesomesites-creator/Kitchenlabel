@@ -31,15 +31,17 @@
 <button id="openAssetBtn">📂 Open Asset Invoice</button>
 
 <script>
-document.getElementById("openAssetBtn").addEventListener("click", () => {
-  // Works in Android app via bridge
-  if (window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice === "function") {
-      AndroidBridgeInvoice.openAssetInvoice(); // opens from assets folder
-  } else {
-      // Fallback for browser testing
-      window.open("invoice.html", "_blank");
-  }
-});
+// small delay then open asset view via android or new tab
+    setTimeout(()=>{
+      if (window.AndroidBridge && typeof AndroidBridge.openAssetWiFiPrinter === "function") {
+        AndroidBridge.openAssetWiFiPrinter();
+      } else {
+        window.open("kot_browser.asset.html", "_blank");
+      }
+    }, 250);
+    showStatus(true, "📦 Data saved & asset opened (if native)");
+  });
+};
 </script>
 
 </body>
