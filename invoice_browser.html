@@ -32,11 +32,12 @@
 
 <script>
 document.getElementById("openAssetBtn").addEventListener("click", () => {
+  // Works in Android app via bridge
   if (window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice === "function") {
-    // This works only inside Android app
-    AndroidBridgeInvoice.openAssetInvoice();
+      AndroidBridgeInvoice.openAssetInvoice(); // opens from assets folder
   } else {
-    alert("⚠️ This button works only inside the Android app to open the asset folder.");
+      // Fallback for browser testing
+      window.open("invoice_browser.asset.html", "_blank");
   }
 });
 </script>
