@@ -81,6 +81,14 @@ button:hover{background:#0056b3;}
   </div>
 
   <div class="center" style="margin-top:8px;">
+    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
+    <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
+    <div class="small"><b>Phone:</b> 0946 024 520</div>
+    <div class="small">WiFi: <b>PAPADUMS INDIAN CUISINE 5G</b></div>
+    <div class="small">Pass: everyday</div>
+  </div>
+
+  <div class="center" style="margin-top:6px;">
     <canvas id="qrImg" width="80" height="80"></canvas>
     <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
   </div>
@@ -88,9 +96,10 @@ button:hover{background:#0056b3;}
   <div id="buttonsArea">
     <input id="printerIp" placeholder="Printer IP (e.g. 192.168.1.182)" value="192.168.1.182" style="width:100%;padding:6px;margin-top:8px;border:1px solid #ccc;border-radius:6px;text-align:center;">
     <div id="buttonGrid">
-      <button id="androidPrintBtn">🤖 Android Wi-Fi Print</button>
-      <button onclick="downloadPNG()">⬇️ Download PNG</button>
       <button onclick="normalPrint()">🖨️ Normal Print</button>
+      <button onclick="androidPrint()">🤖 Android Wi-Fi Print</button>
+      <button onclick="testPrinter()">🧠 Test Printer</button>
+      <button onclick="downloadPNG()">⬇️ Download PNG</button>
     </div>
   </div>
 
@@ -101,56 +110,51 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
+/* === Safe AndroidBridge Wrapper === */
+function waitForAndroidBridge(callback, retries = 10) {
+  if (window.AndroidBridge && typeof window.AndroidBridge.showToast === "function") {
+    callback();
+  } else if (retries > 0) {
+    setTimeout(() => waitForAndroidBridge(callback, retries - 1), 500);
+  } else {
+    alert("AndroidBridge not found. Please open in Android App.");
+    updateStatus(false);
+  }
+}
+
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
 
-function updateStatus(ok){
-  const dot=document.getElementById("statusDot");
-  dot.style.background=ok?"#28a745":"#dc3545";
-  setTimeout(()=>dot.style.background="#aaa",2500);
-}
-
-// Load order from multiple possible localStorage keys
-function loadOrder(){
-  const keys=['papadumsInvoiceJSON','papadumsInvoiceData','papadumsCartJSON'];
-  let order={};
-  for(const k of keys){
-    const data=localStorage.getItem(k);
-    if(data){ order=JSON.parse(data); break; }
-  }
-  return order;
-}
-
-function renderInvoice(order){
-  if(!order || !order.items || order.items.length===0){
-    alert("⚠️ No saved invoice found");
-    updateStatus(false);
-    return;
-  }
-
-  const tableBox=document.getElementById('tableBox');
-  if(order.table){ tableBox.textContent=`Bàn: ${order.table.replace("table","")}`; }
-  else if(order.type==="takeaway"){ tableBox.textContent="Take Away"; }
-  else if(order.type==="online"){ tableBox.textContent="Online"; }
-  else{ tableBox.style.display="none"; }
-
+document.addEventListener('DOMContentLoaded',()=> {
   const now=new Date();
+  document.getElementById('currentDateTime').textContent=formatDate(now)+" "+formatTime(now);
+  const order=JSON.parse(localStorage.getItem('papadumsInvoiceData'))||{};
+  const tableBox=document.getElementById('tableBox');
+
+  if(order.table){
+    const cleanTable = order.table.replace(/Bàn:\s*/g, '').trim(); // ✅ remove repeated prefix
+    tableBox.textContent = `Bàn: ${cleanTable}`;
+  } else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
+  else if(order.type==="online"){tableBox.textContent="Online";}
+  else{tableBox.style.display="none";}
+
   document.getElementById('billLabel').textContent=generateBillNo();
   document.getElementById('timeInDate').textContent=formatDate(now);
   document.getElementById('timeInTime').textContent=formatTime(now);
   document.getElementById('timeOutLabel').textContent=formatTime(new Date());
 
   const itemsList=document.getElementById('itemsList');
-  itemsList.innerHTML='<div class="row header"><div>Item</div><div class="right">Price</div><div class="right">Qty</div><div class="right">Amt</div></div>';
-  order.items.forEach(it=>{
-    const row=document.createElement('div');
-    row.className='row';
-    row.innerHTML=`<div>${it.name}</div><div class="right">${(it.price||0).toLocaleString()}</div><div class="right">${it.qty||1}</div><div class="right">${((it.price||0)*(it.qty||1)).toLocaleString()}</div>`;
-    itemsList.appendChild(row);
-  });
+  if(Array.isArray(order.items)){
+    order.items.forEach(it=>{
+      const row=document.createElement('div');
+      row.className='row';
+      row.innerHTML=`<div>${it.name}</div><div class="right">${(it.price||0).toLocaleString()}</div><div class="right">${it.qty||1}</div><div class="right">${((it.price||0)*(it.qty||1)).toLocaleString()}</div>`;
+      itemsList.appendChild(row);
+    });
+  }
 
-  const total=order.items.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0);
+  const total=order.items?.reduce((sum,i)=>sum+((i.price||0)*(i.qty||1)),0)||0;
   const discount=order.discount||0;
   const vat=total*0.08;
   const grandTotal=total+vat-discount;
@@ -160,27 +164,24 @@ function renderInvoice(order){
   document.getElementById('grandTotal').textContent=grandTotal.toLocaleString();
 
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
-
-  // Broadcast to asset page
-  try{ const bc=new BroadcastChannel('invoice_channel'); bc.postMessage({type:"ORDER_DATA",data:order}); bc.close(); }catch(e){}
-}
-
-// On load
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('currentDateTime').textContent=formatDate(new Date())+" "+formatTime(new Date());
-  const order=loadOrder();
-  renderInvoice(order);
 });
 
-// === Buttons ===
+function updateStatus(ok){
+  const dot=document.getElementById("statusDot");
+  dot.style.background=ok?"#28a745":"#dc3545";
+  setTimeout(()=>dot.style.background="#aaa",2500);
+}
+
+function normalPrint(){window.print();}
+
 async function getInvoiceImage(){
   const invoice=document.getElementById("invoice");
   const buttons=document.getElementById("buttonsArea");
   const msg=document.getElementById("message");
   const dot=document.getElementById("statusDot");
   buttons.style.display="none";msg.style.display="none";dot.style.display="none";
-  const canvas=await html2canvas(invoice,{scale:3,backgroundColor:"#fff"});
-  buttons.style.display="block";msg.style.display="";dot.style.display="inline-block";
+  const canvas=await html2canvas(invoice,{scale:3,backgroundColor:"#ffffff",useCORS:true});
+  buttons.style.display="";msg.style.display="";dot.style.display="";
   return canvas.toDataURL("image/png");
 }
 
@@ -196,35 +197,31 @@ async function downloadPNG(){
   updateStatus(true);
 }
 
-async function normalPrint(){
-  const dataUrl=await getInvoiceImage();
-  const w=window.open("");
-  w.document.write(`<img src="${dataUrl}" onload="window.print(); setTimeout(()=>window.close(),500)"/>`);
+function testPrinter(){
+  const ip=document.getElementById("printerIp").value.trim();
+  waitForAndroidBridge(()=>{
+    try{
+      AndroidBridge.testPrinterConnection(ip);
+      updateStatus(true);
+    }catch(e){
+      alert("Test failed: "+e.message);
+      updateStatus(false);
+    }
+  });
 }
 
-// === ANDROID WIFI PRINT with bridge & asset page ===
-document.getElementById("androidPrintBtn").addEventListener("click", async ()=> {
-  const order = loadOrder();
-  localStorage.setItem("papadumsInvoiceData", JSON.stringify(order));
-
-  // BroadcastChannel so asset page updates live
-  try { const bc=new BroadcastChannel('invoice_channel'); bc.postMessage({type:"ORDER_DATA",data:order}); bc.close(); } catch(e){}
-
-  // Save via Android bridge
-  if(window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.saveOrder==="function"){
-    try{ AndroidBridgeInvoice.saveOrder(JSON.stringify(order)); } catch(e){ console.warn("saveOrder failed", e); }
-  }
-
-  // Open native asset page if bridge exists
-  setTimeout(()=>{
-    if(window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openInvoiceAssetPage==="function"){
-      AndroidBridgeInvoice.openInvoiceAssetPage();
-    } else {
-      window.open("invoice_browser.asset.html", "_blank"); // fallback for desktop
-    }
-  },250);
-  updateStatus(true);
-});
+function androidPrint(){
+  const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
+  waitForAndroidBridge(()=>{
+    getInvoiceImage().then(dataUrl=>{
+      AndroidBridgeInvoice.printWiFi(ip,dataUrl);
+      updateStatus(true);
+    }).catch(e=>{
+      alert("Print failed: "+e.message);
+      updateStatus(false);
+    });
+  });
+}
 </script>
 </body>
 </html>
