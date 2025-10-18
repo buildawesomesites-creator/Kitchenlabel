@@ -43,12 +43,14 @@ button:hover{background:#0056b3;}
 <div id="invoiceTitle" style="position:absolute;top:5px;right:5px;font-size:12px;font-weight:bold;">Papadums Invoice</div>
 
 <div class="receipt" id="invoice">
+  <!-- Header -->
   <div class="center" style="margin-bottom:6px;">
     <div class="header-title">PAPADUMS INDIAN CUISINE</div>
     <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
     <div class="small"><b>Phone:</b> 0946 024 520</div>
   </div>
 
+  <!-- Table / Invoice info -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:4px;">
     <div style="text-align:left;">
       <div class="roundbox" id="tableBox"></div>
@@ -65,12 +67,14 @@ button:hover{background:#0056b3;}
     </div>
   </div>
 
+  <!-- Items -->
   <div class="items" id="itemsList">
     <div class="row header">
       <div>Item</div><div class="right">Price</div><div class="right">Qty</div><div class="right">Amt</div>
     </div>
   </div>
 
+  <!-- Totals -->
   <div style="border-top:1px solid #000;margin-top:6px;padding-top:6px">
     <div class="totals">
       <div class="line"><div><b>Total Price:</b></div><div id="totalPrice" class="right"></div></div>
@@ -80,19 +84,13 @@ button:hover{background:#0056b3;}
     </div>
   </div>
 
+  <!-- Footer & QR -->
   <div class="center" style="margin-top:8px;">
-    <div class="header-title">PAPADUMS INDIAN CUISINE</div>
-    <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
-    <div class="small"><b>Phone:</b> 0946 024 520</div>
-    <div class="small">WiFi: <b>PAPADUMS INDIAN CUISINE 5G</b></div>
-    <div class="small">Pass: everyday</div>
-  </div>
-
-  <div class="center" style="margin-top:6px;">
     <canvas id="qrImg" width="80" height="80"></canvas>
     <div class="small" style="margin-top:4px;">Invoice includes VAT</div>
   </div>
 
+  <!-- Buttons -->
   <div id="buttonsArea">
     <input id="printerIp" placeholder="Printer IP (e.g. 192.168.1.182)" value="192.168.1.182" style="width:100%;padding:6px;margin-top:8px;border:1px solid #ccc;border-radius:6px;text-align:center;">
     <div id="buttonGrid">
@@ -110,31 +108,38 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
-/* === Safe AndroidBridge Wrapper === */
-function waitForAndroidBridge(callback, retries = 10) {
-  if (window.AndroidBridge && typeof window.AndroidBridge.showToast === "function") {
+/* ================== Safe AndroidBridgeInvoice Wrapper ================== */
+function waitForInvoiceBridge(callback, retries=10){
+  if(window.AndroidBridgeInvoice && typeof window.AndroidBridgeInvoice.printWiFi === "function"){
     callback();
-  } else if (retries > 0) {
-    setTimeout(() => waitForAndroidBridge(callback, retries - 1), 500);
+  } else if(retries>0){
+    setTimeout(()=>waitForInvoiceBridge(callback,retries-1),500);
   } else {
-    alert("AndroidBridge not found. Please open in Android App.");
+    alert("⚠️ AndroidBridgeInvoice not found. Open inside Android app.");
     updateStatus(false);
   }
 }
 
+/* ================== Utility Functions ================== */
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
+function updateStatus(ok){
+  const dot=document.getElementById("statusDot");
+  dot.style.background=ok?"#28a745":"#dc3545";
+  setTimeout(()=>dot.style.background="#aaa",2500);
+}
 
+/* ================== Invoice Rendering ================== */
 document.addEventListener('DOMContentLoaded',()=> {
   const now=new Date();
   document.getElementById('currentDateTime').textContent=formatDate(now)+" "+formatTime(now);
-  const order=JSON.parse(localStorage.getItem('papadumsInvoiceData'))||{};
+  const order=JSON.parse(localStorage.getItem('papadumsInvoiceData')||"{}");
   const tableBox=document.getElementById('tableBox');
 
   if(order.table){
-    const cleanTable = order.table.replace(/Bàn:\s*/g, '').trim(); // ✅ remove repeated prefix
-    tableBox.textContent = `Bàn: ${cleanTable}`;
+    const cleanTable=order.table.replace(/Bàn:\s*/g,'').trim();
+    tableBox.textContent=`Bàn: ${cleanTable}`;
   } else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
   else if(order.type==="online"){tableBox.textContent="Online";}
   else{tableBox.style.display="none";}
@@ -166,12 +171,7 @@ document.addEventListener('DOMContentLoaded',()=> {
   new QRious({element:document.getElementById("qrImg"),value:`Papadums Invoice - ${formatDate(now)} ${formatTime(now)}`,size:80});
 });
 
-function updateStatus(ok){
-  const dot=document.getElementById("statusDot");
-  dot.style.background=ok?"#28a745":"#dc3545";
-  setTimeout(()=>dot.style.background="#aaa",2500);
-}
-
+/* ================== Printing Functions ================== */
 function normalPrint(){window.print();}
 
 async function getInvoiceImage(){
@@ -199,9 +199,9 @@ async function downloadPNG(){
 
 function testPrinter(){
   const ip=document.getElementById("printerIp").value.trim();
-  waitForAndroidBridge(()=>{
+  waitForInvoiceBridge(()=>{
     try{
-      AndroidBridge.testPrinterConnection(ip);
+      AndroidBridgeInvoice.testPrinterConnection(ip);
       updateStatus(true);
     }catch(e){
       alert("Test failed: "+e.message);
@@ -212,10 +212,15 @@ function testPrinter(){
 
 function androidPrint(){
   const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
-  waitForAndroidBridge(()=>{
+  waitForInvoiceBridge(()=>{
     getInvoiceImage().then(dataUrl=>{
-      AndroidBridgeInvoice.printWiFi(ip,dataUrl);
-      updateStatus(true);
+      try{
+        AndroidBridgeInvoice.printWiFi(ip,dataUrl);
+        updateStatus(true);
+      }catch(e){
+        alert("Print failed: "+e.message);
+        updateStatus(false);
+      }
     }).catch(e=>{
       alert("Print failed: "+e.message);
       updateStatus(false);
@@ -223,5 +228,6 @@ function androidPrint(){
   });
 }
 </script>
+
 </body>
 </html>
