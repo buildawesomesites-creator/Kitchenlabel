@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google" content="notranslate">
-<title>Papadums Invoice</title>
+<title>Papadums Invoice (Browser + Android)</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
@@ -84,7 +84,7 @@ button:hover{background:#0056b3;}
     </div>
   </div>
 
-  <!-- Footer text -->
+  <!-- Footer -->
   <div class="center" style="margin-top:8px;">
     <div class="header-title">PAPADUMS INDIAN CUISINE</div>
     <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
@@ -116,25 +116,14 @@ button:hover{background:#0056b3;}
 </div>
 
 <script>
-/* ================== Safe AndroidBridgeInvoice Wrapper ================== */
-function waitForInvoiceBridge(callback, retries=10){
-  if(window.AndroidBridgeInvoice && typeof window.AndroidBridgeInvoice.printWiFi === "function"){
-    callback();
-  } else if(retries>0){
-    setTimeout(()=>waitForInvoiceBridge(callback,retries-1),500);
-  } else {
-    alert("⚠️ AndroidBridgeInvoice not found. Open inside Android app.");
-    updateStatus(false);
-  }
-}
-
-/* ================== Utility Functions ================== */
+/* ================== Utilities ================== */
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
-function updateStatus(ok){
-  const dot=document.getElementById("statusDot");
+function updateStatus(ok,msg=""){ 
+  const dot=document.getElementById("statusDot"); 
   dot.style.background=ok?"#28a745":"#dc3545";
+  if(msg) console.log(msg);
   setTimeout(()=>dot.style.background="#aaa",2500);
 }
 
@@ -146,8 +135,7 @@ document.addEventListener('DOMContentLoaded',()=> {
   const tableBox=document.getElementById('tableBox');
 
   if(order.table){
-    const cleanTable=order.table.replace(/Bàn:\s*/g,'').trim();
-    tableBox.textContent=`Bàn: ${cleanTable}`;
+    tableBox.textContent=`Bàn: ${order.table.replace(/Bàn:\s*/g,'').trim()}`;
   } else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
   else if(order.type==="online"){tableBox.textContent="Online";}
   else{tableBox.style.display="none";}
@@ -181,7 +169,6 @@ document.addEventListener('DOMContentLoaded',()=> {
 
 /* ================== Printing Functions ================== */
 function normalPrint(){window.print();}
-
 async function getInvoiceImage(){
   const invoice=document.getElementById("invoice");
   const buttons=document.getElementById("buttonsArea");
@@ -192,7 +179,6 @@ async function getInvoiceImage(){
   buttons.style.display="";msg.style.display="";dot.style.display="";
   return canvas.toDataURL("image/png");
 }
-
 async function downloadPNG(){
   const dataUrl=await getInvoiceImage();
   const link=document.createElement("a");
@@ -202,49 +188,37 @@ async function downloadPNG(){
   const msg=document.getElementById("message");
   msg.style.display="block";
   setTimeout(()=>msg.style.display="none",2500);
-  updateStatus(true);
+  updateStatus(true,"PNG downloaded");
 }
-
 function testPrinter(){
   const ip=document.getElementById("printerIp").value.trim();
-  waitForInvoiceBridge(()=>{
-    try{
-      AndroidBridgeInvoice.testPrinterConnection(ip);
-      updateStatus(true);
-    }catch(e){
-      alert("Test failed: "+e.message);
-      updateStatus(false);
-    }
-  });
+  if(!ip) return alert("Enter printer IP");
+  try{
+    fetch(`http://${ip}:9100`, {method:"HEAD", mode:"no-cors"});
+    updateStatus(true,"Printer reachable");
+  }catch(e){ updateStatus(false,"Printer unreachable"); }
 }
-
 function androidPrint(){
   const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
-  waitForInvoiceBridge(()=>{
-    getInvoiceImage().then(dataUrl=>{
-      try{
-        AndroidBridgeInvoice.printWiFi(ip,dataUrl);
-        updateStatus(true);
-      }catch(e){
-        alert("Print failed: "+e.message);
-        updateStatus(false);
-      }
-    }).catch(e=>{
-      alert("Print failed: "+e.message);
-      updateStatus(false);
-    });
+  getInvoiceImage().then(dataUrl=>{
+    if(window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.printWiFi==="function"){
+      try{ AndroidBridgeInvoice.printWiFi(ip,dataUrl); updateStatus(true,"Printed via AndroidBridgeInvoice"); }
+      catch(e){ alert("Print failed: "+e.message); updateStatus(false); }
+    } else { alert("AndroidBridgeInvoice not found."); updateStatus(false); }
   });
 }
 
 /* ================== Open Asset Invoice Button ================== */
 document.getElementById("openAssetBtn").addEventListener("click", () => {
-    if (window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice === "function") {
-        AndroidBridgeInvoice.openAssetInvoice();
+  setTimeout(()=>{
+    if(window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice==="function"){
+      AndroidBridgeInvoice.openAssetInvoice();
     } else {
-        window.open("kot_browser.asset.html", "_blank");
+      window.open("invoice_browser.asset.html","_blank");
     }
+  },250);
+  updateStatus(true,"📦 Data saved & asset opened (if native)");
 });
 </script>
-
 </body>
 </html>
