@@ -1,40 +1,38 @@
 <!DOCTYPE html>
 <html lang="vi" translate="no" class="notranslate">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="google" content="notranslate">
-<title>Papadums Invoice (Browser + Android)</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<meta http-equiv="Content-Language" content="vi">
+<title>Papadums Invoice (Asset + Android)</title>
 
 <style>
-*{box-sizing:border-box;}
-body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:0;}
-.receipt{width:58mm;margin:auto;padding:6px;background:#fff;color:#000;}
-.center{text-align:center;}
-.right{text-align:right;}
-.small{font-size:11px;}
-.bold{font-weight:700;}
-.items{margin-top:6px;}
-.items .row{display:grid;grid-template-columns:1fr 55px 25px 55px;align-items:center;padding:3px 0;border-bottom:1px dashed #ddd;font-size:12px;}
-.items .row.header{font-weight:700;border-bottom:1px solid #000;}
-.totals{margin-top:6px;font-size:13px;}
-.totals .line{display:flex;justify-content:space-between;padding:2px 0;}
-.header-title{font-weight:700;font-size:13px;}
-.roundbox{border:1px solid #000;padding:4px 8px;border-radius:10px;font-size:12px;font-weight:700;display:inline-block;}
-button{width:100%;padding:10px;background:#007bff;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;}
-button:hover{background:#0056b3;}
-#buttonGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
-#message{display:none;text-align:center;margin-top:8px;font-size:13px;color:green;font-weight:bold;}
-#statusDot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-top:8px;background:#aaa;transition:background 0.3s;}
-@media print {
-  html,body{width:58mm!important;height:auto!important;margin:0;padding:0;background:#fff;overflow:hidden;}
-  #currentDateTime,#invoiceTitle,#buttonsArea,#message,#statusDot{display:none!important;}
-  .receipt{width:58mm!important;margin:2mm auto;padding:2mm 3mm;box-shadow:none;border-radius:0;}
-  @page{size:58mm auto;margin:0;}
-}
+  *{box-sizing:border-box;}
+  body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:0;}
+  .receipt{width:58mm;margin:auto;padding:6px;background:#fff;color:#000;}
+  .center{text-align:center;}
+  .right{text-align:right;}
+  .small{font-size:11px;}
+  .bold{font-weight:700;}
+  .items{margin-top:6px;}
+  .items .row{display:grid;grid-template-columns:1fr 55px 25px 55px;align-items:center;padding:3px 0;border-bottom:1px dashed #ddd;font-size:12px;}
+  .items .row.header{font-weight:700;border-bottom:1px solid #000;}
+  .totals{margin-top:6px;font-size:13px;}
+  .totals .line{display:flex;justify-content:space-between;padding:2px 0;}
+  .header-title{font-weight:700;font-size:13px;}
+  .roundbox{border:1px solid #000;padding:4px 8px;border-radius:10px;font-size:12px;font-weight:700;display:inline-block;}
+  button{width:100%;padding:10px;background:#007bff;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;}
+  button:hover{background:#0056b3;}
+  #buttonGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  #message{display:none;text-align:center;margin-top:8px;font-size:13px;color:green;font-weight:bold;}
+  #statusDot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-top:8px;background:#aaa;transition:background 0.3s;}
+  @media print {
+    html,body{width:58mm!important;height:auto!important;margin:0;padding:0;background:#fff;overflow:hidden;}
+    #currentDateTime,#invoiceTitle,#buttonsArea,#message,#statusDot{display:none!important;}
+    .receipt{width:58mm!important;margin:2mm auto;padding:2mm 3mm;box-shadow:none;border-radius:0;}
+    @page{size:58mm auto;margin:0;}
+  }
 </style>
 </head>
 <body>
@@ -84,7 +82,7 @@ button:hover{background:#0056b3;}
     </div>
   </div>
 
-  <!-- Footer -->
+  <!-- Footer text -->
   <div class="center" style="margin-top:8px;">
     <div class="header-title">PAPADUMS INDIAN CUISINE</div>
     <div class="small"><b>Address:</b> 35 Trần Hưng Đạo, P. Nguyễn Thái Bình, Q1, TP.HCM</div>
@@ -115,15 +113,17 @@ button:hover{background:#0056b3;}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
 <script>
-/* ================== Utilities ================== */
+/* ================== Utility Functions ================== */
 function formatDate(d){return d.toLocaleDateString('vi-VN');}
 function formatTime(d){return d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function generateBillNo(){return "HD00"+Math.floor(1000+Math.random()*9000);}
-function updateStatus(ok,msg=""){ 
-  const dot=document.getElementById("statusDot"); 
+function updateStatus(ok){
+  const dot=document.getElementById("statusDot");
   dot.style.background=ok?"#28a745":"#dc3545";
-  if(msg) console.log(msg);
   setTimeout(()=>dot.style.background="#aaa",2500);
 }
 
@@ -135,7 +135,8 @@ document.addEventListener('DOMContentLoaded',()=> {
   const tableBox=document.getElementById('tableBox');
 
   if(order.table){
-    tableBox.textContent=`Bàn: ${order.table.replace(/Bàn:\s*/g,'').trim()}`;
+    const cleanTable=order.table.replace(/Bàn:\s*/g,'').trim();
+    tableBox.textContent=`Bàn: ${cleanTable}`;
   } else if(order.type==="takeaway"){tableBox.textContent="Take Away";}
   else if(order.type==="online"){tableBox.textContent="Online";}
   else{tableBox.style.display="none";}
@@ -169,6 +170,7 @@ document.addEventListener('DOMContentLoaded',()=> {
 
 /* ================== Printing Functions ================== */
 function normalPrint(){window.print();}
+
 async function getInvoiceImage(){
   const invoice=document.getElementById("invoice");
   const buttons=document.getElementById("buttonsArea");
@@ -179,6 +181,7 @@ async function getInvoiceImage(){
   buttons.style.display="";msg.style.display="";dot.style.display="";
   return canvas.toDataURL("image/png");
 }
+
 async function downloadPNG(){
   const dataUrl=await getInvoiceImage();
   const link=document.createElement("a");
@@ -188,23 +191,28 @@ async function downloadPNG(){
   const msg=document.getElementById("message");
   msg.style.display="block";
   setTimeout(()=>msg.style.display="none",2500);
-  updateStatus(true,"PNG downloaded");
+  updateStatus(true);
 }
+
 function testPrinter(){
   const ip=document.getElementById("printerIp").value.trim();
   if(!ip) return alert("Enter printer IP");
   try{
-    fetch(`http://${ip}:9100`, {method:"HEAD", mode:"no-cors"});
-    updateStatus(true,"Printer reachable");
-  }catch(e){ updateStatus(false,"Printer unreachable"); }
+    fetch(`http://${ip}:9100`, { method:"HEAD", mode:"no-cors" });
+    updateStatus(true);
+  } catch(e){ updateStatus(false); }
 }
+
 function androidPrint(){
   const ip=document.getElementById("printerIp").value.trim()||"192.168.1.182";
   getInvoiceImage().then(dataUrl=>{
     if(window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.printWiFi==="function"){
-      try{ AndroidBridgeInvoice.printWiFi(ip,dataUrl); updateStatus(true,"Printed via AndroidBridgeInvoice"); }
-      catch(e){ alert("Print failed: "+e.message); updateStatus(false); }
-    } else { alert("AndroidBridgeInvoice not found."); updateStatus(false); }
+      AndroidBridgeInvoice.printWiFi(ip,dataUrl);
+      updateStatus(true);
+    } else {
+      alert("⚠️ AndroidBridgeInvoice not available. Must open in app to print.");
+      updateStatus(false);
+    }
   });
 }
 
@@ -213,12 +221,13 @@ document.getElementById("openAssetBtn").addEventListener("click", () => {
   setTimeout(()=>{
     if(window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice==="function"){
       AndroidBridgeInvoice.openAssetInvoice();
+      updateStatus(true);
     } else {
-      window.open("invoice_browser.asset.html","_blank");
+      alert("⚠️ Must open from Android app to access asset folder.");
     }
   },250);
-  updateStatus(true,"📦 Data saved & asset opened (if native)");
 });
 </script>
+
 </body>
 </html>
