@@ -3,6 +3,28 @@
 <head>
   <meta charset="utf-8">
   <title>Test Asset Button</title>
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
 </head>
 <body>
 
@@ -11,9 +33,10 @@
 <script>
 document.getElementById("openAssetBtn").addEventListener("click", () => {
   if (window.AndroidBridgeInvoice && typeof AndroidBridgeInvoice.openAssetInvoice === "function") {
+    // This works only inside Android app
     AndroidBridgeInvoice.openAssetInvoice();
   } else {
-    alert("⚠️ Must open inside Android app to access asset folder.");
+    alert("⚠️ This button works only inside the Android app to open the asset folder.");
   }
 });
 </script>
