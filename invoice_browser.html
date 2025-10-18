@@ -168,7 +168,7 @@ window.onload = () => {
       if (window.AndroidBridge && typeof AndroidBridge.openAssetWiFiPrinter === "function") {
         AndroidBridge.openAssetWiFiPrinter();
       } else {
-        window.open("kot_browser.asset.html", "_blank");
+        window.open("invoice.html", "_blank");
       }
     }, 250);
     showStatus(true, "📦 Data saved & asset opened (if native)");
